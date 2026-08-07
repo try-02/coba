@@ -24,6 +24,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sign
 
+/**
+ * Modifier kustom untuk memberikan efek pantulan ujung (rubber-band) gaya iOS.
+ * Dipadukan dengan animasi membesar/mengecil (scale).
+ */
 fun Modifier.bouncyOverscroll(
     orientation: Orientation = Orientation.Vertical
 ): Modifier = composed {
@@ -33,6 +37,7 @@ fun Modifier.bouncyOverscroll(
     val connection = remember(orientation) {
         var animJob: Job? = null
 
+        // Fisika Spring iOS: Damping 0.5f (Kenyal) & StiffnessLow (200f) agar jangkauan membal terlihat nyata
         fun springBackToZero(initialVelocity: Float = 0f) {
             animJob?.cancel()
             animJob = scope.launch {
@@ -40,8 +45,8 @@ fun Modifier.bouncyOverscroll(
                     targetValue = 0f,
                     initialVelocity = initialVelocity,
                     animationSpec = spring(
-                        dampingRatio = 0.55f,
-                        stiffness = Spring.StiffnessMediumLow
+                        dampingRatio = 0.5f,        // 0.5f = kenyal & bouncy khas iOS
+                        stiffness = Spring.StiffnessLow // StiffnessLow (200f) membuat benturan membal terlihat tegas
                     )
                 )
             }
@@ -53,7 +58,6 @@ fun Modifier.bouncyOverscroll(
                 val current = translation.value
                 val availableDelta = if (orientation == Orientation.Vertical) available.y else available.x
 
-                // Gunakan threshold > 0.5f agar tidak menginterupsi scroll biasa
                 if (abs(current) > 0.5f && sign(availableDelta) != sign(current)) {
                     animJob?.cancel()
                     
@@ -83,11 +87,18 @@ fun Modifier.bouncyOverscroll(
             ): Offset {
                 val availableDelta = if (orientation == Orientation.Vertical) available.y else available.x
 
+                // 1. PERBAIKAN SCROLL PELAN: Elastisitas karet dinamis
                 if (availableDelta != 0f && source == NestedScrollSource.UserInput) {
                     animJob?.cancel()
-                    val resistance = availableDelta * 0.22f
+                    
+                    val currentAbs = abs(translation.value)
+                    // Elastisitas awal 0.45f (responsif langsung terasa lentur saat ditarik pelan),
+                    // lalu mengencang secara bertahap saat ditarik makin jauh (maksimal 350f)
+                    val elasticity = 0.45f * (1f - (currentAbs / 350f).coerceIn(0f, 0.85f))
+                    val resistance = availableDelta * elasticity
+
                     scope.launch {
-                        val target = (translation.value + resistance).coerceIn(-280f, 280f)
+                        val target = (translation.value + resistance).coerceIn(-350f, 350f)
                         translation.snapTo(target)
                     }
                     return available
@@ -97,20 +108,20 @@ fun Modifier.bouncyOverscroll(
 
             override suspend fun onPreFling(available: Velocity): Velocity {
                 val current = translation.value
-                // HANYA interupsi jika BENAR-BENAR sedang dalam posisi overscroll (> 0.5f)
                 if (abs(current) > 0.5f) {
                     val availableVelocity = if (orientation == Orientation.Vertical) available.y else available.x
-                    springBackToZero(initialVelocity = availableVelocity * 0.15f)
+                    springBackToZero(initialVelocity = availableVelocity * 0.25f)
                 }
-                // Selalu kembalikan Velocity.Zero agar momentum fling list TIDAK TERPOTONG
                 return Velocity.Zero
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 val availableVelocity = if (orientation == Orientation.Vertical) available.y else available.x
 
+                // 2. PERBAIKAN SCROLL CEPAT: Naikkan magnitudo benturan
                 if (availableVelocity != 0f) {
-                    val initialVel = (availableVelocity * 0.2f).coerceIn(-1500f, 1500f)
+                    // Naikkan pengali kecepatan menjadi 0.35f dan batas maksimum hingga 3500f
+                    val initialVel = (availableVelocity * 0.35f).coerceIn(-3500f, 3500f)
                     springBackToZero(initialVelocity = initialVel)
                     return available
                 }
@@ -119,14 +130,14 @@ fun Modifier.bouncyOverscroll(
         }
     }
 
-    // Safety net dengan threshold
+    // Safety net pemantau otomatis
     LaunchedEffect(translation.value) {
         if (abs(translation.value) > 0.5f && !translation.isRunning) {
             translation.animateTo(
                 targetValue = 0f,
                 animationSpec = spring(
-                    dampingRatio = 0.55f,
-                    stiffness = Spring.StiffnessMediumLow
+                    dampingRatio = 0.5f,
+                    stiffness = Spring.StiffnessLow
                 )
             )
         } else if (abs(translation.value) <= 0.5f && translation.value != 0f && !translation.isRunning) {
@@ -140,7 +151,8 @@ fun Modifier.bouncyOverscroll(
             val current = translation.value
             val absCurrent = abs(current)
 
-            val scaleFactor = 1f + (absCurrent * 0.0001f).coerceAtMost(0.025f)
+            // Efek membesar/mengecil (scale) diperjelas hingga maks 3.5%
+            val scaleFactor = 1f + (absCurrent * 0.00012f).coerceAtMost(0.035f)
             scaleX = scaleFactor
             scaleY = scaleFactor
 

@@ -65,3 +65,20 @@ jobs:
             coba/app/**/*.json
           retention-days: 1
           if-no-files-found: error
+
+      # Optional: Publish release ke GitHub
+      - name: Create GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{steps.sign_app.outputs.signedReleaseFile}}
+          tag_name: v${{ github.run_number }}
+          body: |
+            Release APK build ${{ github.run_number }}
+            Built with:
+            - Kotlin 2.3.20
+            - Gradle 9.5.1
+            - Android Gradle Plugin 8.10.0
+            - Room 3.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
