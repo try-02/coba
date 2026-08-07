@@ -30,7 +30,6 @@ jobs:
           gradle-version: wrapper
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           add-job-summary: on-failure
-          add-job-summary-as-step-summary: true
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x ./gradlew
