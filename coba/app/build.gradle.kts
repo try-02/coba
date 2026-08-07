@@ -19,18 +19,39 @@ android {
         targetSdk = 36
         versionCode = 2
         versionName = "1.0.0.1"
+        
+        // PERBAIKAN: Sintaksis resConfigs yang benar untuk Kotlin DSL
+        resourceConfigurations.addAll(listOf("id", "en"))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        ndk {
+            // Hanya mengemas arsitektur arm64-v8a (efektif memangkas size native library)
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            
+            // OPTIMASI: Aktifkan Proguard/R8 penuh untuk optimasi kode
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+
+    // OPTIMASI: Memisahkan APK berdasarkan arsitektur jika Anda tidak menggunakan Google Play (AAB)
+    // Jika Anda mendistribusikan lewat WhatsApp/Web, ini akan memotong size hingga 50%
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
 
@@ -87,7 +108,7 @@ kotlin {
 }
 
 dependencies {
-    // ===== ROOM 3.0 =====
+    // ===== ROOM =====
     val room_version = "2.8.4"
     implementation("androidx.room:room-runtime:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
@@ -99,7 +120,10 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
+    
+    // OPTIMASI UTAMA: material-icons-extended berukuran +- 30MB! 
+    // Sangat disarankan dihapus dan gunakan ikon SVG kustom atau pakai library dasar di bawah ini:
+    implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.core:core-ktx:1.19.0")
 
