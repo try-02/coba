@@ -379,6 +379,38 @@ class PosViewModel(
         }
         return null
     }
+// Tambahkan di PosViewModel.kt
+suspend fun onObjectScanned(vector: FloatArray): String? {
+    if (vector.isEmpty()) return null
+
+    // Ambil daftar produk aktif dari repository
+    val activeProducts = productRepository.getAllActiveProducts() 
+    var bestMatch: Product? = null
+    var maxSimilarity = 0.80f // Threshold minimal kemiripan 80%
+
+    for (product in activeProducts) {
+        val vectorStr = product.imageVector ?: continue // Kolom String vektor di Room DB
+        val dbVector = vectorStr.toVectorFloatArray()
+        val similarity = VectorUtils.calculateCosineSimilarity(vector, dbVector)
+
+        if (similarity > maxSimilarity) {
+            maxSimilarity = similarity
+            bestMatch = product
+        }
+    }
+
+    if (bestMatch == null) {
+        _uiEvents.emit(PosUiEvent.ShowMessage("Objek tidak dikenali!"))
+        return null
+    }
+
+    val success = tryAddToCart(bestMatch)
+    if (success) {
+        _uiEvents.emit(PosUiEvent.ShowMessage("${bestMatch.name} ditambahkan ke keranjang"))
+        return bestMatch.name
+    }
+    return null
+}
     private suspend fun tryAddToCart(product: ProductEntity): Boolean {
         val result =
             cartRepository.changeQuantity(

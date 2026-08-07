@@ -1,7 +1,15 @@
 package com.pos.offline.ui.inventory
+
+import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.os.Build
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +34,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -37,13 +45,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
@@ -66,6 +78,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,16 +103,13 @@ import com.pos.offline.data.local.entity.ProductEntity
 import com.pos.offline.ui.components.GlassCard
 import com.pos.offline.ui.components.ThousandsSeparatorTransformation
 import com.pos.offline.ui.components.rememberBarcodeScanner
-import com.pos.offline.util.sanitizeScannedCode
 import com.pos.offline.util.ExcelManager
-import com.pos.offline.util.formatQuantity
-import com.pos.offline.util.toRupiah
 import com.pos.offline.util.bouncyOverscroll
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.runtime.CompositionLocalProvider
+import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
+import com.pos.offline.util.sanitizeScannedCode
+import com.pos.offline.util.toRupiah
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,45 +123,46 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
     val deletedProductFound by viewModel.deletedProductFound.collectAsStateWithLifecycle()
     val excelState by viewModel.excelState.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val isProcessingAiImage by viewModel.isProcessingAiImage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val sortOption by viewModel.sortOption.collectAsStateWithLifecycle()
     val topSalesRange by viewModel.topSalesRange.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val hasCamera =
-        remember {
-            context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
-        }
-    val launchMainScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned)
-    val excelExportLauncher =
-        rememberLauncherForActivityResult(
-            contract =
-                ActivityResultContracts.CreateDocument(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                ),
-        ) { uri -> if (uri != null) viewModel.exportToExcel(uri) }
-    val excelImportLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.OpenDocument(),
-        ) { uri -> if (uri != null) viewModel.importFromExcel(uri) }
+    val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
+
+    val launchMainScanner = rememberBarcodeScanner(
+        onScanned = viewModel::onBarcodeScanned,
+        onObjectScanned = viewModel::onObjectScanned
+    )
+
+    val excelExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+    ) { uri -> if (uri != null) viewModel.exportToExcel(uri) }
+
+    val excelImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri -> if (uri != null) viewModel.importFromExcel(uri) }
+
     LaunchedEffect(Unit) {
         viewModel.messages.collect { msg -> snackbarHostState.showSnackbar(msg) }
     }
+
     Box(Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp),
                 ) {
                     Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp, bottom = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -176,10 +187,9 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         }
                     }
                     Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CompactInventorySearchBar(
@@ -241,50 +251,52 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         topSalesRangeLabel = topSalesRange.label,
                     )
                 } else {
-                @OptIn(ExperimentalFoundationApi::class)
-                CompositionLocalProvider(
-                    LocalOverscrollConfiguration provides null
-                ) {
-                    LazyColumn(
-                        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 96.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.bouncyOverscroll(),
-                        flingBehavior = iosGlideFlingBehavior()
+                    @OptIn(ExperimentalFoundationApi::class)
+                    CompositionLocalProvider(
+                        LocalOverscrollConfiguration provides null
                     ) {
-                        items(
-                            items = products,
-                            key = { it.id },
-                            contentType = { "product" },
-                        ) { product ->
-                            ProductRow(
-                                product = product,
-                                onEdit = { viewModel.startEdit(product) },
-                            )
+                        LazyColumn(
+                            contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.bouncyOverscroll(),
+                            flingBehavior = iosGlideFlingBehavior()
+                        ) {
+                            items(
+                                items = products,
+                                key = { it.id },
+                                contentType = { "product" },
+                            ) { product ->
+                                ProductRow(
+                                    product = product,
+                                    onEdit = { viewModel.startEdit(product) },
+                                )
+                            }
                         }
                     }
                 }
             }
         }
-        }
         SmallFloatingActionButton(
             onClick = viewModel::startAdd,
-            modifier =
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 8.dp)
-                    .navigationBarsPadding()
-                    .imePadding(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 8.dp)
+                .navigationBarsPadding()
+                .imePadding(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = "Tambah Produk", modifier = Modifier.size(20.dp))
         }
     }
+
     form?.let { state ->
         ProductFormDialog(
             state = state,
             categories = categories,
             isSaving = isSaving,
+            isProcessingAiImage = isProcessingAiImage,
             onSave = viewModel::save,
             onDismiss = viewModel::dismissForm,
+            onProcessAiBitmap = viewModel::extractImageVectorFromBitmap,
             checkBarcodeConflict = viewModel::checkBarcodeConflict,
             checkSkuConflict = viewModel::checkSkuConflict,
             onDeleteRequest = { viewModel.requestDeleteFromForm(state.id) },
@@ -292,6 +304,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             onReturnDamaged = { qty -> viewModel.returnDamagedItemToSupplier(state.id, qty) },
         )
     }
+
     pendingDelete?.let { target ->
         AlertDialog(
             onDismissRequest = viewModel::cancelDelete,
@@ -307,6 +320,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             text = { Text("\"${target.name}\" akan dihapus dari katalog.") },
         )
     }
+
     scanNotFound?.let { state ->
         AlertDialog(
             onDismissRequest = viewModel::dismissScanNotFound,
@@ -326,6 +340,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             },
         )
     }
+
     deletedProductFound?.let { state ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDeletedProductFound,
@@ -344,6 +359,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             },
         )
     }
+
     if (excelState.showReviewDialog) {
         ImportReviewDialog(
             reviewItems = excelState.reviewItems,
@@ -354,6 +370,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         )
     }
 }
+
 @Composable
 private fun ExcelIconButton(
     icon: ImageVector,
@@ -362,12 +379,11 @@ private fun ExcelIconButton(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier =
-            Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                .clickable(enabled = !loading, onClick = onClick),
+        modifier = Modifier
+            .size(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+            .clickable(enabled = !loading, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (loading) {
@@ -382,6 +398,7 @@ private fun ExcelIconButton(
         }
     }
 }
+
 @Composable
 private fun ImportReviewDialog(
     reviewItems: List<InventoryViewModel.ImportReviewItem>,
@@ -398,11 +415,10 @@ private fun ImportReviewDialog(
         title = { Text("Tinjau Impor Produk", fontSize = 15.sp, fontWeight = FontWeight.Bold) },
         text = {
             Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp)
-                        .verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -461,6 +477,7 @@ private fun ImportReviewDialog(
         },
     )
 }
+
 @Composable
 private fun ImportStatBadge(
     text: String,
@@ -476,14 +493,14 @@ private fun ImportStatBadge(
         )
     }
 }
+
 @Composable
 private fun ImportReviewRow(item: InventoryViewModel.ImportReviewItem) {
-    val (label, color) =
-        when (item.status) {
-            InventoryViewModel.ImportStatus.NEW -> "BARU" to MaterialTheme.colorScheme.primary
-            InventoryViewModel.ImportStatus.CONFLICT -> "KONFLIK" to Color(0xFFF5A623)
-            InventoryViewModel.ImportStatus.DUPLICATE_IN_FILE -> "DOBEL" to MaterialTheme.colorScheme.error
-        }
+    val (label, color) = when (item.status) {
+        InventoryViewModel.ImportStatus.NEW -> "BARU" to MaterialTheme.colorScheme.primary
+        InventoryViewModel.ImportStatus.CONFLICT -> "KONFLIK" to Color(0xFFF5A623)
+        InventoryViewModel.ImportStatus.DUPLICATE_IN_FILE -> "DOBEL" to MaterialTheme.colorScheme.error
+    }
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -522,6 +539,7 @@ private fun ImportReviewRow(item: InventoryViewModel.ImportReviewItem) {
         }
     }
 }
+
 @Composable
 private fun ProductRow(
     product: ProductEntity,
@@ -535,13 +553,25 @@ private fun ProductRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    product.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        product.name,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (!product.imageVector.isNull_Or_Blank()) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.Rounded.AutoAwesome,
+                            contentDescription = "Terdaftar di AI",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
                 Text(
                     product.sku,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
@@ -588,6 +618,7 @@ private fun ProductRow(
         }
     }
 }
+
 @Composable
 private fun CategoryBadge(category: String) {
     Surface(color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
@@ -602,6 +633,7 @@ private fun CategoryBadge(category: String) {
         )
     }
 }
+
 @Composable
 private fun CompactIconAction(
     icon: ImageVector,
@@ -611,25 +643,24 @@ private fun CompactIconAction(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier =
-            Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(background)
-                .clickable(onClick = onClick),
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(background)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(16.dp))
     }
 }
+
 @Composable
 private fun StockBadge(stock: Double) {
-    val color =
-        when {
-            stock <= 0.0 -> MaterialTheme.colorScheme.error
-            stock <= 5.0 -> Color(0xFFF5A623)
-            else -> MaterialTheme.colorScheme.primary
-        }
+    val color = when {
+        stock <= 0.0 -> MaterialTheme.colorScheme.error
+        stock <= 5.0 -> Color(0xFFF5A623)
+        else -> MaterialTheme.colorScheme.primary
+    }
     Surface(color = color.copy(alpha = 0.16f), shape = RoundedCornerShape(6.dp)) {
         Text(
             text = if (stock <= 0.0) "Habis" else "Stok ${stock.formatQuantity()}",
@@ -640,6 +671,7 @@ private fun StockBadge(stock: Double) {
         )
     }
 }
+
 @Composable
 private fun DamagedStockBadge(stock: Double) {
     Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.16f), shape = RoundedCornerShape(6.dp)) {
@@ -652,6 +684,7 @@ private fun DamagedStockBadge(stock: Double) {
         )
     }
 }
+
 @Composable
 private fun EmptyInventory(
     hasQuery: Boolean,
@@ -695,6 +728,7 @@ private fun EmptyInventory(
         }
     }
 }
+
 @Composable
 private fun CompactInventorySearchBar(
     query: String,
@@ -705,20 +739,18 @@ private fun CompactInventorySearchBar(
         value = query,
         onValueChange = onQueryChange,
         singleLine = true,
-        textStyle =
-            MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 13.sp,
-            ),
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 13.sp,
+        ),
         modifier = modifier,
         decorationBox = { innerTextField ->
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 10.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -740,11 +772,10 @@ private fun CompactInventorySearchBar(
                 }
                 if (query.isNotEmpty()) {
                     Box(
-                        modifier =
-                            Modifier
-                                .size(18.dp)
-                                .clip(CircleShape)
-                                .clickable { onQueryChange("") },
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .clickable { onQueryChange("") },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -759,6 +790,7 @@ private fun CompactInventorySearchBar(
         },
     )
 }
+
 @Composable
 private fun SortMenuButton(
     current: ProductSortOption,
@@ -767,13 +799,12 @@ private fun SortMenuButton(
     var expanded by remember { mutableStateOf(false) }
     Box {
         Row(
-            modifier =
-                Modifier
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                    .clickable { expanded = true }
-                    .padding(horizontal = 10.dp),
+            modifier = Modifier
+                .height(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                .clickable { expanded = true }
+                .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = "Urutkan", modifier = Modifier.size(15.dp))
@@ -804,32 +835,35 @@ private fun SortMenuButton(
         }
     }
 }
+
 @Composable
 private fun ScanIconButton(onClick: () -> Unit) {
     Box(
-        modifier =
-            Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                .clickable(onClick = onClick),
+        modifier = Modifier
+            .size(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             Icons.Rounded.QrCodeScanner,
-            contentDescription = "Scan barcode produk",
+            contentDescription = "Scan barcode/objek produk",
             modifier = Modifier.size(16.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
     }
 }
+
 @Composable
 private fun ProductFormDialog(
     state: ProductFormState,
     categories: List<String>,
     isSaving: Boolean,
+    isProcessingAiImage: Boolean,
     onSave: (ProductFormState) -> Unit,
     onDismiss: () -> Unit,
+    onProcessAiBitmap: (Bitmap, (String) -> Unit) -> Unit,
     checkBarcodeConflict: suspend (String, Long) -> String?,
     checkSkuConflict: suspend (String, Long) -> String?,
     onDeleteRequest: () -> Unit,
@@ -840,41 +874,69 @@ private fun ProductFormDialog(
     var sku by remember(state.id) { mutableStateOf(state.sku) }
     var barcode by remember(state.id) { mutableStateOf(state.barcode) }
     var category by remember(state.id) { mutableStateOf(state.category) }
-    var price by remember(state.id) {
-        mutableStateOf(if (state.price > 0) state.price.toString() else "")
-    }
-    var stock by remember(state.id) {
-        mutableStateOf(if (state.isNew && state.stock == 0.0) "" else state.stock.formatQuantity())
-    }
-    var cost by remember(state.id) {
-        mutableStateOf(if (state.cost > 0) state.cost.toString() else "")
-    }
+    var price by remember(state.id) { mutableStateOf(if (state.price > 0) state.price.toString() else "") }
+    var stock by remember(state.id) { mutableStateOf(if (state.isNew && state.stock == 0.0) "" else state.stock.formatQuantity()) }
+    var cost by remember(state.id) { mutableStateOf(if (state.cost > 0) state.cost.toString() else "") }
+    var imageVector by remember(state.id) { mutableStateOf(state.imageVector) }
+
     var barcodeConflict by remember(state.id) { mutableStateOf<String?>(null) }
     var skuConflict by remember(state.id) { mutableStateOf<String?>(null) }
     var isCheckingBarcode by remember(state.id) { mutableStateOf(false) }
     var isCheckingSku by remember(state.id) { mutableStateOf(false) }
     var showReturnDamagedDialog by remember(state.id) { mutableStateOf(false) }
+
     val context = LocalContext.current
-    val hasCamera =
-        remember {
-            context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
+
+    // Launcher Foto Kamera Langsung
+    val takePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            onProcessAiBitmap(bitmap) { generatedVector ->
+                imageVector = generatedVector
+            }
         }
-    val launchScanner =
-        rememberBarcodeScanner(
-            onScanned = { code ->
-                val sanitized = sanitizeScannedCode(code)
-                if (sanitized != null) {
-                    barcode = sanitized
-                    sanitized
+    }
+
+    // Launcher Galeri Foto
+    val pickGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
                 } else {
-                    onScanError("Gagal memindai kode. Coba pindai ulang.")
-                    null
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                 }
-            },
-        )
+                onProcessAiBitmap(bitmap) { generatedVector ->
+                    imageVector = generatedVector
+                }
+            } catch (e: Exception) {
+                onScanError("Gagal membaca gambar dari galeri.")
+            }
+        }
+    }
+
+    val launchScanner = rememberBarcodeScanner(
+        onScanned = { code ->
+            val sanitized = sanitizeScannedCode(code)
+            if (sanitized != null) {
+                barcode = sanitized
+                sanitized
+            } else {
+                onScanError("Gagal memindai kode. Coba pindai ulang.")
+                null
+            }
+        },
+    )
+
     val configuration = LocalConfiguration.current
     val maxContentHeight = (configuration.screenHeightDp * 0.75f).dp
     val scrollState = rememberScrollState()
+
     LaunchedEffect(barcode) {
         val trimmed = barcode.trim()
         if (trimmed.isBlank()) {
@@ -887,6 +949,7 @@ private fun ProductFormDialog(
         barcodeConflict = checkBarcodeConflict(trimmed, state.id)
         isCheckingBarcode = false
     }
+
     LaunchedEffect(sku) {
         val trimmed = sku.trim()
         if (trimmed.isBlank()) {
@@ -899,17 +962,17 @@ private fun ProductFormDialog(
         skuConflict = checkSkuConflict(trimmed, state.id)
         isCheckingSku = false
     }
+
     AlertDialog(
-        onDismissRequest = { if (!isSaving) onDismiss() },
+        onDismissRequest = { if (!isSaving && !isProcessingAiImage) onDismiss() },
         title = { Text(if (state.isNew) "Tambah Produk" else "Edit Produk", style = MaterialTheme.typography.titleMedium) },
         text = {
             val priceLong = price.toLongOrNull() ?: 0L
             val costLong = cost.toLongOrNull() ?: 0L
             Column(
-                modifier =
-                    Modifier
-                        .heightIn(max = maxContentHeight)
-                        .verticalScroll(scrollState),
+                modifier = Modifier
+                    .heightIn(max = maxContentHeight)
+                    .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedTextField(
@@ -921,6 +984,66 @@ private fun ProductFormDialog(
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                // KARTU PENDAFTARAN OBJEK AI
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    "Sidik Jari Objek AI",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = if (!imageVector.isNull_Or_Blank()) "✓ Objek terdaftar (~1 KB Vektor AI)" else "Daftarkan sampel foto agar dapat di-scan AI tanpa barcode",
+                                fontSize = 10.sp,
+                                color = if (!imageVector.isNull_Or_Blank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (isProcessingAiImage) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!imageVector.isNull_Or_Blank()) {
+                                    IconButton(onClick = { imageVector = null }, modifier = Modifier.size(28.dp)) {
+                                        Icon(Icons.Rounded.Delete, contentDescription = "Hapus AI", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                    }
+                                    Spacer(Modifier.width(2.dp))
+                                }
+                                IconButton(onClick = { pickGalleryLauncher.launch("image/*") }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Rounded.PhotoLibrary, contentDescription = "Pilih Galeri", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                }
+                                if (hasCamera) {
+                                    Spacer(Modifier.width(2.dp))
+                                    IconButton(onClick = { takePhotoLauncher.launch(null) }, modifier = Modifier.size(28.dp)) {
+                                        Icon(Icons.Rounded.CameraAlt, contentDescription = "Ambil Foto AI", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = sku,
@@ -928,18 +1051,9 @@ private fun ProductFormDialog(
                         label = { Text("SKU", style = MaterialTheme.typography.bodySmall) },
                         singleLine = true,
                         isError = skuConflict != null,
-                        supportingText =
-                            if (skuConflict != null) {
-                                {
-                                    Text(
-                                        "Dipakai oleh: $skuConflict",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                }
-                            } else {
-                                null
-                            },
+                        supportingText = if (skuConflict != null) {
+                            { Text("Dipakai oleh: $skuConflict", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+                        } else null,
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f),
@@ -950,18 +1064,9 @@ private fun ProductFormDialog(
                         label = { Text("Barcode", style = MaterialTheme.typography.bodySmall) },
                         singleLine = true,
                         isError = barcodeConflict != null,
-                        supportingText =
-                            if (barcodeConflict != null) {
-                                {
-                                    Text(
-                                        "Dipakai oleh: $barcodeConflict",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                }
-                            } else {
-                                null
-                            },
+                        supportingText = if (barcodeConflict != null) {
+                            { Text("Dipakai oleh: $barcodeConflict", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+                        } else null,
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1.2f),
@@ -986,15 +1091,18 @@ private fun ProductFormDialog(
                         },
                     )
                 }
+
                 CategoryField(
                     value = category,
                     suggestions = categories,
                     onValueChange = { category = it },
                 )
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MoneyNumberField(price, { price = it }, "Harga Jual", Modifier.weight(1f))
                     MoneyNumberField(cost, { cost = it }, "Modal", Modifier.weight(1f))
                 }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DecimalNumberField(stock, { stock = it }, "Stok", Modifier.weight(1f))
                     OutlinedTextField(
@@ -1008,6 +1116,7 @@ private fun ProductFormDialog(
                         modifier = Modifier.weight(1f),
                     )
                 }
+
                 if (!state.isNew && state.damagedStock > 0.0) {
                     Spacer(Modifier.height(4.dp))
                     Surface(
@@ -1044,31 +1153,24 @@ private fun ProductFormDialog(
                 Spacer(Modifier.height(2.dp))
             }
         },
-        dismissButton =
-            if (!state.isNew) {
-                {
-                    Button(
-                        enabled = !isSaving,
-                        onClick = onDeleteRequest,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                            ),
-                    ) {
-                        Text("Hapus", color = MaterialTheme.colorScheme.onError)
-                    }
+        dismissButton = if (!state.isNew) {
+            {
+                Button(
+                    enabled = !isSaving && !isProcessingAiImage,
+                    onClick = onDeleteRequest,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text("Hapus", color = MaterialTheme.colorScheme.onError)
                 }
-            } else {
-                null
-            },
+            }
+        } else null,
         confirmButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Batal") }
+                TextButton(onClick = onDismiss, enabled = !isSaving && !isProcessingAiImage) { Text("Batal") }
                 Spacer(Modifier.width(4.dp))
                 Button(
-                    enabled =
-                        !isSaving && !isCheckingBarcode && !isCheckingSku &&
-                            name.isNotBlank() && barcodeConflict == null && skuConflict == null,
+                    enabled = !isSaving && !isProcessingAiImage && !isCheckingBarcode && !isCheckingSku &&
+                        name.isNotBlank() && barcodeConflict == null && skuConflict == null,
                     onClick = {
                         onSave(
                             ProductFormState(
@@ -1080,6 +1182,7 @@ private fun ProductFormDialog(
                                 price = price.toLongOrNull() ?: 0L,
                                 cost = cost.toLongOrNull() ?: 0L,
                                 stock = stock.toDoubleOrNull() ?: 0.0,
+                                imageVector = imageVector, // <- Vektor teks dikirim saat simpan
                                 createdAt = state.createdAt,
                             ),
                         )
@@ -1098,6 +1201,7 @@ private fun ProductFormDialog(
             }
         },
     )
+
     if (showReturnDamagedDialog) {
         var returnQtyStr by remember { mutableStateOf(state.damagedStock.formatQuantity()) }
         AlertDialog(
@@ -1139,6 +1243,7 @@ private fun ProductFormDialog(
         )
     }
 }
+
 @Composable
 private fun DecimalNumberField(
     value: String,
@@ -1149,21 +1254,18 @@ private fun DecimalNumberField(
     OutlinedTextField(
         value = value,
         onValueChange = { input ->
-            val cleaned =
-                buildString {
-                    var dotSeen = false
-                    for (c in input) {
-                        when {
-                            c.isDigit() -> {
-                                append(c)
-                            }
-                            c == '.' && !dotSeen -> {
-                                append(c)
-                                dotSeen = true
-                            }
+            val cleaned = buildString {
+                var dotSeen = false
+                for (c in input) {
+                    when {
+                        c.isDigit() -> append(c)
+                        c == '.' && !dotSeen -> {
+                            append(c)
+                            dotSeen = true
                         }
                     }
-                }.take(10)
+                }
+            }.take(10)
             onValueChange(cleaned)
         },
         label = { Text(label, style = MaterialTheme.typography.bodySmall) },
@@ -1174,6 +1276,7 @@ private fun DecimalNumberField(
         modifier = modifier,
     )
 }
+
 @Composable
 private fun CategoryField(
     value: String,
@@ -1181,14 +1284,10 @@ private fun CategoryField(
     onValueChange: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val filtered =
-        remember(value, suggestions) {
-            if (value.isBlank()) {
-                suggestions
-            } else {
-                suggestions.filter { it.contains(value, ignoreCase = true) }
-            }
-        }
+    val filtered = remember(value, suggestions) {
+        if (value.isBlank()) suggestions
+        else suggestions.filter { it.contains(value, ignoreCase = true) }
+    }
     Box(Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = value,
@@ -1211,10 +1310,9 @@ private fun CategoryField(
                     }
                 }
             },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { if (it.isFocused) expanded = suggestions.isNotEmpty() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { if (it.isFocused) expanded = suggestions.isNotEmpty() },
         )
         DropdownMenu(
             expanded = expanded && filtered.isNotEmpty(),
@@ -1232,6 +1330,7 @@ private fun CategoryField(
         }
     }
 }
+
 @Composable
 private fun MoneyNumberField(
     value: String,
@@ -1252,18 +1351,18 @@ private fun MoneyNumberField(
         modifier = modifier,
     )
 }
+
 @Composable
 private fun TopSalesRangePicker(
     selected: TopSalesRange,
     onSelect: (TopSalesRange) -> Unit,
 ) {
     Row(
-        modifier =
-            Modifier
-                .height(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                .padding(horizontal = 4.dp),
+        modifier = Modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+            .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -1276,6 +1375,7 @@ private fun TopSalesRangePicker(
         }
     }
 }
+
 @Composable
 private fun TopSalesChip(
     label: String,
@@ -1283,12 +1383,11 @@ private fun TopSalesChip(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(

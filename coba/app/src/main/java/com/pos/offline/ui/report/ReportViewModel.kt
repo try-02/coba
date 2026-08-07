@@ -797,4 +797,31 @@ fun printReceipt(result: CheckoutResult) {
                 .withZone(ZoneId.systemDefault())
         private const val REPORT_DEBOUNCE_MS = 300L
     }
+// Tambahkan di ReportViewModel.kt
+suspend fun onObjectScanned(vector: FloatArray): String? {
+    if (vector.isEmpty()) return null
+
+    val products = productRepository.getAllProductsAny()
+    var bestMatch: Product? = null
+    var maxSimilarity = 0.80f
+
+    for (product in products) {
+        val vectorStr = product.imageVector ?: continue
+        val dbVector = vectorStr.toVectorFloatArray()
+        val similarity = VectorUtils.calculateCosineSimilarity(vector, dbVector)
+
+        if (similarity > maxSimilarity) {
+            maxSimilarity = similarity
+            bestMatch = product
+        }
+    }
+
+    return if (bestMatch != null) {
+        searchProductHistory(bestMatch.barcode)
+        searchInvoice(bestMatch.barcode)
+        bestMatch.name
+    } else {
+        null
+    }
+}
 }

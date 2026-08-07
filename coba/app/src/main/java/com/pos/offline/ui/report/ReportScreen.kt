@@ -183,12 +183,15 @@ fun ReportScreen(
             warrantySearchQuery = scannedCode
             scannedCode
         }
-    val openScanner =
-        rememberBarcodeScanner { scannedCode ->
-            viewModel.searchProductHistory(scannedCode)
-            viewModel.searchInvoice(scannedCode)
-            scannedCode
-        }
+// Di ReportScreen.kt
+val openScanner = rememberBarcodeScanner(
+    onScanned = { scannedCode ->
+        viewModel.searchProductHistory(scannedCode)
+        viewModel.searchInvoice(scannedCode)
+        scannedCode
+    },
+    onObjectScanned = viewModel::onObjectScanned // <- Ditambahkan
+)
     LaunchedEffect(Unit) {
         viewModel.messages.collect { msg ->
             if (selectedTransaction != null) {
