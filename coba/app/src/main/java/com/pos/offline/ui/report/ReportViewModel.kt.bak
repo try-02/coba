@@ -160,8 +160,6 @@ class ReportViewModel(
     private val productRepository: ProductRepository,
     private val reportDao: ReportDao,
 ) : ViewModel() {
-    // Deklarasikan di level kelas ReportViewModel
-    private val vectorCache = mutableMapOf<Long, FloatArray>()
     private val zone: ZoneId = ZoneId.systemDefault()
     private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
@@ -801,39 +799,47 @@ fun printReceipt(result: CheckoutResult) {
                 .withZone(ZoneId.systemDefault())
         private const val REPORT_DEBOUNCE_MS = 300L
     }
+// Tambahkan di ReportViewModel.kt
+private var vectorCache = mutableMapOf<Long, FloatArray>()
+
 suspend fun onObjectScanned(scannedVector: FloatArray): String? {
-    if (scannedVector.isEmpty()) return null
-    
-    return try {
-        val allProducts = productRepository.getAllProductsOnce()
-        var bestMatch: ProductEntity? = null
-        var maxSimilarity = 0.80f
+    val activeProducts = productRepository.getAllProductsOnce().filter { it.active }
+    var bestMatch: ProductEntity? = null
+    var maxSimilarity = 0.80f
 
-        for (product in allProducts) {
-            val vectorStr = product.imageVector
-            if (vectorStr.isNullOrBlank()) continue
+    for (product in activeProducts) {
+        val vectorStr = product.imageVector
+        if (vectorStr.isNullOrBlank()) continue
 
-            val dbVector = vectorCache.getOrPut(product.id) {
-                vectorStr.toVectorFloatArray()
-            }
-
-            val similarity = VectorUtils.calculateCosineSimilarity(scannedVector, dbVector)
-            if (similarity > maxSimilarity) {
-                maxSimilarity = similarity
-                bestMatch = product
-            }
+        // Ambil dari RAM jika sudah pernah diparse, jika belum, parse dan simpan ke RAM
+        val dbVector = vectorCache.getOrPut(product.id) {
+            vectorStr.toVectorFloatArray()
         }
 
-        if (bestMatch != null) {
-            val queryKey = bestMatch.barcode ?: bestMatch.name
-            // Aksi khusus Laporan: Cari transaksi yang berhubungan dengan produk ini
-            searchTransactionsByScannedProduct(queryKey)
-            bestMatch.name
-        } else {
+        val similarity = VectorUtils.calculateCosineSimilarity(scannedVector, dbVector)
+        if (similarity > maxSimilarity) {
+            maxSimilarity = similarity
+            bestMatch = product
+        }
+    }
+    // ... sisa kode berlanjut
+
+            when {
+                bestMatch == null -> {
+                    notify("Objek AI tidak dikenali.")
+                    null
+                }
+                bestMatch.active -> {
+                    startEdit(bestMatch)
+                    bestMatch.name
+                }
+                else -> {
+                    _deletedProductFound.value = DeletedProductFoundState(bestMatch)
+                    bestMatch.name
+                }
+            }
+        } catch (e: Exception) {
+            notify("Gagal memproses AI scan: ${e.message}")
             null
         }
-    } catch (e: Exception) {
-        null
-    }
-}
 }

@@ -505,7 +505,6 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
                         updatedAt = now,
                     )
                 productRepository.save(entity)
-                vectorCache.remove(state.id)
                 notify(if (state.isNew) "Produk ditambahkan." else "Produk diperbarui.")
                 _form.value = null
             } catch (e: SQLiteConstraintException) {
