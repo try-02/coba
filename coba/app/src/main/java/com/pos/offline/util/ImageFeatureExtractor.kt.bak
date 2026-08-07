@@ -42,7 +42,6 @@ class ImageFeatureExtractor(context: Context) {
     }
 
     fun extractFeatures(bitmap: Bitmap): FloatArray {
-        // Menghemat 1 pembuatan bitmap (Bitmap.createScaledBitmap)
         val resizedBitmap = if (bitmap.width != IMAGE_SIZE || bitmap.height != IMAGE_SIZE) {
             Bitmap.createScaledBitmap(bitmap, IMAGE_SIZE, IMAGE_SIZE, true)
         } else {
@@ -52,8 +51,23 @@ class ImageFeatureExtractor(context: Context) {
         convertBitmapToByteBuffer(resizedBitmap)
         interpreter?.run(byteBuffer, outputArray)
         
-        // Kembalikan clone agar array asli tidak termutasi oleh kelas lain
-        return outputArray[0].clone() 
+        val rawVector = outputArray[0]
+        
+        // --- L2 NORMALIZATION ---
+        // Ini memastikan jarak vektor mutlak, sehingga perbandingan Cosine Similarity jadi sangat akurat
+        var sum = 0.0f
+        for (v in rawVector) {
+            sum += v * v
+        }
+        val magnitude = kotlin.math.sqrt(sum.toDouble()).toFloat()
+        
+        if (magnitude > 0) {
+            for (i in rawVector.indices) {
+                rawVector[i] = rawVector[i] / magnitude
+            }
+        }
+        
+        return rawVector.clone()
     }
 
     private fun convertBitmapToByteBuffer(bitmap: Bitmap) {
@@ -64,9 +78,16 @@ class ImageFeatureExtractor(context: Context) {
         for (i in 0 until IMAGE_SIZE) {
             for (j in 0 until IMAGE_SIZE) {
                 val valInt = intValues[pixel++]
-                byteBuffer.putFloat(((valInt shr 16) and 0xFF) / 255.0f)
-                byteBuffer.putFloat(((valInt shr 8) and 0xFF) / 255.0f)
-                byteBuffer.putFloat((valInt and 0xFF) / 255.0f)
+                
+                // --- NORMALISASI MOBILENET (-1.0 sampai 1.0) ---
+                // Ini membantu AI membedakan bentuk objek, bukan cuma tingkat kecerahan ruangan
+                val r = ((valInt shr 16) and 0xFF)
+                val g = ((valInt shr 8) and 0xFF)
+                val b = (valInt and 0xFF)
+                
+                byteBuffer.putFloat((r / 127.5f) - 1.0f)
+                byteBuffer.putFloat((g / 127.5f) - 1.0f)
+                byteBuffer.putFloat((b / 127.5f) - 1.0f)
             }
         }
     }

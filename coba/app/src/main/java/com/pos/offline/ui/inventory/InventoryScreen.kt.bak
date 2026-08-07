@@ -906,23 +906,16 @@ private fun ProductFormDialog(
         if (uri != null) {
             try {
                 val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    val source = ImageDecoder.createSource(context.contentResolver, uri)
-                    // PAKSA MENGGUNAKAN SOFTWARE ALLOCATOR AGAR BISA DIBACA PIKSELNYA
-                    ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                        decoder.isMutableRequired = true
-                    }
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
                 } else {
                     @Suppress("DEPRECATION")
                     MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                 }
-                
-                // Panggil proses AI
                 onProcessAiBitmap(bitmap) { generatedVector ->
                     imageVector = generatedVector
                 }
             } catch (e: Exception) {
-                onScanError("Gagal membaca gambar dari galeri: ${e.message}")
+                onScanError("Gagal membaca gambar dari galeri.")
             }
         }
     }

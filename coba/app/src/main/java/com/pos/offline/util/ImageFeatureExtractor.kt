@@ -42,10 +42,19 @@ class ImageFeatureExtractor(context: Context) {
     }
 
     fun extractFeatures(bitmap: Bitmap): FloatArray {
-        val resizedBitmap = if (bitmap.width != IMAGE_SIZE || bitmap.height != IMAGE_SIZE) {
-            Bitmap.createScaledBitmap(bitmap, IMAGE_SIZE, IMAGE_SIZE, true)
+        // --- TAMBAHKAN PENGECEKAN INI ---
+        // Konversi paksa ke ARGB_8888 (Software) jika bitmap berupa Hardware
+        val softwareBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, true)
         } else {
             bitmap
+        }
+
+        // Gunakan softwareBitmap untuk proses resize
+        val resizedBitmap = if (softwareBitmap.width != IMAGE_SIZE || softwareBitmap.height != IMAGE_SIZE) {
+            Bitmap.createScaledBitmap(softwareBitmap, IMAGE_SIZE, IMAGE_SIZE, true)
+        } else {
+            softwareBitmap
         }
         
         convertBitmapToByteBuffer(resizedBitmap)
@@ -54,7 +63,6 @@ class ImageFeatureExtractor(context: Context) {
         val rawVector = outputArray[0]
         
         // --- L2 NORMALIZATION ---
-        // Ini memastikan jarak vektor mutlak, sehingga perbandingan Cosine Similarity jadi sangat akurat
         var sum = 0.0f
         for (v in rawVector) {
             sum += v * v
@@ -79,8 +87,6 @@ class ImageFeatureExtractor(context: Context) {
             for (j in 0 until IMAGE_SIZE) {
                 val valInt = intValues[pixel++]
                 
-                // --- NORMALISASI MOBILENET (-1.0 sampai 1.0) ---
-                // Ini membantu AI membedakan bentuk objek, bukan cuma tingkat kecerahan ruangan
                 val r = ((valInt shr 16) and 0xFF)
                 val g = ((valInt shr 8) and 0xFF)
                 val b = (valInt and 0xFF)
@@ -90,8 +96,12 @@ class ImageFeatureExtractor(context: Context) {
                 byteBuffer.putFloat((b / 127.5f) - 1.0f)
             }
         }
+        
+        // --- TAMBAHKAN BARIS INI ---
+        // Putar kembali kursor ke awal agar TFLite membaca dari pixel pertama
+        byteBuffer.rewind() 
     }
-    
+
     fun close() {
         interpreter?.close()
         interpreter = null

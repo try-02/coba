@@ -807,7 +807,7 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
     return try {
         val allProducts = productRepository.getAllProductsOnce()
         var bestMatch: ProductEntity? = null
-        var maxSimilarity = 0.99f
+        var maxSimilarity = 0.80f
 
         for (product in allProducts) {
             val vectorStr = product.imageVector

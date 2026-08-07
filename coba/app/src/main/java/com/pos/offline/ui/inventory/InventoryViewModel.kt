@@ -196,7 +196,7 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
         // Di Inventory, kita ambil semua produk termasuk yang non-aktif untuk dicek
         val allProducts = productRepository.getAllProductsOnce()
         var bestMatch: ProductEntity? = null
-        var maxSimilarity = 0.99f
+        var maxSimilarity = 0.80f
 
         for (product in allProducts) {
             val vectorStr = product.imageVector
