@@ -30,6 +30,6 @@ data class ProductEntity(
     @ColumnInfo(name = "category", defaultValue = "''")
     val category: String = "",
     // Tambahkan baris di bawah ini untuk menyimpan Vektor AI
-    @ColumnInfo(name = "objectVector", defaultValue = "NULL")
-    val objectVector: String? = null,
+    @ColumnInfo(name = "imageVector", defaultValue = "NULL")
+    val imageVector: String? = null,
 )

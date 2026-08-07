@@ -34,6 +34,6 @@ class ProductRepository(
         id: Long,
         qty: Double,
     ) = productDao.decrementDamagedStock(id, qty, System.currentTimeMillis())
-    suspend fun getProductsWithObjectVector(): List<ProductEntity> = 
-        productDao.getProductsWithObjectVector()
+    suspend fun getProductsWithImageVector(): List<ProductEntity> = 
+        productDao.getProductsWithImageVector()
 }

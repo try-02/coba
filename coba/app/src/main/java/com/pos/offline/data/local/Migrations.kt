@@ -391,7 +391,7 @@ db.execSQL(
     object : Migration(18, 19) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
-                "ALTER TABLE products ADD COLUMN objectVector TEXT DEFAULT NULL"
+                "ALTER TABLE products ADD COLUMN imageVector TEXT DEFAULT NULL"
             )
         }
     }
