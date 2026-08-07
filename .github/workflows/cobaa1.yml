@@ -35,6 +35,9 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x ./gradlew
 
+      - name: Perform Gradle Sync
+        run: ./gradlew help --parallel --build-cache
+
       # Build Release APK dengan optimasi
       - name: Build APK (Optimized)
         run: ./gradlew assembleRelease --parallel --build-cache --configuration-cache --stacktrace
@@ -65,3 +68,22 @@ jobs:
             coba/app/**/*.json
           retention-days: 1
           if-no-files-found: error
+
+      - name: Cleanup Runner Environment & Build Artifacts
+        if: always() # Memastikan step ini SELALU berjalan (Sukses, Gagal, atau Dibatalkan)
+        run: |
+          echo "--- Memulai Pembersihan Runner & Bekas Build ---"
+          
+          # 1. Menghentikan Gradle Daemon agar RAM & CPU lega
+          ./gradlew --stop || true
+          
+          # 3. Menjalankan task clean dari Gradle
+          ./gradlew clean || true
+          
+          # 4. Hapus folder build dan .gradle secara paksa
+          rm -rf build app/build .gradle || true
+          
+          # 5. Hapus semua file/folder yang tidak di-track oleh Git (bekas kompilasi, test report, APK temporer, dll)
+          git clean -ffdx || true
+          
+          echo "--- Pembersihan Total Selesai ---"

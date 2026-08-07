@@ -32,16 +32,20 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # 2. Menjalankan Unit Test (ShiftSummaryTest)
+      # 2. Melakukan Gradle Sync & Download Dependency Awal
+      - name: Perform Gradle Sync
+        run: ./gradlew help --parallel --build-cache
+
+      # 3. Menjalankan Unit Test (ShiftSummaryTest)
       # Menambahkan --parallel dan --build-cache untuk mempercepat proses build
       - name: Run Pure Unit Tests
         run: ./gradlew testDebugUnitTest --parallel --build-cache --stacktrace
 
-      # 3. Mengaktifkan akselerasi perangkat keras di mesin Ubuntu
+      # 4. Mengaktifkan akselerasi perangkat keras di mesin Ubuntu
       - name: Enable KVM permissions
         run: sudo chown $USER /dev/kvm
 
-      # 4. Menjalankan Android Instrumented Test (AccountingWalkthroughTest)
+      # 5. Menjalankan Android Instrumented Test (AccountingWalkthroughTest)
       - name: Run Android Instrumented Tests
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -52,3 +56,26 @@ jobs:
           working-directory: ./coba # <-- 1. Tambahkan parameter ini agar action berjalan di folder coba/
           emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
           script: ./gradlew clean connectedDebugAndroidTest --rerun-tasks --parallel --stacktrace # <-- 2. Ubah pemanggilan menjadi ./gradlew
+
+      # 6. Pembersihan Total Runner & Bekas Proses Build
+      - name: Cleanup Runner Environment & Build Artifacts
+        if: always() # Memastikan step ini SELALU berjalan (Sukses, Gagal, atau Dibatalkan)
+        run: |
+          echo "--- Memulai Pembersihan Runner & Bekas Build ---"
+          
+          # 1. Menghentikan Gradle Daemon agar RAM & CPU lega
+          ./gradlew --stop || true
+          
+          # 2. Menghentikan ADB Server & Emulator
+          adb kill-server || true
+          
+          # 3. Menjalankan task clean dari Gradle
+          ./gradlew clean || true
+          
+          # 4. Hapus folder build dan .gradle secara paksa
+          rm -rf build app/build .gradle || true
+          
+          # 5. Hapus semua file/folder yang tidak di-track oleh Git (bekas kompilasi, test report, APK temporer, dll)
+          git clean -ffdx || true
+          
+          echo "--- Pembersihan Total Selesai ---"
