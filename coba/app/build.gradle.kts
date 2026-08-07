@@ -109,9 +109,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.material3:material3")
     
-    // OPTIMASI UTAMA: material-icons-extended berukuran +- 30MB! 
-    // Sangat disarankan dihapus dan gunakan ikon SVG kustom atau pakai library dasar di bawah ini:
-    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.core:core-ktx:1.19.0")
 
