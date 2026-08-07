@@ -390,7 +390,7 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
         // Di POS, filter hanya produk yang AKTIF (siap jual)
         val activeProducts = productRepository.getAllProductsOnce().filter { it.active }
         var bestMatch: ProductEntity? = null
-        var maxSimilarity = 0.80f
+        var maxSimilarity = 0.99f
 
         for (product in activeProducts) {
             val vectorStr = product.imageVector
