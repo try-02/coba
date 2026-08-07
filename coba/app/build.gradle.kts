@@ -137,6 +137,8 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite:2.17.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.5.0")
 
+    implementation(files("libs/litert-support-api-1.0.1.jar"))
+
     // ===== EXCEL & XML =====
     implementation("org.dhatim:fastexcel:0.20.2")
     implementation("org.dhatim:fastexcel-reader:0.20.2")
@@ -154,4 +156,8 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0") 
+}
+configurations.all {
+    // Memblokir versi .aar bawaan online agar tidak masuk ke sistem build
+    exclude(group = "com.google.ai.edge.litert", module = "litert-support-api")
 }
