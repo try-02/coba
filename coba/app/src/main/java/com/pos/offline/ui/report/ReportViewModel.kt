@@ -30,6 +30,8 @@ import com.pos.offline.ui.receipt.ReceiptManager
 import com.pos.offline.util.PrintCoordinator
 import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.toRupiah
+import com.pos.offline.util.VectorUtils
+import com.pos.offline.util.VectorUtils.toVectorFloatArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -800,27 +802,30 @@ fun printReceipt(result: CheckoutResult) {
 // Tambahkan di ReportViewModel.kt
 suspend fun onObjectScanned(vector: FloatArray): String? {
     if (vector.isEmpty()) return null
+    return try {
+        val products: List<ProductEntity> = productRepository.getAllProductsOnce()
+        var bestMatch: ProductEntity? = null
+        var maxSimilarity = 0.80f
 
-    val products = productRepository.getAllProductsAny()
-    var bestMatch: Product? = null
-    var maxSimilarity = 0.80f
+        for (product in products) {
+            val vectorStr = product.imageVector ?: continue
+            val dbVector = vectorStr.toVectorFloatArray()
+            val similarity = VectorUtils.calculateCosineSimilarity(vector, dbVector)
 
-    for (product in products) {
-        val vectorStr = product.imageVector ?: continue
-        val dbVector = vectorStr.toVectorFloatArray()
-        val similarity = VectorUtils.calculateCosineSimilarity(vector, dbVector)
-
-        if (similarity > maxSimilarity) {
-            maxSimilarity = similarity
-            bestMatch = product
+            if (similarity > maxSimilarity) {
+                maxSimilarity = similarity
+                bestMatch = product
+            }
         }
-    }
 
-    return if (bestMatch != null) {
-        searchProductHistory(bestMatch.barcode)
-        searchInvoice(bestMatch.barcode)
-        bestMatch.name
-    } else {
+        if (bestMatch != null) {
+            val queryKey = bestMatch.barcode ?: bestMatch.name
+            searchTransactionsByScannedProduct(queryKey)
+            bestMatch.name
+        } else {
+            null
+        }
+    } catch (e: Exception) {
         null
     }
 }

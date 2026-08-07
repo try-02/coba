@@ -562,7 +562,7 @@ private fun ProductRow(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
-                    if (!product.imageVector.isNull_Or_Blank()) {
+                    if (!product.imageVector.isNullOrBlank()) {
                         Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.Rounded.AutoAwesome,
@@ -1014,9 +1014,9 @@ private fun ProductFormDialog(
                             }
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = if (!imageVector.isNull_Or_Blank()) "✓ Objek terdaftar (~1 KB Vektor AI)" else "Daftarkan sampel foto agar dapat di-scan AI tanpa barcode",
+                                text = if (!imageVector.isNullOrBlank()) "✓ Objek terdaftar (~1 KB Vektor AI)" else "Daftarkan sampel foto agar dapat di-scan AI tanpa barcode",
                                 fontSize = 10.sp,
-                                color = if (!imageVector.isNull_Or_Blank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (!imageVector.isNullOrBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -1024,7 +1024,7 @@ private fun ProductFormDialog(
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (!imageVector.isNull_Or_Blank()) {
+                                if (!imageVector.isNullOrBlank()) {
                                     IconButton(onClick = { imageVector = null }, modifier = Modifier.size(28.dp)) {
                                         Icon(Icons.Rounded.Delete, contentDescription = "Hapus AI", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                                     }

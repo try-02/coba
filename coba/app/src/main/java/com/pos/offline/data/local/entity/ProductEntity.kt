@@ -31,5 +31,5 @@ data class ProductEntity(
     val category: String = "",
     // Tambahkan baris di bawah ini untuk menyimpan Vektor AI
     @ColumnInfo(name = "objectVector", defaultValue = "NULL")
-    val objectVector: String? = null
+    val objectVector: String? = null,
 )
