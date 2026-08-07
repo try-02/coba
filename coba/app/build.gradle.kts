@@ -123,6 +123,10 @@ dependencies {
     // ===== ML KIT =====
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
+    // TensorFlow Lite untuk Machine Learning Lokal
+    implementation("org.tensorflow:tensorflow-lite:2.17.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.5.0")
+
     // ===== EXCEL & XML =====
     implementation("org.dhatim:fastexcel:0.20.2")
     implementation("org.dhatim:fastexcel-reader:0.20.2")

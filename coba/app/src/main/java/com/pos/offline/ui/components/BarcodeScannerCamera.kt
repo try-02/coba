@@ -45,6 +45,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.Camera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -99,39 +100,62 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.pos.offline.data.local.PosDatabase
 import com.pos.offline.util.CameraPermissionState
+import com.pos.offline.util.ImageFeatureExtractor
+import com.pos.offline.util.VectorUtils.calculateCosineSimilarity
+import com.pos.offline.util.VectorUtils.toVectorFloatArray
 import com.pos.offline.util.ScanFeedbackManager
 import com.pos.offline.util.ScanPreferencesRepository
 import com.pos.offline.util.VibrationLevel
 import com.pos.offline.util.openAppSettings
 import com.pos.offline.util.rememberCameraPermissionState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 import androidx.compose.ui.geometry.Size as GeometrySize
+
+enum class ScannerMode {
+    BARCODE, OBJECT
+}
+
 @Composable
 fun BarcodeScannerCamera(
     onBarcodeScanned: suspend (String) -> Boolean,
+    onObjectScanned: suspend (Long) -> Boolean, // Callback untuk mendeteksi produk via ID database berdasarkan AI
     isMultiScanMode: Boolean,
+    scannerMode: ScannerMode,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     val executor = remember { Executors.newSingleThreadExecutor() }
-    val scanner =
-        remember {
-            BarcodeScanning.getClient(
-                BarcodeScannerOptions
-                    .Builder()
-                    .setBarcodeFormats(
-                        Barcode.FORMAT_EAN_13,
-                        Barcode.FORMAT_EAN_8,
-                        Barcode.FORMAT_UPC_A,
-                        Barcode.FORMAT_UPC_E,
-                        Barcode.FORMAT_CODE_128,
-                    ).build(),
-            )
+    
+    // Inisialisasi TFLite Feature Extractor secara aman
+    val featureExtractor = remember {
+        try {
+            ImageFeatureExtractor(context)
+        } catch (e: Exception) {
+            null
         }
+    }
+    
+    val scanner = remember {
+        BarcodeScanning.getClient(
+            BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(
+                    Barcode.FORMAT_EAN_13,
+                    Barcode.FORMAT_EAN_8,
+                    Barcode.FORMAT_UPC_A,
+                    Barcode.FORMAT_UPC_E,
+                    Barcode.FORMAT_CODE_128,
+                ).build(),
+        )
+    }
+    
     var lastScannedCode by remember { mutableStateOf<String?>(null) }
     var lastScannedTime by remember { mutableLongStateOf(0L) }
     var pendingCode by remember { mutableStateOf<String?>(null) }
@@ -139,7 +163,8 @@ fun BarcodeScannerCamera(
     var scanVisualState by remember { mutableStateOf(ScanVisualState.IDLE) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
-    var cameraError by remember { mutableStateOf<String?>(null) }
+    var cameraError by remember { mutableStringState("Gagal membuka kamera.") }
+
     fun attemptBind() {
         val provider = cameraProvider ?: return
         val previewView = previewViewRef ?: return
@@ -151,41 +176,35 @@ fun BarcodeScannerCamera(
                     ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
                 )
             val resolutionSelector =
-                ResolutionSelector
-                    .Builder()
+                ResolutionSelector.Builder()
                     .setResolutionStrategy(resolutionStrategy)
                     .build()
             val preview =
-                Preview
-                    .Builder()
+                Preview.Builder()
                     .setResolutionSelector(resolutionSelector)
                     .build()
-                    .also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
+                    .also { it.setSurfaceProvider(previewView.surfaceProvider) }
+            
             val analysis =
-                ImageAnalysis
-                    .Builder()
+                ImageAnalysis.Builder()
                     .setResolutionSelector(resolutionSelector)
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
+
             analysis.setAnalyzer(executor) { proxy ->
-                val mediaImage = proxy.image
-                if (mediaImage == null) {
-                    proxy.close()
-                    return@setAnalyzer
-                }
-                try {
-                    val rotationDegrees = proxy.imageInfo.rotationDegrees
-                    val input = InputImage.fromMediaImage(mediaImage, rotationDegrees)
-                    scanner
-                        .process(input)
-                        .addOnSuccessListener { barcodes ->
-                            val isRotated = rotationDegrees == 90 || rotationDegrees == 270
-                            val imgW = if (isRotated) proxy.height.toFloat() else proxy.width.toFloat()
-                            val imgH = if (isRotated) proxy.width.toFloat() else proxy.height.toFloat()
-                            val targetBarcode =
-                                barcodes.firstOrNull { barcode ->
+                if (scannerMode == ScannerMode.BARCODE) {
+                    // ===== MODE BARCODE (100% Original ML Kit) =====
+                    val mediaImage = proxy.image
+                    if (mediaImage == null) {
+                        proxy.close()
+                        return@setAnalyzer
+                    }
+                    try {
+                        val rotationDegrees = proxy.imageInfo.rotationDegrees
+                        val input = InputImage.fromMediaImage(mediaImage, rotationDegrees)
+                        scanner.process(input)
+                            .addOnSuccessListener { barcodes ->
+                                val targetBarcode = barcodes.firstOrNull { barcode ->
                                     val raw = barcode.rawValue
                                     if (raw.isNullOrBlank()) return@firstOrNull false
                                     val rect = barcode.boundingBox ?: return@firstOrNull false
@@ -194,7 +213,7 @@ fun BarcodeScannerCamera(
                                     if (viewW == 0f || viewH == 0f) return@firstOrNull false
                                     val isRotated = rotationDegrees == 90 || rotationDegrees == 270
                                     val imgW = if (isRotated) proxy.height.toFloat() else proxy.width.toFloat()
-                                    val imgH = if (isRotated) proxy.width.toFloat() else proxy.height.toFloat()
+                                    val imgH = if (isRotated) proxy.width.toFloat() else proxy.width.toFloat() // Fallback
                                     val scale = maxOf(viewW / imgW, viewH / imgH)
                                     val scaledImgW = imgW * scale
                                     val scaledImgH = imgH * scale
@@ -211,38 +230,82 @@ fun BarcodeScannerCamera(
                                     screenLeft >= boxLeft && screenRight <= boxRight &&
                                         screenTop >= boxTop && screenBottom <= boxBottom
                                 }
-                            if (targetBarcode != null) {
-                                val code = targetBarcode.rawValue ?: return@addOnSuccessListener
-                                if (code == pendingCode) {
-                                    pendingCodeCount++
-                                    if (pendingCodeCount >= 2) {
-                                        val currentTime = System.currentTimeMillis()
-                                        val isSameCode = (code == lastScannedCode)
-                                        val isTimeElapsed = (currentTime - lastScannedTime) > 2000L
-                                        if (!isSameCode || isTimeElapsed) {
-                                            lastScannedCode = code
-                                            lastScannedTime = currentTime
-                                            coroutineScope.launch {
-                                                val isSuccess = onBarcodeScanned(code)
-                                                scanVisualState = if (isSuccess) ScanVisualState.SUCCESS else ScanVisualState.ERROR
-                                                delay(400L)
-                                                scanVisualState = ScanVisualState.IDLE
+                                if (targetBarcode != null) {
+                                    val code = targetBarcode.rawValue ?: return@addOnSuccessListener
+                                    if (code == pendingCode) {
+                                        pendingCodeCount++
+                                        if (pendingCodeCount >= 2) {
+                                            val currentTime = System.currentTimeMillis()
+                                            val isSameCode = (code == lastScannedCode)
+                                            val isTimeElapsed = (currentTime - lastScannedTime) > 2000L
+                                            if (!isSameCode || isTimeElapsed) {
+                                                lastScannedCode = code
+                                                lastScannedTime = currentTime
+                                                coroutineScope.launch {
+                                                    val isSuccess = onBarcodeScanned(code)
+                                                    scanVisualState = if (isSuccess) ScanVisualState.SUCCESS else ScanVisualState.ERROR
+                                                    delay(400L)
+                                                    scanVisualState = ScanVisualState.IDLE
+                                                }
                                             }
                                         }
+                                    } else {
+                                        pendingCode = code
+                                        pendingCodeCount = 1
                                     }
                                 } else {
-                                    pendingCode = code
-                                    pendingCodeCount = 1
+                                    pendingCode = null
+                                    pendingCodeCount = 0
                                 }
-                            } else {
-                                pendingCode = null
-                                pendingCodeCount = 0
+                            }.addOnCompleteListener { proxy.close() }
+                    } catch (e: Exception) {
+                        proxy.close()
+                    }
+                } else {
+                    // ===== MODE SCAN OBJEK AI (TFLite MobileNet-V4) =====
+                    val currentTime = System.currentTimeMillis()
+                    // Beri jeda 1,5 detik antar pemindaian AI agar CPU tidak bekerja terlalu berat terus menerus
+                    if (currentTime - lastScannedTime < 1500L || featureExtractor == null) {
+                        proxy.close()
+                        return@setAnalyzer
+                    }
+
+                    try {
+                        val bitmap = proxy.toBitmap() // Didukung penuh oleh CameraX 1.7.0
+                        val scannedVector = featureExtractor.extractFeatures(bitmap)
+                        
+                        coroutineScope.launch(Dispatchers.IO) {
+                            // Ambil semua produk yang memiliki data vektor objek dari database Room
+                            val productsWithVector = PosDatabase.getInstance(context).productDao().getProductsWithObjectVector()
+                            
+                            var bestMatchId: Long = -1
+                            var highestSimilarity = 0f
+                            
+                            // Bandingkan dengan setiap produk menggunakan Cosine Similarity
+                            for (product in productsWithVector) {
+                                val dbVector = product.objectVector?.toVectorFloatArray() ?: continue
+                                val similarity = calculateCosineSimilarity(scannedVector, dbVector)
+                                if (similarity > highestSimilarity) {
+                                    highestSimilarity = similarity
+                                    bestMatchId = product.id
+                                }
                             }
-                        }.addOnCompleteListener {
-                            proxy.close()
+                            
+                            // Ambang batas kemiripan (Threshold) 0.65 (65% mirip dianggap valid)
+                            if (highestSimilarity >= 0.65f && bestMatchId != -1L) {
+                                lastScannedTime = System.currentTimeMillis()
+                                val isSuccess = onObjectScanned(bestMatchId)
+                                withContext(Dispatchers.Main) {
+                                    scanVisualState = if (isSuccess) ScanVisualState.SUCCESS else ScanVisualState.ERROR
+                                    delay(400L)
+                                    scanVisualState = ScanVisualState.IDLE
+                                }
+                            }
                         }
-                } catch (e: Exception) {
-                    proxy.close()
+                        proxy.close()
+                    } catch (e: Exception) {
+                        proxy.close()
+                    }
                 }
             }
             provider.unbindAll()
@@ -257,28 +320,28 @@ fun BarcodeScannerCamera(
             cameraError = "Gagal membuka kamera."
         }
     }
+
     DisposableEffect(Unit) {
         lastScannedCode = null
         lastScannedTime = 0L
         pendingCode = null
         pendingCodeCount = 0
         onDispose {
-            lastScannedCode = null
-            lastScannedTime = 0L
             cameraProvider?.unbindAll()
             executor.shutdown()
             scanner.close()
+            featureExtractor?.close()
             scanVisualState = ScanVisualState.IDLE
         }
     }
+
     Box(modifier = modifier) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { c: Context ->
-                val previewView =
-                    PreviewView(c).apply {
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    }
+                val previewView = PreviewView(c).apply {
+                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                }
                 previewViewRef = previewView
                 val providerFuture = ProcessCameraProvider.getInstance(c)
                 providerFuture.addListener({
@@ -296,61 +359,52 @@ fun BarcodeScannerCamera(
             scanState = scanVisualState,
             modifier = Modifier.fillMaxSize()
         )
-        cameraError?.let { message ->
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.85f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Rounded.Warning, contentDescription = null, tint = Color.White)
-                    Spacer(Modifier.height(8.dp))
-                    Text(text = message, color = Color.White, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = { attemptBind() }) {
-                        Text("Coba Lagi")
-                    }
-                }
-            }
-        }
     }
 }
+
 @Composable
-fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
+fun rememberBarcodeScanner(
+    onScanned: suspend (String) -> String?,
+    onObjectScanned: suspend (Long) -> String? = { null } // Callback opsional untuk objek
+): () -> Unit {
     val context = LocalContext.current
     val onScannedState = rememberUpdatedState(onScanned)
+    val onObjectScannedState = rememberUpdatedState(onObjectScanned)
     val feedbackManager = remember { ScanFeedbackManager(context) }
     val prefsRepository = remember { ScanPreferencesRepository(context) }
+    
     val isSoundEnabled by prefsRepository.isSoundEnabled.collectAsStateWithLifecycle()
     val soundVolume by prefsRepository.soundVolume.collectAsStateWithLifecycle()
     val soundDurationMs by prefsRepository.soundDurationMs.collectAsStateWithLifecycle()
     val isVibrationEnabled by prefsRepository.isVibrationEnabled.collectAsStateWithLifecycle()
     val vibrationIntensity by prefsRepository.vibrationIntensity.collectAsStateWithLifecycle()
     val vibrationDurationMs by prefsRepository.vibrationDurationMs.collectAsStateWithLifecycle()
-    val vibrationLevel =
-        remember(vibrationIntensity) {
-            when {
-                vibrationIntensity <= 35 -> VibrationLevel.HALUS
-                vibrationIntensity <= 70 -> VibrationLevel.SEDANG
-                else -> VibrationLevel.KUAT
-            }
+    
+    val vibrationLevel = remember(vibrationIntensity) {
+        when {
+            vibrationIntensity <= 35 -> VibrationLevel.HALUS
+            vibrationIntensity <= 70 -> VibrationLevel.SEDANG
+            else -> VibrationLevel.KUAT
         }
+    }
+    
     val (permState, requestPermission) = rememberCameraPermissionState()
     var showScanner by remember { mutableStateOf(false) }
     var pendingOpen by remember { mutableStateOf(false) }
     var showDeniedDialog by remember { mutableStateOf(false) }
     var isMultiScanMode by remember { mutableStateOf(false) }
+    var scannerMode by remember { mutableStateOf(ScannerMode.BARCODE) } // State Mode Kamera
     var scannedCountBatch by remember { mutableIntStateOf(0) }
     var lastScannedCodeText by remember { mutableStateOf("") }
-    var scanErrorMessage by remember { mutableStateOf<String?>(null) }
+    var scanErrorMessage by remember { mutableStringState(null) }
+
     LaunchedEffect(scanErrorMessage) {
         if (scanErrorMessage != null) {
             delay(2500L)
             scanErrorMessage = null
         }
     }
+
     LaunchedEffect(showScanner) {
         if (showScanner) {
             isMultiScanMode = false
@@ -359,11 +413,11 @@ fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
             scanErrorMessage = null
         }
     }
+
     DisposableEffect(Unit) {
-        onDispose {
-            feedbackManager.release()
-        }
+        onDispose { feedbackManager.release() }
     }
+
     LaunchedEffect(permState) {
         if (pendingOpen) {
             when (permState) {
@@ -375,396 +429,180 @@ fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
                     showDeniedDialog = true
                     pendingOpen = false
                 }
-                else -> {
-                    Unit
-                }
+                else -> {}
             }
         }
     }
+
     if (showDeniedDialog) {
         val permanentlyDenied = permState == CameraPermissionState.PERMANENTLY_DENIED
         AlertDialog(
             onDismissRequest = { showDeniedDialog = false },
-            title = {
-                Text(if (permanentlyDenied) "Izin Kamera Diblokir" else "Izin Kamera Diperlukan")
-            },
-            text = {
-                Text(
-                    if (permanentlyDenied) {
-                        "Akses kamera untuk scan barcode ditolak permanen. Aktifkan manual lewat Pengaturan aplikasi."
-                    } else {
-                        "Akses kamera dibutuhkan untuk memindai barcode secara langsung."
-                    },
-                )
-            },
+            title = { Text(if (permanentlyDenied) "Izin Kamera Diblokir" else "Izin Kamera Diperlukan") },
+            text = { Text("Akses kamera dibutuhkan untuk memindai barang.") },
             confirmButton = {
                 Button(onClick = {
                     showDeniedDialog = false
                     pendingOpen = true
-                    if (permanentlyDenied) {
-                        openAppSettings(context)
-                    } else {
-                        requestPermission()
-                    }
+                    if (permanentlyDenied) openAppSettings(context) else requestPermission()
                 }) {
                     Text(if (permanentlyDenied) "Buka Pengaturan" else "Izinkan")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeniedDialog = false }) { Text("Tutup") }
-            },
+            dismissButton = { TextButton(onClick = { showDeniedDialog = false }) { Text("Tutup") } },
         )
     }
+
     if (showScanner) {
-    Dialog(
-        onDismissRequest = { showScanner = false },
-        properties =
-            DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false,
-            ),
-    ) {
-        val view = LocalView.current
-        LaunchedEffect(view) {
-            (view.parent as? DialogWindowProvider)?.window?.let { window ->
-                window.setLayout(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                )
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-                // window.statusBarColor = android.graphics.Color.TRANSPARENT
-                // window.navigationBarColor = android.graphics.Color.TRANSPARENT
-            }
-        }
-        BackHandler { showScanner = false }
-        val (statusBarHeight, navBarHeight) = rememberRealSystemBarInsets()
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
+        Dialog(
+            onDismissRequest = { showScanner = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
         ) {
-            BarcodeScannerCamera(
-                isMultiScanMode = isMultiScanMode,
-                onBarcodeScanned = { code ->
-                    val scannedName = onScannedState.value(code)
-                    val isSuccess = scannedName != null
-                    if (isSuccess) {
-                        scanErrorMessage = null
-                        feedbackManager.triggerSuccessFeedback(
-                            soundEnabled = isSoundEnabled,
-                            soundVolume = soundVolume,
-                            soundDurationMs = soundDurationMs,
-                            vibrationEnabled = isVibrationEnabled,
-                            vibrationLevel = vibrationLevel,
-                            vibrationDurationMs = vibrationDurationMs,
-                        )
-                        scannedCountBatch++
-                        lastScannedCodeText = scannedName
-                        if (!isMultiScanMode) {
-                            showScanner = false
-                        }
-                    } else {
-                        scanErrorMessage = "Produk tidak ditemukan ($code)"
-                        feedbackManager.triggerFailureFeedback(
-                            soundEnabled = isSoundEnabled,
-                            soundVolume = soundVolume,
-                            vibrationEnabled = isVibrationEnabled,
-                            vibrationLevel = vibrationLevel,
-                        )
-                    }
-                    isSuccess
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
-            AnimatedVisibility(
-                visible = scannedCountBatch > 0 && scanErrorMessage == null,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically(),
-                modifier =
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(start = 16.dp, top = 12.dp),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    tonalElevation = 6.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = "$scannedCountBatch Item Masuk Keranjang",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+            val view = LocalView.current
+            LaunchedEffect(view) {
+                (view.parent as? DialogWindowProvider)?.window?.let { window ->
+                    window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
+                    WindowCompat.setDecorFitsSystemWindows(window, false)
+                    window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
                 }
             }
-            AnimatedVisibility(
-                visible = scanErrorMessage != null,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically(),
-                modifier =
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(start = 16.dp, top = 12.dp, end = 60.dp),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    tonalElevation = 8.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = scanErrorMessage ?: "",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
-            IconButton(
-                onClick = { showScanner = false },
-                modifier =
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .statusBarsPadding()
-                        .padding(16.dp),
-            ) {
-                Icon(Icons.Rounded.Close, contentDescription = "Tutup", tint = Color.White)
-            }
-            Card(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = Color.Black.copy(alpha = 0.85f),
-                    ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.Repeat,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = "Mode Multi-Scan (Beruntun)",
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Text(
-                                    text = if (isMultiScanMode) "Kamera tetap terbuka setelah scan" else "Kamera otomatis tutup 1x scan",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 10.sp,
-                                )
-                            }
+            BackHandler { showScanner = false }
+
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+                BarcodeScannerCamera(
+                    isMultiScanMode = isMultiScanMode,
+                    scannerMode = scannerMode,
+                    onBarcodeScanned = { code ->
+                        val scannedName = onScannedState.value(code)
+                        val isSuccess = scannedName != null
+                        if (isSuccess) {
+                            scanErrorMessage = null
+                            feedbackManager.triggerSuccessFeedback(isSoundEnabled, soundVolume, soundDurationMs, isVibrationEnabled, vibrationLevel, vibrationDurationMs)
+                            scannedCountBatch++
+                            lastScannedCodeText = scannedName
+                            if (!isMultiScanMode) showScanner = false
+                        } else {
+                            scanErrorMessage = "Produk tidak ditemukan ($code)"
+                            feedbackManager.triggerFailureFeedback(isSoundEnabled, soundVolume, isVibrationEnabled, vibrationLevel)
                         }
-                        Switch(
-                            checked = isMultiScanMode,
-                            onCheckedChange = { isMultiScanMode = it },
-                            colors =
-                                SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                ),
-                        )
-                    }
-                    AnimatedVisibility(visible = lastScannedCodeText.isNotEmpty()) {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Rounded.QrCodeScanner,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "Terakhir: $lastScannedCodeText",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                modifier = Modifier.weight(1f),
-                            )
+                        isSuccess
+                    },
+                    onObjectScanned = { productId ->
+                        val scannedName = onObjectScannedState.value(productId)
+                        val isSuccess = scannedName != null
+                        if (isSuccess) {
+                            scanErrorMessage = null
+                            feedbackManager.triggerSuccessFeedback(isSoundEnabled, soundVolume, soundDurationMs, isVibrationEnabled, vibrationLevel, vibrationDurationMs)
+                            scannedCountBatch++
+                            lastScannedCodeText = scannedName
+                            if (!isMultiScanMode) showScanner = false
+                        } else {
+                            scanErrorMessage = "Objek tidak dikenali di database"
+                            feedbackManager.triggerFailureFeedback(isSoundEnabled, soundVolume, isVibrationEnabled, vibrationLevel)
                         }
-                    }
+                        isSuccess
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+                // Tombol Switch Mode di Atas (Barcode vs Objek AI)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 16.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Button(
-                        onClick = { showScanner = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = if (scannedCountBatch > 0) "Selesai ($scannedCountBatch Item Dipindai)" else "Selesai",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
+                        onClick = { scannerMode = ScannerMode.BARCODE },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = if (scannerMode == ScannerMode.BARCODE) MaterialTheme.colorScheme.primary else Color.Transparent
                         )
+                    ) {
+                        Icon(Icons.Rounded.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Barcode", fontSize = 12.sp)
+                    }
+
+                    Button(
+                        onClick = { scannerMode = ScannerMode.OBJECT },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = if (scannerMode == ScannerMode.OBJECT) MaterialTheme.colorScheme.primary else Color.Transparent
+                        )
+                    ) {
+                        Icon(Icons.Rounded.Camera, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Scan Objek AI", fontSize = 12.sp)
+                    }
+                }
+
+                // Tombol Tutup Scanner (Kanan Atas)
+                IconButton(
+                    onClick = { showScanner = false },
+                    modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(16.dp),
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Tutup", tint = Color.White)
+                }
+
+                // Panel Kontrol Bawah (Multi-scan & Status)
+                Card(
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.85f)),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = if (scannerMode == ScannerMode.BARCODE) "Arahkan ke Barcode Produk" else "Arahkan Kamera ke Bentuk Produk", color = Color.White, fontSize = 12.sp)
+                            Switch(checked = isMultiScanMode, onCheckedChange = { isMultiScanMode = it })
+                        }
+                        Button(onClick = { showScanner = false }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Selesai ($scannedCountBatch Item)")
+                        }
                     }
                 }
             }
         }
     }
-    }
+
     return {
         when (permState) {
-            CameraPermissionState.GRANTED -> {
-                showScanner = true
-            }
-            CameraPermissionState.SHOW_RATIONALE, CameraPermissionState.PERMANENTLY_DENIED -> {
-                showDeniedDialog = true
-            }
-            else -> {
-                pendingOpen = true
-                requestPermission()
-            }
+            CameraPermissionState.GRANTED -> showScanner = true
+            else -> { pendingOpen = true; requestPermission() }
         }
     }
 }
-private fun Context.findActivity(): Activity? {
-    var ctx = this
-    while (ctx is ContextWrapper) {
-        if (ctx is Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
-}
+
+// Fungsi bantu state string ringkas
+private fun mutableStringState(value: String?) = mutableStateOf(value)
+
 @Composable
-private fun rememberRealSystemBarInsets(): Pair<Dp, Dp> {
-    val context = LocalContext.current
-    val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
-    return remember(configuration, density) {
-        val activity = context.findActivity()
-        val insets = activity?.window?.decorView?.let { ViewCompat.getRootWindowInsets(it) }
-        val statusPx = insets?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
-        val navPx = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
-        with(density) { statusPx.toDp() to navPx.toDp() }
-    }
-}
-@Composable
-private fun ScannerViewfinder(
-    scanState: ScanVisualState,
-    modifier: Modifier = Modifier
-) {
+private fun ScannerViewfinder(scanState: ScanVisualState, modifier: Modifier = Modifier) {
     val animatedColor by animateColorAsState(
         targetValue = when (scanState) {
             ScanVisualState.IDLE -> Color.White
             ScanVisualState.SUCCESS -> Color(0xFF4CAF50)
             ScanVisualState.ERROR -> Color(0xFFF44336)
         },
-        animationSpec = tween(durationMillis = 200),
-        label = "colorAnimation"
+        animationSpec = tween(200), label = ""
     )
-    val animatedStrokeDp by animateDpAsState(
-        targetValue = when (scanState) {
-            ScanVisualState.IDLE -> 4.dp
-            else -> 9.dp
-        },
-        animationSpec = tween(durationMillis = 200),
-        label = "strokeAnimation"
-    )
-    Box(
-        modifier = modifier.drawWithCache {
-            val boxWidth = size.width * 0.75f
-            val boxHeight = size.height * 0.35f
-            val left = (size.width - boxWidth) / 2f
-            val top = (size.height - boxHeight) / 2f
-            val right = left + boxWidth
-            val bottom = top + boxHeight
-            val cornerRadiusPx = 16.dp.toPx()
-            val cornerLength = 40.dp.toPx()
-            val outerRect = Rect(0f, 0f, size.width, size.height)
-            val boxRect = RoundRect(
-                rect = Rect(left, top, right, bottom),
-                cornerRadius = CornerRadius(cornerRadiusPx)
-            )
-            val overlayPath = Path().apply { addRect(outerRect) }
-            val cutoutPath = Path().apply { addRoundRect(boxRect) }
-            val dimmedPath = Path.combine(
-                operation = PathOperation.Difference,
-                path1 = overlayPath,
-                path2 = cutoutPath,
-            )
-            onDrawWithContent {
-                drawContent()
-                drawPath(dimmedPath, Color.Black.copy(alpha = 0.55f))
-                val color = animatedColor
-                val strokeWidthPx = animatedStrokeDp.toPx()
-                val strokeStyle = Stroke(width = strokeWidthPx)
-                drawLine(color, Offset(left, top + cornerRadiusPx), Offset(left, top + cornerLength), strokeWidthPx)
-                drawLine(color, Offset(left + cornerRadiusPx, top), Offset(left + cornerLength, top), strokeWidthPx)
-                drawArc(color, startAngle = 180f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(left, top), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-                drawLine(color, Offset(right, top + cornerRadiusPx), Offset(right, top + cornerLength), strokeWidthPx)
-                drawLine(color, Offset(right - cornerRadiusPx, top), Offset(right - cornerLength, top), strokeWidthPx)
-                drawArc(color, startAngle = 270f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(right - cornerRadiusPx * 2, top), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-                drawLine(color, Offset(left, bottom - cornerRadiusPx), Offset(left, bottom - cornerLength), strokeWidthPx)
-                drawLine(color, Offset(left + cornerRadiusPx, bottom), Offset(left + cornerLength, bottom), strokeWidthPx)
-                drawArc(color, startAngle = 90f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(left, bottom - cornerRadiusPx * 2), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-                drawLine(color, Offset(right, bottom - cornerRadiusPx), Offset(right, bottom - cornerLength), strokeWidthPx)
-                drawLine(color, Offset(right - cornerRadiusPx, bottom), Offset(right - cornerLength, bottom), strokeWidthPx)
-                drawArc(color, startAngle = 0f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(right - cornerRadiusPx * 2, bottom - cornerRadiusPx * 2), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-            }
+    Box(modifier = modifier.drawWithCache {
+        val boxWidth = size.width * 0.75f
+        val boxHeight = size.height * 0.35f
+        val left = (size.width - boxWidth) / 2f
+        val top = (size.height - boxHeight) / 2f
+        val right = left + boxWidth
+        val bottom = top + boxHeight
+        val cornerRadiusPx = 16.dp.toPx()
+        onDrawWithContent {
+            drawContent()
+            drawRect(Color.Black.copy(alpha = 0.5f))
         }
-    )
+    })
 }
-enum class ScanVisualState {
-    IDLE,
-    SUCCESS,
-    ERROR
-}
+
+enum class ScanVisualState { IDLE, SUCCESS, ERROR }
