@@ -43,18 +43,6 @@ android {
             )
         }
     }
-
-    // OPTIMASI: Memisahkan APK berdasarkan arsitektur jika Anda tidak menggunakan Google Play (AAB)
-    // Jika Anda mendistribusikan lewat WhatsApp/Web, ini akan memotong size hingga 50%
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a")
-            isUniversalApk = false
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
