@@ -478,7 +478,7 @@ fun ScannerModeSelector(
 
 @Composable
 fun rememberBarcodeScanner(
-    onScanned: suspend (String) -> String?,
+    onScanned: (suspend (String) -> String?)? = null,
     onObjectScanned: (suspend (FloatArray) -> String?)? = null
 ): () -> Unit {
     val context = LocalContext.current
@@ -633,9 +633,9 @@ fun rememberBarcodeScanner(
                             )
                             scannedCountBatch++
                             lastScannedCodeText = scannedName
-                            if (!isMultiScanMode) {
+                            if (!isMultiScanMode)
                                 showScanner = false
-                            }
+                            
                         } else {
                             scanErrorMessage = "Produk tidak ditemukan ($code)"
                             feedbackManager.triggerFailureFeedback(
@@ -663,9 +663,9 @@ fun rememberBarcodeScanner(
                             )
                             scannedCountBatch++
                             lastScannedCodeText = scannedName
-                            if (!isMultiScanMode) {
+                            if (!isMultiScanMode)
                                 showScanner = false
-                            }
+                            
                         } else {
                             scanErrorMessage = "Objek tidak dikenali"
                             feedbackManager.triggerFailureFeedback(
