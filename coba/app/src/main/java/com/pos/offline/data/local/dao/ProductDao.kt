@@ -100,7 +100,7 @@ interface ProductDao {
     @Query(
         """
         SELECT * FROM products 
-        WHERE active = 1 AND imageVector IS NOT NULL AND objectVector != ''
+        WHERE active = 1 AND imageVector IS NOT NULL AND imageVector != ''
         """
     )
     suspend fun getProductsWithImageVector(): List<ProductEntity>
