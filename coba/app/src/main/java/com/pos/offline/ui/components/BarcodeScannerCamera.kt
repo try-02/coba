@@ -619,7 +619,8 @@ fun rememberBarcodeScanner(
                     scannerMode = scannerMode,
                     isMultiScanMode = isMultiScanMode,
                     onBarcodeScanned = { code ->
-                        val scannedName = onScannedState.value(code)
+                        val callback = onScannedState.value
+                        val scannedName = callback?.invoke(code)
                         val isSuccess = scannedName != null
                         if (isSuccess) {
                             scanErrorMessage = null
@@ -633,9 +634,9 @@ fun rememberBarcodeScanner(
                             )
                             scannedCountBatch++
                             lastScannedCodeText = scannedName
-                            if (!isMultiScanMode)
+                            if (!isMultiScanMode) {
                                 showScanner = false
-                            
+                            }
                         } else {
                             scanErrorMessage = "Produk tidak ditemukan ($code)"
                             feedbackManager.triggerFailureFeedback(
@@ -663,9 +664,9 @@ fun rememberBarcodeScanner(
                             )
                             scannedCountBatch++
                             lastScannedCodeText = scannedName
-                            if (!isMultiScanMode)
+                            if (!isMultiScanMode) {
                                 showScanner = false
-                            
+                            }
                         } else {
                             scanErrorMessage = "Objek tidak dikenali"
                             feedbackManager.triggerFailureFeedback(
