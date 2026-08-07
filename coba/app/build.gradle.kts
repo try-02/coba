@@ -19,16 +19,16 @@ android {
         targetSdk = 36
         versionCode = 2
         versionName = "1.0.0.1"
-        
-        // PERBAIKAN: Sintaksis resConfigs yang benar untuk Kotlin DSL
-        resourceConfigurations.addAll(listOf("id", "en"))
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         ndk {
             // Hanya mengemas arsitektur arm64-v8a (efektif memangkas size native library)
             abiFilters += listOf("arm64-v8a")
         }
+    }
+
+    androidResources {
+        localeFilters += listOf("id", "en")
     }
 
     buildTypes {
