@@ -10,66 +10,65 @@ import java.nio.channels.FileChannel
 
 class ImageFeatureExtractor(context: Context) {
     private var interpreter: Interpreter? = null
-    
-    // Input untuk MobileNet-V4 sesuai spesifikasi Anda
-    private val IMAGE_SIZE = 224 
-    
-    // Kita buat dinamis agar tidak hardcoded
-    private var OUTPUT_SIZE = 1000 
+    private val IMAGE_SIZE = 224
+    private var OUTPUT_SIZE = 1000
+
+    // PRE-ALLOCATE MEMORY: Dibuat 1x, dipakai berkali-kali untuk mencegah Memory Churn
+    private val byteBuffer = ByteBuffer.allocateDirect(4 * IMAGE_SIZE * IMAGE_SIZE * 3).apply {
+        order(ByteOrder.nativeOrder())
+    }
+    private val intValues = IntArray(IMAGE_SIZE * IMAGE_SIZE)
+    private var outputArray = Array(1) { FloatArray(OUTPUT_SIZE) }
 
     init {
-        // Ganti nama file sesuai dengan file .tflite Anda di folder assets
-        val assetFileDescriptor = context.assets.openFd("mobilenetv4_conv_small.tflite")
-        val fileInputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
-        val fileChannel = fileInputStream.channel
-        val startOffset = assetFileDescriptor.startOffset
-        val declaredLength = assetFileDescriptor.declaredLength
-        val mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
-        
-        val options = Interpreter.Options().apply {
-            numThreads = 2 
-        }
-        interpreter = Interpreter(mappedByteBuffer, options)
-        
-        // Membaca ukuran output otomatis dari model (biasanya shape [1, 1000] atau [1, 1024])
-        val outputShape = interpreter?.getOutputTensor(0)?.shape()
-        if (outputShape != null && outputShape.size >= 2) {
-            OUTPUT_SIZE = outputShape[1]
+        // MENCEGAH RESOURCE LEAK: Gunakan blok 'use' agar otomatis ter-close setelah dibaca
+        context.assets.openFd("mobilenetv4_conv_small.tflite").use { assetFileDescriptor ->
+            FileInputStream(assetFileDescriptor.fileDescriptor).use { fileInputStream ->
+                val fileChannel = fileInputStream.channel
+                val startOffset = assetFileDescriptor.startOffset
+                val declaredLength = assetFileDescriptor.declaredLength
+                val mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+                
+                val options = Interpreter.Options().apply { numThreads = 2 }
+                interpreter = Interpreter(mappedByteBuffer, options)
+                
+                val outputShape = interpreter?.getOutputTensor(0)?.shape()
+                if (outputShape != null && outputShape.size >= 2) {
+                    OUTPUT_SIZE = outputShape[1]
+                    outputArray = Array(1) { FloatArray(OUTPUT_SIZE) } // Update array pre-allocated
+                }
+            }
         }
     }
 
     fun extractFeatures(bitmap: Bitmap): FloatArray {
-        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, IMAGE_SIZE, IMAGE_SIZE, true)
-        val byteBuffer = convertBitmapToByteBuffer(resizedBitmap)
+        // Menghemat 1 pembuatan bitmap (Bitmap.createScaledBitmap)
+        val resizedBitmap = if (bitmap.width != IMAGE_SIZE || bitmap.height != IMAGE_SIZE) {
+            Bitmap.createScaledBitmap(bitmap, IMAGE_SIZE, IMAGE_SIZE, true)
+        } else {
+            bitmap
+        }
         
-        // Menyiapkan wadah output dengan ukuran dinamis
-        val output = Array(1) { FloatArray(OUTPUT_SIZE) }
+        convertBitmapToByteBuffer(resizedBitmap)
+        interpreter?.run(byteBuffer, outputArray)
         
-        interpreter?.run(byteBuffer, output)
-        
-        return output[0]
+        // Kembalikan clone agar array asli tidak termutasi oleh kelas lain
+        return outputArray[0].clone() 
     }
 
-    private fun convertBitmapToByteBuffer(bitmap: Bitmap): ByteBuffer {
-        // Model timm ImageNet biasanya menggunakan normalisasi RGB standar (mean/std)
-        // Namun untuk feature matching sederhana, normalisasi 0-1 seringkali sudah cukup.
-        val byteBuffer = ByteBuffer.allocateDirect(4 * IMAGE_SIZE * IMAGE_SIZE * 3)
-        byteBuffer.order(ByteOrder.nativeOrder())
-        
-        val intValues = IntArray(IMAGE_SIZE * IMAGE_SIZE)
+    private fun convertBitmapToByteBuffer(bitmap: Bitmap) {
+        byteBuffer.rewind() // Wajib! Kembalikan kursor buffer ke index 0
         bitmap.getPixels(intValues, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
         
         var pixel = 0
         for (i in 0 until IMAGE_SIZE) {
             for (j in 0 until IMAGE_SIZE) {
                 val valInt = intValues[pixel++]
-                // Normalisasi (0.0 - 1.0)
                 byteBuffer.putFloat(((valInt shr 16) and 0xFF) / 255.0f)
                 byteBuffer.putFloat(((valInt shr 8) and 0xFF) / 255.0f)
                 byteBuffer.putFloat((valInt and 0xFF) / 255.0f)
             }
         }
-        return byteBuffer
     }
     
     fun close() {
