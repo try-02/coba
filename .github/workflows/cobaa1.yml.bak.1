@@ -32,22 +32,15 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           add-job-summary: on-failure
 
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x ./gradlew
+
+      - name: Perform Gradle Sync
+        run: ./gradlew help --parallel --build-cache
+
       # Build Release APK dengan optimasi
       - name: Build APK (Optimized)
-        run: |
-          echo "🏗️ Building release APK with R8 shrinking..."
-          echo "Versi Build: ${{ github.run_number }}"
-          echo ""
-
-          chmod +x ./gradlew
-
-          # Menyelipkan github.run_number sebagai versionCode
-          ./gradlew assembleRelease \
-            -PBUILD_VERSION_CODE=${{ github.run_number }} \
-            --parallel \
-            --build-cache \
-            --configuration-cache \
-            --stacktrace
+        run: ./gradlew assembleRelease --parallel --build-cache --configuration-cache --stacktrace
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false"
           ORG_GRADLE_PROJECT_android_native_build_output_ignore_errors: true

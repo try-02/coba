@@ -789,9 +789,7 @@ private fun SalesReportResultCard(
                 }
             }
 
-            SalesReportUiState.Hidden -> {
-                Unit
-            }
+            SalesReportUiState.Hidden -> {}
         }
     }
 }

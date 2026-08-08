@@ -380,9 +380,7 @@ fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
                     pendingOpen = false
                 }
 
-                else -> {
-                    Unit
-                }
+                else -> {}
             }
         }
     }

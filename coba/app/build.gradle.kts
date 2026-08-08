@@ -1,8 +1,8 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp")
-    id("androidx.room")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 room {
@@ -17,12 +17,16 @@ android {
         applicationId = "com.pos.offline"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.0.1"
+        
+        // Ambil versionCode dari perintah Gradle (dari GitHub Actions), 
+        // jika dijalankan lokal/tanpa parameter, default ke 2.
+        val autoVersionCode = (project.findProperty("BUILD_VERSION_CODE") as? String)?.toIntOrNull() ?: 2
+        versionCode = autoVersionCode
+        
+        versionName = "1.0.0.$autoVersionCode" // Version name juga akan otomatis mengikuti
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         ndk {
-            // Hanya mengemas arsitektur arm64-v8a (efektif memangkas size native library)
             abiFilters += listOf("arm64-v8a")
         }
     }
@@ -35,8 +39,6 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            
-            // OPTIMASI: Aktifkan Proguard/R8 penuh untuk optimasi kode
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -97,56 +99,48 @@ kotlin {
 
 dependencies {
     // ===== ROOM =====
-    val room_version = "2.8.4"
-    implementation("androidx.room:room-runtime:$room_version")
-    ksp("androidx.room:room-compiler:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
 
     // ===== COMPOSE & UI =====
-    val composeBom = platform("androidx.compose:compose-bom:2025.04.00")
-    implementation(composeBom)
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.material3:material3")
-    
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.core:core-ktx:1.19.0")
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
 
     // ===== LIFECYCLE =====
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.kotlinx.coroutines.android)
 
     // ===== PRINTER & BARCODE =====
-    implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.4.0")
+    implementation(libs.escpos.thermalprinter)
+    implementation(libs.flinger)
 
-    // ===== CAMERA =====
-    val cameraxVersion = "1.7.0-alpha02"
-    implementation("androidx.camera:camera-core:$cameraxVersion")
-    implementation("androidx.camera:camera-camera2:$cameraxVersion")
-    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
-    implementation("androidx.camera:camera-view:$cameraxVersion")
-
-    // ===== ML KIT =====
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    // ===== CAMERA & ML KIT =====
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.google.mlkit.barcode)
 
     // ===== EXCEL & XML =====
-    implementation("org.dhatim:fastexcel:0.20.2")
-    implementation("org.dhatim:fastexcel-reader:0.20.2")
-    implementation("com.fasterxml:aalto-xml:1.4.0")
-    implementation("javax.xml.stream:stax-api:1.0-2")
-
-    implementation("com.github.iamjosephmj:flinger:2.1.0")
+    implementation(libs.dhatim.fastexcel)
+    implementation(libs.dhatim.fastexcel.reader)
+    implementation(libs.fasterxml.aalto.xml)
+    implementation(libs.javax.stax.api)
 
     // ===== TESTING =====
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("io.mockk:mockk:1.14.11")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
-    androidTestImplementation("androidx.room:room-testing:2.8.4")
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }

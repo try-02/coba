@@ -151,9 +151,7 @@ fun PosDialogManager(
             )
         }
 
-        else -> {
-            Unit
-        }
+        else -> {}
     }
     if (localState.showClearConfirm) {
         AlertDialog(
