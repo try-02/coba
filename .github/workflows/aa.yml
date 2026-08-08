@@ -30,6 +30,13 @@ jobs:
           from pathlib import Path
           import shutil
 
+          # Monkey Patching np.load untuk mengatasi masalah pickle NumPy 2.x pada onnx2tf
+          _orig_load = np.load
+          def _patched_np_load(*args, **kwargs):
+              kwargs['allow_pickle'] = True
+              return _orig_load(*args, **kwargs)
+          np.load = _patched_np_load
+
           output_dir = Path("model_conversion_output")
           output_dir.mkdir(exist_ok=True)
 
@@ -52,18 +59,12 @@ jobs:
                   opset_version=18, do_constant_folding=True
               )
 
-          print("\n[3/3] Preparing test data for onnx2tf...")
-          custom_test_data = np.random.rand(1, 224, 224, 3).astype(np.float32)
-          test_data_path = output_dir / "test_data_nhwc.npy"
-          np.save(str(test_data_path), custom_test_data)
-
-          print("Converting ONNX to TFLite using onnx2tf...")
+          print("\n[3/3] Converting ONNX to TFLite using onnx2tf...")
           import onnx2tf
           onnx2tf.convert(
               input_onnx_file_path=str(onnx_path),
               output_folder_path=str(output_dir),
-              output_signaturedefs=True,
-              test_data_nhwc_path=str(test_data_path)
+              output_signaturedefs=True
           )
 
           tflite_files = list(output_dir.glob("**/*.tflite"))
