@@ -1,5 +1,15 @@
 # ============================================================
 #  🚀 POS Offline — Code Optimizer & Builder
+#
+#  Workflow:
+#  1. Hapus semua komentar Kotlin
+#  2. Hapus debug Log/println statements
+#  3. Format kode dengan ktlint
+#  4. Static analysis dengan detekt (auto-correct)
+#  5. Minify XML resources
+#  6. Build release APK (R8 full shrinking)
+#  7. Analisa ukuran APK
+#  8. Upload artifacts (cleaned source + APK)
 # ============================================================
 
 name: 🚀 Optimize & Build POS Offline
@@ -11,26 +21,32 @@ on:
         description: "Hapus semua komentar Kotlin"
         default: true
         type: boolean
+
       remove_logs:
         description: "Hapus Log/println statements"
         default: true
         type: boolean
+
       format_ktlint:
-        description: "Format kode dengan ktlint & Generate Report"
+        description: "Format kode dengan ktlint"
         default: true
         type: boolean
+
       run_detekt:
-        description: "Jalankan detekt auto-correct & Generate Report"
+        description: "Jalankan detekt auto-correct"
         default: true
         type: boolean
+
       minify_xml:
         description: "Minify XML resources"
         default: true
         type: boolean
+
       build_apk:
         description: "Build release APK"
         default: true
         type: boolean
+
       upload_source:
         description: "Upload cleaned source ke artifacts"
         default: true
@@ -47,6 +63,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # ============================================
+      #  SETUP
+      # ============================================
       - name: 📥 Checkout Repository
         uses: actions/checkout@v6
         with:
@@ -224,28 +243,26 @@ jobs:
           python /tmp/remove_logs.py "app/src"
 
       # ============================================
-      #  STEP 3: FORMAT & REPORT KTLINT
+      #  STEP 3: FORMAT DENGAN KTLINT
       # ============================================
-      - name: "🔧 Step 3/6: Format with Ktlint & Generate Report"
+      - name: "🔧 Step 3/6: Format with Ktlint"
         if: ${{ inputs.format_ktlint }}
         run: |
           if [ ! -f "./ktlint" ]; then
             echo "📥 Downloading ktlint..."
-            curl -sSLO https://github.com/ktlint/ktlint/releases/download/1.8.0/ktlint # Disesuaikan ke versi stabil ktlint
+            curl -sSLO https://github.com/ktlint/ktlint/releases/download/1.8.0/ktlint
           fi
           chmod a+x ktlint
 
           echo "ktlint version: $(./ktlint --version)"
+          echo ""
           echo "🔧 Formatting Kotlin files..."
-          
-          # Eksekusi formatting dan generate file HTML untuk report
           ./ktlint --format "app/src/**/*.kt" 2>&1 | tail -30 || true
-          ./ktlint "app/src/**/*.kt" --reporter=html,output=ktlint-report.html || true
-          
-          echo "✅ Ktlint format & reporting done!"
+          echo ""
+          echo "✅ Ktlint format done!"
 
       # ============================================
-      #  STEP 4: DETEKT AUTO-CORRECT & REPORT
+      #  STEP 4: DETEKT AUTO-CORRECT
       # ============================================
       - name: "🔍 Step 4/6: Detekt Static Analysis"
         if: ${{ inputs.run_detekt }}
@@ -254,7 +271,7 @@ jobs:
           echo "📥 Downloading detekt ${DETEKT_VERSION}..."
           curl -sSLO "https://github.com/detekt/detekt/releases/download/v${DETEKT_VERSION}/detekt-cli-${DETEKT_VERSION}-all.jar"
 
-          # Config YAML Anda (Sama seperti source 6)
+          # Config fokus pada optimasi & cleanup
           cat > /tmp/detekt.yml << 'YAML'
           style:
             active: true
@@ -302,8 +319,6 @@ jobs:
             --input "app/src/main" \
             --config /tmp/detekt.yml \
             --auto-correct \
-            --report html:detekt-report.html \
-            --report sarif:detekt-report.sarif \
             2>&1 | tail -20 || true
 
           rm -f "detekt-cli-${DETEKT_VERSION}-all.jar"
@@ -365,44 +380,143 @@ jobs:
 
           print(f"📊 {count} XML files minified, {saved_total:,} bytes saved")
           PYSCRIPT
-          echo "XML minified" 
 
+      # ============================================
+      #  STEP 6: BUILD RELEASE APK
+      # ============================================
       - name: "🏗️ Step 6/6: Build Release APK"
         if: ${{ inputs.build_apk }}
         run: |
+          echo "🏗️ Building release APK with R8 shrinking..."
+          echo ""
+
           chmod +x ./gradlew
-          ./gradlew assembleRelease --parallel --build-cache --configuration-cache --stacktrace -Dorg.gradle.daemon=false 2>&1 | tail -30
 
-      # ============================================
-      #  UPLOAD: LINTER REPORTS (KTLINT & DETEKT)
-      # ============================================
-      - name: 📦 Upload Linter Reports
-        if: always() # Memastikan laporan tetap diunggah meskipun step sebelumnya warning/failed
-        uses: actions/upload-artifact@v4
+          ./gradlew assembleRelease --parallel --build-cache --configuration-cache --stacktrace \
+            -Dorg.gradle.daemon=false \
+            2>&1 | tail -30
+
+          echo ""
+          echo "📦 Release APK(s):"
+          find app/build -name "*.apk" -type f | while read -r apk; do
+            SIZE=$(stat -c%s "$apk" 2>/dev/null || echo "0")
+            MB=$(echo "scale=2; $SIZE / 1048576" | bc 2>/dev/null || echo "?")
+            echo "  📦 $(basename $apk): ${MB} MB ($SIZE bytes)"
+          done
+
+      # --- STEP: Menandatangani Release APK ---
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
         with:
-          name: linter-reports
-          path: |
-            coba/ktlint-report.html
-            coba/detekt-report.html
-            coba/detekt-report.sarif
-          retention-days: 7
-          if-no-files-found: ignore
+          # UBAH: Arahkan ke folder release tempat Release APK berada
+          releaseDirectory: coba/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
 
       # ============================================
-      #  UPLOAD: ARTIFACT LAINNYA
+      #  POST-PROCESS: STATISTIK
+      # ============================================
+      - name: 📊 Post-Optimization Stats
+        run: |
+          echo ""
+          echo "╔════════════════════════════════════════╗"
+          echo "║  📊 STATISTIK SETELAH OPTIMASI         ║"
+          echo "╚════════════════════════════════════════╝"
+          echo ""
+
+          KT_FILES=$(find app/src -name "*.kt" -o -name "*.kts" | \
+                     grep -v '/build/' | wc -l)
+          KT_LINES=$(find app/src -name "*.kt" -o -name "*.kts" | \
+                     grep -v '/build/' | xargs wc -l 2>/dev/null | \
+                     tail -1 | awk '{print $1}')
+
+          echo "  File Kotlin : $KT_FILES"
+          echo "  Total baris : $KT_LINES"
+          echo ""
+
+          if [ -d "app/build" ]; then
+            echo "  📦 APK files:"
+            find app/build -name "*.apk" -type f | while read -r apk; do
+              SIZE=$(stat -c%s "$apk" 2>/dev/null || echo "0")
+              MB=$(echo "scale=2; $SIZE / 1048576" | bc 2>/dev/null || echo "?")
+              echo "     $(basename $apk): ${MB} MB"
+            done
+          fi
+          echo ""
+
+      # ============================================
+      #  UPLOAD: CLEANED SOURCE CODE
       # ============================================
       - name: 📦 Upload Cleaned Source
         if: ${{ inputs.upload_source }}
         uses: actions/upload-artifact@v4
         with:
           name: cleaned-source-code
-          path: coba/app/src/**
+          path: |
+            coba/app/src/**
+            coba/app/build.gradle.kts
+            coba/app/proguard-rules.pro
+            coba/build.gradle.kts
+            coba/settings.gradle.kts
+            coba/gradle.properties
+            coba/gradle/**
+            coba/gradlew
+            coba/gradlew.bat
           retention-days: 1
-          
+          compression-level: 9
+
+      # ============================================
+      #  UPLOAD: RELEASE APK
+      # ============================================
       - name: 📦 Upload Release APK
         if: ${{ inputs.build_apk }}
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: coba/app/build/outputs/apk/release/*.apk
+          path: |
+            coba/app/build/outputs/apk/release/*.apk
           retention-days: 1
+          if-no-files-found: warn
+
+      # ============================================
+      #  RINGKASAN AKHIR
+      # ============================================
+      - name: 📋 Final Summary
+        run: |
+          echo ""
+          echo "╔════════════════════════════════════════════════╗"
+          echo "║                                                ║"
+          echo "║   ✅  SEMUA PROSES SELESAI!                   ║"
+          echo "║                                                ║"
+          echo "╠════════════════════════════════════════════════╣"
+          echo "║                                                ║"
+          echo "║   Yang dilakukan:                              ║"
+
+          if [ "${{ inputs.remove_comments }}" = "true" ]; then
+          echo "║   ✅ Komentar Kotlin dihapus                  ║"
+          fi
+          if [ "${{ inputs.remove_logs }}" = "true" ]; then
+          echo "║   ✅ Log/println statements dihapus            ║"
+          fi
+          if [ "${{ inputs.format_ktlint }}" = "true" ]; then
+          echo "║   ✅ Kode diformat dengan ktlint               ║"
+          fi
+          if [ "${{ inputs.run_detekt }}" = "true" ]; then
+          echo "║   ✅ Detekt auto-correct dijalankan            ║"
+          fi
+          if [ "${{ inputs.minify_xml }}" = "true" ]; then
+          echo "║   ✅ XML resources di-minify                   ║"
+          fi
+          if [ "${{ inputs.build_apk }}" = "true" ]; then
+          echo "║   ✅ Release APK di-build (R8 shrinking)       ║"
+          fi
+
+          echo "║                                                ║"
+          echo "║   📥 Download dari tab Artifacts               ║"
+          echo "║                                                ║"
+          echo "╚════════════════════════════════════════════════╝"
