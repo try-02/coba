@@ -38,6 +38,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 @OptIn(kotlinx.coroutines.FlowPreview::class, ExperimentalCoroutinesApi::class)
 class PosViewModel(
     private val productRepository: ProductRepository,
@@ -387,9 +389,8 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
     if (scannedVector.isEmpty()) return null
     
     return try {
-        // Jalankan pencarian vektor berbasis CPU di Dispatchers.Default (Background Thread)
-        val bestMatch = withContext(Dispatchers.Default) {
-            // Di POS, filter hanya produk yang AKTIF (siap jual)
+        // Tipe data bestMatch ditegaskan sebagai ProductEntity?
+        val bestMatch: ProductEntity? = withContext(Dispatchers.Default) {
             val activeProducts = productRepository.getAllProductsOnce().filter { it.active }
             var currentBest: ProductEntity? = null
             

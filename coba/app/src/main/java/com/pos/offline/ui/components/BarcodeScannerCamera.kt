@@ -292,7 +292,7 @@ fun BarcodeScannerCamera(
                         proxy.close()
                     }
                 } 
-                // ==========================================
+// ==========================================
                 // MODE 2: SCAN OBJEK AI (Manual dengan Tombol Jepret)
                 // ==========================================
                 else {
@@ -309,6 +309,8 @@ fun BarcodeScannerCamera(
                         onObjectScanStartState.value()
                     }
 
+                    var croppedBitmap: Bitmap? = null
+
                     try {
                         // 1. Ambil Bitmap dari Kamera
                         val bitmap = proxy.toBitmap()
@@ -318,20 +320,19 @@ fun BarcodeScannerCamera(
                         val rotatedBitmap = if (rotationDegrees != 0) {
                             val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
                             val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                            // Hapus bitmap asli dari memori untuk mencegah kebocoran RAM
                             bitmap.recycle()
                             rotated
                         } else {
                             bitmap
                         }
 
-                        // 3. AUTO-CROP STATIS (Sesuai rasio ScannerViewfinder 75% x 35%)
+                        // 3. AUTO-CROP STATIS
                         val cropWidth = (rotatedBitmap.width * 0.75f).toInt()
                         val cropHeight = (rotatedBitmap.height * 0.35f).toInt()
                         val cropLeft = (rotatedBitmap.width - cropWidth) / 2
                         val cropTop = (rotatedBitmap.height - cropHeight) / 2
 
-                        val croppedBitmap = Bitmap.createBitmap(
+                        croppedBitmap = Bitmap.createBitmap(
                             rotatedBitmap,
                             cropLeft,
                             cropTop,
@@ -339,17 +340,15 @@ fun BarcodeScannerCamera(
                             cropHeight
                         )
 
-                        // Hapus rotatedBitmap dari memori jika objeknya berbeda dengan croppedBitmap
                         if (rotatedBitmap != croppedBitmap) {
                             rotatedBitmap.recycle()
                         }
-                    try {
-                        // 4. Ekstrak Fitur AI menggunakan gambar yang sudah di-crop
+
+                        // 4. Ekstrak Fitur AI
                         val extractor = featureExtractor
                         val onObjectCallback = onObjectScannedState.value
 
                         if (extractor != null && onObjectCallback != null) {
-                            // Lempar croppedBitmap ke ekstraktor AI
                             val features = extractor.extractFeatures(croppedBitmap)
 
                             coroutineScope.launch(Dispatchers.Main) {
@@ -372,9 +371,8 @@ fun BarcodeScannerCamera(
                             scanVisualState = ScanVisualState.IDLE
                         }
                     } finally {
-                        croppedBitmap.recycle()
+                        croppedBitmap?.recycle()
                         proxy.close()
-                        }
                     }
                 }
             }
