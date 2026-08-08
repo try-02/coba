@@ -362,11 +362,28 @@ jobs:
           PYSCRIPT
           echo "XML minified" 
 
+      # ============================================
+      #  STEP 6: BUILD RELEASE APK
+      # ============================================
       - name: "🏗️ Step 6/6: Build Release APK"
         if: ${{ inputs.build_apk }}
         run: |
+          echo "🏗️ Building release APK with R8 shrinking..."
+          echo ""
+
           chmod +x ./gradlew
-          ./gradlew assembleRelease --parallel --build-cache --configuration-cache --stacktrace -Dorg.gradle.daemon=false 2>&1 | tail -30
+
+          # Hapus -Dorg.gradle.daemon=false dan hapus pembatasan log (tail -30)
+          # Biarkan Github Actions menangani siklus hidup daemon secara natural
+          ./gradlew assembleRelease --parallel --build-cache --configuration-cache --stacktrace
+
+          echo ""
+          echo "📦 Release APK(s):"
+          find app/build -name "*.apk" -type f | while read -r apk; do
+            SIZE=$(stat -c%s "$apk" 2>/dev/null || echo "0")
+            MB=$(echo "scale=2; $SIZE / 1048576" | bc 2>/dev/null || echo "?")
+            echo "  📦 $(basename $apk): ${MB} MB ($SIZE bytes)"
+          done
 
       # ============================================
       #  UPLOAD: LINTER REPORTS (KTLINT & DETEKT)
