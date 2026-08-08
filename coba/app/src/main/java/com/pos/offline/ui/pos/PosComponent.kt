@@ -565,7 +565,7 @@ internal fun CartPaneContent(
                 ) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        state = listState, 
+                        state = listState,
                         flingBehavior = iosGlideFlingBehavior()
                     ) {
                         if (cart.isEmpty) {
@@ -1502,10 +1502,10 @@ private fun ProductDetailPopup(
                     modifier = Modifier
                         .width(320.dp)
                         .padding(16.dp)
-                        .clickable( // Mencegah klik tembus ke background
+                        .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = {} 
+                            onClick = {}
                         ),
                     cornerRadius = 24.dp,
                     contentPadding = PaddingValues(20.dp)
@@ -1528,19 +1528,19 @@ private fun ProductDetailPopup(
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
-                        
+
                         Text(
                             text = product.name,
                             style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
-                        
+
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 4.dp),
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
-                        
+
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -1556,9 +1556,9 @@ private fun ProductDetailPopup(
                                 PopupDetailRow("Stok Rusak", product.damagedStock.formatQuantity(), isError = true)
                             }
                         }
-                        
+
                         Spacer(Modifier.height(8.dp))
-                        
+
                         Button(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),

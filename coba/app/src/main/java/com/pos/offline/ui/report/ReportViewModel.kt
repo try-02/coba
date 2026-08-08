@@ -358,7 +358,7 @@ fun closeTransactionDetail() {
     }
 fun printReceipt(result: CheckoutResult) {
     if (_printUiState.value is PrintUiState.Printing) return
-    _printUiState.value = PrintUiState.Printing(result) // set sinkron, sebelum suspend apa pun
+    _printUiState.value = PrintUiState.Printing(result)
     viewModelScope.launch {
         val printers = printerRepository.getAllOrderedByPriority()
         when {
@@ -367,7 +367,7 @@ fun printReceipt(result: CheckoutResult) {
             }
             printers.size == 1 -> { executePrint(printers.first(), result) }
             else -> {
-                _printUiState.value = PrintUiState.Idle // belum benar-benar mencetak, tampilkan dialog pilih printer
+                _printUiState.value = PrintUiState.Idle
                 _pendingPrintTarget.value = PendingPrintTarget(result, printers)
             }
         }
@@ -538,7 +538,7 @@ fun printReceipt(result: CheckoutResult) {
             } catch (e: ProductRemovedDuringCheckoutException) {
                 e.printStackTrace()
                 viewModelScope.launch {
-                    // Sesuaikan pesan error menggunakan e.productName seperti di PosViewModel
+
                     _messages.emit(
                         ReportMessage(
                             text = "Produk '${e.productName}' tidak ditemukan (kemungkinan baru saja dihapus). Proses tukar guling dibatalkan.",

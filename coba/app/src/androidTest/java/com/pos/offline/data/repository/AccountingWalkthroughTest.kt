@@ -348,10 +348,9 @@ class AccountingWalkthroughTest {
 
 @Test
 fun qris_retainedChangeAsTip_harusMenambahPendapatanDanLabaBersih() = runTest {
-    // QRIS 120.000 untuk transaksi 100.000; kembalian 20.000 hanya diberi 10.000
-    // (10.000 ditahan sebagai tip).
+
     transactionRepository.checkout(
-        cart = cartOf(idA, "Produk A", 50_000, qty = 2.0), // subtotal = 100_000
+        cart = cartOf(idA, "Produk A", 50_000, qty = 2.0),
         discountType = DiscountType.NOMINAL, discountValue = 0.0, taxRate = 0.0,
         paid = 120_000, paymentMethod = PaymentMethod.QRIS,
         cashierId = cashierId, cashierName = "Kasir Uji", shiftId = shiftId,
@@ -361,10 +360,9 @@ fun qris_retainedChangeAsTip_harusMenambahPendapatanDanLabaBersih() = runTest {
     val summary = shiftRepository.getShiftSummary(shiftId)
     val report = reportRepository.buildSalesReport(reportStart, reportEnd, includeProducts = false)
 
-    // Modal Produk A = 20_000 x 2 = 40_000
     assertEquals("QRIS revenue harus termasuk tip tertahan (paid-changeGiven)", 110_000, summary.qrisRevenue)
     assertEquals("Pendapatan Bersih harus termasuk tip tertahan", 110_000, report.pendapatanBersih)
-    assertEquals(70_000, summary.grossProfit) // 110_000 - 40_000
+    assertEquals(70_000, summary.grossProfit)
     assertEquals(
         "grossProfit (shift) harus SAMA dengan labaBersih (laporan) walau ada tip QRIS",
         report.labaBersih, summary.grossProfit,
@@ -418,4 +416,3 @@ fun voidTransaction_jalurError_shiftTertutup() = runTest {
     assertEquals(VoidOutcome.ShiftClosed, transactionRepository.voidTransaction(tx.transaction.id))
 }
 }
-

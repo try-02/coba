@@ -114,7 +114,7 @@ class TransactionRepository(
             cart.forEach { item ->
                 val affected = productDao.decrementStock(item.productId, item.quantity, now)
                 if (affected == 0) {
-                    // Produk terhapus di tengah transaksi — BUKAN soal stok kurang
+
                     throw ProductRemovedDuringCheckoutException(item.name)
                 }
             }

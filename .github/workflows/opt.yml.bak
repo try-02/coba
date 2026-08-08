@@ -397,7 +397,7 @@ jobs:
             coba/ktlint-report.html
             coba/detekt-report.html
             coba/detekt-report.sarif
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: ignore
 
       # ============================================

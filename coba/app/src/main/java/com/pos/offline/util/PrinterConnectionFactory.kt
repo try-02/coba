@@ -232,11 +232,6 @@ class PrinterConnectionFactory(
                 }
                 val printConnectStartMs = System.currentTimeMillis()
                 val connected = connectWithTimeout(ready.connection)
-                Log.e(
-                    TAG,
-                    "[print-connect] ${if (connected) "OK" else "GAGAL"} dalam ${System.currentTimeMillis() - printConnectStartMs}ms " +
-                        "(percobaan ke-${attempt + 1}, \"${printer.label}\")",
-                )
                 if (!connected) {
                     return@repeat
                 }
@@ -307,7 +302,6 @@ class PrinterConnectionFactory(
                             if (bytesRead != -1) {
                                 val rawResponse = buffer.copyOf(bytesRead)
                                 val hexResponse = rawResponse.joinToString(separator = " ") { String.format("%02X", it) }
-                                Log.e(TAG, "[status-probe-wifi] Raw Response: [$hexResponse] dari $ip")
                                 status = rawResponse[0].toInt() and 0xFF
                             }
                             when {
@@ -336,7 +330,6 @@ class PrinterConnectionFactory(
                                         socket.connect()
                                         isConnected = true
                                     } catch (e: Exception) {
-                                        Log.w(TAG, "[status-probe] connect gagal untuk \"${printer.label}\": ${e.message}")
                                     }
                                 }
                             val watchdog =
@@ -351,11 +344,6 @@ class PrinterConnectionFactory(
                             watchdog.cancel()
                         }
                         val probeConnectMs = System.currentTimeMillis() - probeConnectStartMs
-                        Log.e(
-                            TAG,
-                            "[status-probe] connect ${if (isConnected) "OK" else "GAGAL"} dalam ${probeConnectMs}ms " +
-                                "(\"${printer.label}\")",
-                        )
                         if (!isConnected) {
                             runCatching { socket.close() }
                             return@withContext PaperStatusResult.NoResponse
@@ -378,7 +366,6 @@ class PrinterConnectionFactory(
                                                 status = rawResponse[0].toInt() and 0xFF
                                             }
                                         } catch (e: Exception) {
-                                            Log.w(TAG, "[status-probe] read gagal untuk \"${printer.label}\": ${e.message}")
                                         }
                                     }
                                 val watchdog =
@@ -400,11 +387,6 @@ class PrinterConnectionFactory(
                                     (status and 0x0C) != 0 -> PaperStatusResult.NearEnd
                                     else -> PaperStatusResult.Ok
                                 }
-                            Log.e(
-                                TAG,
-                                "[status-probe] Raw: [$hexResponseString] | byte utama=$status (0x${status.toString(16)}) -> $result, respon ${probeReadMs}ms, " +
-                                    "socket status-probe ditutup (\"${printer.label}\")",
-                            )
                             result
                         } finally {
                             runCatching { socket.close() }

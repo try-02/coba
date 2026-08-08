@@ -24,10 +24,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sign
 
-/**
- * Modifier kustom untuk memberikan efek pantulan ujung (rubber-band) gaya iOS.
- * Dipadukan dengan animasi membesar/mengecil (scale).
- */
 fun Modifier.bouncyOverscroll(
     orientation: Orientation = Orientation.Vertical
 ): Modifier = composed {
@@ -37,7 +33,6 @@ fun Modifier.bouncyOverscroll(
     val connection = remember(orientation) {
         var animJob: Job? = null
 
-        // Fisika Spring iOS: Damping 0.5f (Kenyal) & StiffnessLow (200f) agar jangkauan membal terlihat nyata
         fun springBackToZero(initialVelocity: Float = 0f) {
             animJob?.cancel()
             animJob = scope.launch {
@@ -45,8 +40,8 @@ fun Modifier.bouncyOverscroll(
                     targetValue = 0f,
                     initialVelocity = initialVelocity,
                     animationSpec = spring(
-                        dampingRatio = 0.5f,        // 0.5f = kenyal & bouncy khas iOS
-                        stiffness = Spring.StiffnessLow // StiffnessLow (200f) membuat benturan membal terlihat tegas
+                        dampingRatio = 0.5f,
+                        stiffness = Spring.StiffnessLow
                     )
                 )
             }
@@ -60,7 +55,7 @@ fun Modifier.bouncyOverscroll(
 
                 if (abs(current) > 0.5f && sign(availableDelta) != sign(current)) {
                     animJob?.cancel()
-                    
+
                     val maxConsumed = if (current > 0) {
                         availableDelta.coerceAtLeast(-current)
                     } else {
@@ -87,13 +82,11 @@ fun Modifier.bouncyOverscroll(
             ): Offset {
                 val availableDelta = if (orientation == Orientation.Vertical) available.y else available.x
 
-                // 1. PERBAIKAN SCROLL PELAN: Elastisitas karet dinamis
                 if (availableDelta != 0f && source == NestedScrollSource.UserInput) {
                     animJob?.cancel()
-                    
+
                     val currentAbs = abs(translation.value)
-                    // Elastisitas awal 0.45f (responsif langsung terasa lentur saat ditarik pelan),
-                    // lalu mengencang secara bertahap saat ditarik makin jauh (maksimal 350f)
+
                     val elasticity = 0.45f * (1f - (currentAbs / 350f).coerceIn(0f, 0.85f))
                     val resistance = availableDelta * elasticity
 
@@ -118,9 +111,8 @@ fun Modifier.bouncyOverscroll(
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 val availableVelocity = if (orientation == Orientation.Vertical) available.y else available.x
 
-                // 2. PERBAIKAN SCROLL CEPAT: Naikkan magnitudo benturan
                 if (availableVelocity != 0f) {
-                    // Naikkan pengali kecepatan menjadi 0.35f dan batas maksimum hingga 3500f
+
                     val initialVel = (availableVelocity * 0.35f).coerceIn(-3500f, 3500f)
                     springBackToZero(initialVelocity = initialVel)
                     return available
@@ -130,7 +122,6 @@ fun Modifier.bouncyOverscroll(
         }
     }
 
-    // Safety net pemantau otomatis
     LaunchedEffect(translation.value) {
         if (abs(translation.value) > 0.5f && !translation.isRunning) {
             translation.animateTo(
@@ -151,7 +142,6 @@ fun Modifier.bouncyOverscroll(
             val current = translation.value
             val absCurrent = abs(current)
 
-            // Efek membesar/mengecil (scale) diperjelas hingga maks 3.5%
             val scaleFactor = 1f + (absCurrent * 0.00012f).coerceAtMost(0.035f)
             scaleX = scaleFactor
             scaleY = scaleFactor
@@ -166,9 +156,9 @@ fun Modifier.bouncyOverscroll(
 @Composable
 fun iosGlideFlingBehavior(): FlingBehavior = flingBehavior(
     scrollConfiguration = FlingConfiguration.Builder()
-        .scrollViewFriction(0.012f)     // Angka ideal: luncuran panjang tapi tetap terkontrol
-        .decelerationFriction(0.025f)   // Perlambatan halus tanpa remah
-        .splineInflection(0.15f)        // Kurva momentum khas iOS
+        .scrollViewFriction(0.012f)
+        .decelerationFriction(0.025f)
+        .splineInflection(0.15f)
         .numberOfSplinePoints(150)
         .build()
 )

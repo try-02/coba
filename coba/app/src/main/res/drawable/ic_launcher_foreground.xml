@@ -1,20 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- res/drawable/ic_launcher_foreground.xml -->
+
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!--
-        ADAPTIVE ICON SAFE AREA:
-        Area aman: 54dp center (dari 27 ke 81 pada viewport 108)
-        Semua elemen utama berada di area 27-81
-    -->
-
-    <!-- ============================================ -->
-    <!-- GLASS HIGHLIGHT: Diagonal overlay kiri atas  -->
-    <!-- ============================================ -->
     <path
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.10"
@@ -26,7 +17,6 @@
             L0,108
             Z" />
 
-    <!-- Glass highlight layer 2: lebih kecil, lebih terang -->
     <path
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.06"
@@ -36,11 +26,6 @@
             L0,80
             Z" />
 
-    <!-- ============================================ -->
-    <!-- BODY LACI KASIR: Persegi panjang horizontal  -->
-    <!-- ============================================ -->
-
-    <!-- Shadow halus di bawah laci -->
     <path
         android:fillColor="#060D19"
         android:fillAlpha="0.20"
@@ -55,7 +40,6 @@
             C33.24,73 31,70.76 31,68
             Z" />
 
-    <!-- Body laci utama -->
     <path
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.92"
@@ -70,9 +54,6 @@
             C32.24,71 30,68.76 30,66
             Z" />
 
-    <!-- ============================================ -->
-    <!-- GARIS PEMBATAS ATAS LACI (tepi drawer)       -->
-    <!-- ============================================ -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.30"
@@ -83,9 +64,6 @@
             L30,50.5
             Z" />
 
-    <!-- ============================================ -->
-    <!-- SLOT UANG 1: Garis horizontal atas           -->
-    <!-- ============================================ -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.65"
@@ -99,9 +77,6 @@
             C40.67,55 40,54.33 40,53.5
             Z" />
 
-    <!-- ============================================ -->
-    <!-- SLOT UANG 2: Garis horizontal bawah          -->
-    <!-- ============================================ -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.50"
@@ -115,11 +90,6 @@
             C43.67,59 43,58.33 43,57.5
             Z" />
 
-    <!-- ============================================ -->
-    <!-- HANDLE LACI: Lingkaran kecil di bawah slot   -->
-    <!-- ============================================ -->
-
-    <!-- Handle shadow -->
     <path
         android:fillColor="#0A1628"
         android:fillAlpha="0.15"
@@ -129,7 +99,6 @@
             A4,4 0 1,1 51,63
             Z" />
 
-    <!-- Handle utama -->
     <path
         android:fillColor="#22D3EE"
         android:pathData="
@@ -138,7 +107,6 @@
             A3.5,3.5 0 1,1 51.5,62
             Z" />
 
-    <!-- Handle inner highlight -->
     <path
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.35"
@@ -148,11 +116,6 @@
             A2,1.5 0 1,1 53,60.5
             Z" />
 
-    <!-- ============================================ -->
-    <!-- LED INDICATOR: Titik hijau kanan atas        -->
-    <!-- ============================================ -->
-
-    <!-- LED glow -->
     <path
         android:fillColor="#10B981"
         android:fillAlpha="0.30"
@@ -162,7 +125,6 @@
             A4,4 0 1,1 72,43
             Z" />
 
-    <!-- LED dot solid -->
     <path
         android:fillColor="#10B981"
         android:pathData="
@@ -171,7 +133,6 @@
             A2.5,2.5 0 1,1 74,43
             Z" />
 
-    <!-- LED inner bright -->
     <path
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.50"
@@ -181,11 +142,6 @@
             A1.2,1.2 0 1,1 75,42
             Z" />
 
-    <!-- ============================================ -->
-    <!-- DETAIL TAMBAHAN: Garis vertikal pembagi slot -->
-    <!-- ============================================ -->
-
-    <!-- Pembagi kiri di slot 1 -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.25"
@@ -196,7 +152,6 @@
             L49.5,55
             Z" />
 
-    <!-- Pembagi tengah di slot 1 -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.25"
@@ -207,7 +162,6 @@
             L53.8,55
             Z" />
 
-    <!-- Pembagi di slot 2 -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.20"
@@ -218,11 +172,6 @@
             L53.8,59
             Z" />
 
-    <!-- ============================================ -->
-    <!-- COIN TRAY AREA: Area koin di kanan laci      -->
-    <!-- ============================================ -->
-
-    <!-- Lingkaran koin besar -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.20"
@@ -232,7 +181,6 @@
             A3,3 0 1,1 69,53
             Z" />
 
-    <!-- Lingkaran koin kecil -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.15"
@@ -242,11 +190,6 @@
             A2.5,2.5 0 1,1 69,59
             Z" />
 
-    <!-- ============================================ -->
-    <!-- RECEIPT HINT: Struk kecil muncul dari atas   -->
-    <!-- ============================================ -->
-
-    <!-- Kertas struk -->
     <path
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.60"
@@ -264,7 +207,6 @@
             L35,46
             Z" />
 
-    <!-- Garis teks di struk -->
     <path
         android:fillColor="#0E7490"
         android:fillAlpha="0.40"

@@ -433,8 +433,7 @@ fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
                 )
                 WindowCompat.setDecorFitsSystemWindows(window, false)
                 window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-                // window.statusBarColor = android.graphics.Color.TRANSPARENT
-                // window.navigationBarColor = android.graphics.Color.TRANSPARENT
+
             }
         }
         BackHandler { showScanner = false }
