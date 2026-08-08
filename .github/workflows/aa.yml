@@ -46,7 +46,7 @@ jobs:
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
 
-      # 3. Install Dependencies
+      # 3. Install Dependencies (akan menggunakan cache jika sudah ada)
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -83,10 +83,44 @@ jobs:
           
           python export_onnx.py
 
-      # 5. TAHAP 2: Konversi ONNX ke TFLite via CLI onnx2tf
-      - name: "Step 2/3: Convert ONNX to TFLite using onnx2tf CLI"
+      # 5. TAHAP 2: Konversi ONNX ke TFLite dengan Input Lokal & Patch Download
+      - name: "Step 2/3: Convert ONNX to TFLite using onnx2tf"
         run: |
-          onnx2tf -i model_conversion_output/mobilenet_v4_conv_small.onnx -o model_conversion_output -osd
+          cat << 'EOF' > run_onnx2tf.py
+          from pathlib import Path
+          import numpy as np
+
+          output_dir = Path("model_conversion_output")
+
+          # 1. Buat input numpy lokal (mencegah pencarian file eksternal)
+          input_data = np.random.randn(1, 3, 224, 224).astype(np.float32)
+          input_npy_path = output_dir / "input_data.npy"
+          np.save(str(input_npy_path), input_data)
+
+          # 2. Patch download_test_image_data di onnx2tf agar tidak pernah mendownload dari URL remote
+          import onnx2tf.utils.common_functions as common_funcs
+          import onnx2tf.onnx2tf as o2t_main
+
+          def fake_download_test_image_data(*args, **kwargs):
+              return input_data
+
+          common_funcs.download_test_image_data = fake_download_test_image_data
+          if hasattr(o2t_main, 'download_test_image_data'):
+              o2t_main.download_test_image_data = fake_download_test_image_data
+
+          # 3. Jalankan konversi secara terisolasi tanpa import PyTorch
+          import onnx2tf
+
+          print("[3/3] Converting ONNX to TFLite using onnx2tf...")
+          onnx2tf.convert(
+              input_onnx_file_path=str(output_dir / "mobilenet_v4_conv_small.onnx"),
+              output_folder_path=str(output_dir),
+              output_signaturedefs=True,
+              custom_input_op_name_np_data_path=[["input", str(input_npy_path)]]
+          )
+          EOF
+
+          python run_onnx2tf.py
 
       # 6. TAHAP 3: Verifikasi Model TFLite
       - name: "Step 3/3: Verify TFLite Model"
