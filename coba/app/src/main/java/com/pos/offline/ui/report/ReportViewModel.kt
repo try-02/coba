@@ -810,7 +810,7 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
             val allProducts = productRepository.getAllProductsOnce()
             var currentBest: ProductEntity? = null
             
-            val SIMILARITY_THRESHOLD = 0.80f
+            val SIMILARITY_THRESHOLD = 0.65f
             var maxSimilarity = SIMILARITY_THRESHOLD
 
             for (product in allProducts) {

@@ -199,7 +199,7 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? = withContext(Di
         // --- PERBAIKAN KRITIS ---
         // Gunakan threshold realistis (misal 0.70f = 70% kemiripan). 
         // 0.99f terlalu ekstrem dan membuat scan selalu gagal.
-        val SIMILARITY_THRESHOLD = 0.80f 
+        val SIMILARITY_THRESHOLD = 0.65f 
         var maxSimilarity = SIMILARITY_THRESHOLD
 
         for (product in allProducts) {

@@ -805,23 +805,29 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
     if (scannedVector.isEmpty()) return null
     
     return try {
-        val allProducts = productRepository.getAllProductsOnce()
-        var bestMatch: ProductEntity? = null
-        var maxSimilarity = 0.99f
+        // Jalankan komparasi vektor di Background Thread
+        val bestMatch = withContext(Dispatchers.Default) {
+            val allProducts = productRepository.getAllProductsOnce()
+            var currentBest: ProductEntity? = null
+            
+            val SIMILARITY_THRESHOLD = 0.80f
+            var maxSimilarity = SIMILARITY_THRESHOLD
 
-        for (product in allProducts) {
-            val vectorStr = product.imageVector
-            if (vectorStr.isNullOrBlank()) continue
+            for (product in allProducts) {
+                val vectorStr = product.imageVector
+                if (vectorStr.isNullOrBlank()) continue
 
-            val dbVector = vectorCache.getOrPut(product.id) {
-                vectorStr.toVectorFloatArray()
+                val dbVector = vectorCache.getOrPut(product.id) {
+                    vectorStr.toVectorFloatArray()
+                }
+
+                val similarity = VectorUtils.calculateNormalizedDotProduct(scannedVector, dbVector)
+                if (similarity > maxSimilarity) {
+                    maxSimilarity = similarity
+                    currentBest = product
+                }
             }
-
-            val similarity = VectorUtils.calculateCosineSimilarity(scannedVector, dbVector)
-            if (similarity > maxSimilarity) {
-                maxSimilarity = similarity
-                bestMatch = product
-            }
+            currentBest
         }
 
         if (bestMatch != null) {
