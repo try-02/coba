@@ -15,8 +15,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.TargetedFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +35,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -53,6 +57,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,13 +94,9 @@ import com.pos.offline.ui.settings.StoreProfileViewModel
 import com.pos.offline.ui.theme.PosTheme
 import com.pos.offline.util.HardwareScannerInterceptor
 import com.pos.offline.util.bouncyOverscroll
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.foundation.pager.PagerDefaults
-import androidx.compose.foundation.gestures.TargetedFlingBehavior
-import androidx.compose.runtime.CompositionLocalProvider
 import io.iamjosephmj.flinger.behaviours.FlingPresets
+import kotlinx.coroutines.launch
+
 private enum class Dest(
     val label: String,
 ) {
@@ -104,6 +105,7 @@ private enum class Dest(
     REPORT("Laporan"),
     SETTINGS("Pengaturan"),
 }
+
 class MainActivity : ComponentActivity() {
     private val posViewModel: PosViewModel by viewModels {
         ServiceLocator.posViewModelFactory()
@@ -114,6 +116,7 @@ class MainActivity : ComponentActivity() {
                 posViewModel.onBarcodeScanned(barcode)
             }
         }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -123,11 +126,13 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (scannerInterceptor.onKeyEvent(event)) return true
         return super.dispatchKeyEvent(event)
     }
 }
+
 @Composable
 private fun AppRoot() {
     val posViewModel: PosViewModel = viewModel(factory = ServiceLocator.posViewModelFactory())
@@ -150,6 +155,7 @@ private fun AppRoot() {
     val isRestoringDatabase = settingsUiState.isImporting
     val pageAlpha = remember { Animatable(1f) }
     var isJumping by remember { mutableStateOf(false) }
+
     fun goTo(dest: Dest) {
         val target = dest.ordinal
         if (pagerState.currentPage == target) return
@@ -268,7 +274,7 @@ private fun AppRoot() {
     ) {
         @OptIn(ExperimentalFoundationApi::class)
         CompositionLocalProvider(
-            LocalOverscrollConfiguration provides null
+            LocalOverscrollConfiguration provides null,
         ) {
             HorizontalPager(
                 state = pagerState,
@@ -278,60 +284,63 @@ private fun AppRoot() {
                         .bouncyOverscroll()
                         .graphicsLayer { alpha = pageAlpha.value },
                 userScrollEnabled = !menuExpanded && !imeVisible && !isJumping && !isRestoringDatabase,
-                flingBehavior = PagerDefaults.flingBehavior(state = pagerState)
+                flingBehavior = PagerDefaults.flingBehavior(state = pagerState),
             ) { page ->
-            val dest = Dest.entries[page]
-            when (dest) {
-                Dest.POS -> {
-                    PosScreen(
-                        viewModel = posViewModel,
-                        forceWideLayout = isLandscape,
-                        onNavigateToSettings = { goTo(Dest.SETTINGS) },
-                        onSharePdfFile = { file ->
-                            context.startActivity(ReceiptManager.buildPdfShareIntent(context, file))
-                        },
-                        onExportPdf = { result ->
-                            scope.launch {
-                                val file = ReceiptManager.exportToPdf(context, result, storeProfile)
-                                Toast.makeText(context, "Struk tersimpan: ${file.name}", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        isCartExpanded = if (isLandscape) false else isCartExpanded,
-                        onCartExpandedChange = if (isLandscape) ({}) else ({ v: Boolean -> isCartExpanded = v }),
-                    )
-                }
-                Dest.INVENTORY -> {
-                    InventoryScreen(viewModel = inventoryViewModel)
-                }
-                Dest.REPORT -> {
-                    ReportScreen(
-                        viewModel = reportViewModel,
-                        inventoryViewModel = inventoryViewModel,
-                        onNavigateToSettings = { goTo(Dest.SETTINGS) },
-                        onSharePdfFile = { file ->
-                            context.startActivity(ReceiptManager.buildPdfShareIntent(context, file))
-                        },
-                        onExportPdf = { result ->
-                            scope.launch {
-                                val file = ReceiptManager.exportToPdf(context, result, storeProfile)
-                                Toast.makeText(context, "Struk tersimpan: ${file.name}", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        onShare = { result ->
-                            context.startActivity(ReceiptManager.buildShareIntent(context, result))
-                        },
-                    )
-                }
-                Dest.SETTINGS -> {
-                    SettingsScreen(
-                        viewModel = settingsViewModel,
-                        printerViewModel = printerViewModel,
-                        storeProfileViewModel = storeProfileViewModel,
-                        onExitClick = { showExitDialog = true },
-                    )
+                val dest = Dest.entries[page]
+                when (dest) {
+                    Dest.POS -> {
+                        PosScreen(
+                            viewModel = posViewModel,
+                            forceWideLayout = isLandscape,
+                            onNavigateToSettings = { goTo(Dest.SETTINGS) },
+                            onSharePdfFile = { file ->
+                                context.startActivity(ReceiptManager.buildPdfShareIntent(context, file))
+                            },
+                            onExportPdf = { result ->
+                                scope.launch {
+                                    val file = ReceiptManager.exportToPdf(context, result, storeProfile)
+                                    Toast.makeText(context, "Struk tersimpan: ${file.name}", Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            isCartExpanded = if (isLandscape) false else isCartExpanded,
+                            onCartExpandedChange = if (isLandscape) ({}) else ({ v: Boolean -> isCartExpanded = v }),
+                        )
+                    }
+
+                    Dest.INVENTORY -> {
+                        InventoryScreen(viewModel = inventoryViewModel)
+                    }
+
+                    Dest.REPORT -> {
+                        ReportScreen(
+                            viewModel = reportViewModel,
+                            inventoryViewModel = inventoryViewModel,
+                            onNavigateToSettings = { goTo(Dest.SETTINGS) },
+                            onSharePdfFile = { file ->
+                                context.startActivity(ReceiptManager.buildPdfShareIntent(context, file))
+                            },
+                            onExportPdf = { result ->
+                                scope.launch {
+                                    val file = ReceiptManager.exportToPdf(context, result, storeProfile)
+                                    Toast.makeText(context, "Struk tersimpan: ${file.name}", Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            onShare = { result ->
+                                context.startActivity(ReceiptManager.buildShareIntent(context, result))
+                            },
+                        )
+                    }
+
+                    Dest.SETTINGS -> {
+                        SettingsScreen(
+                            viewModel = settingsViewModel,
+                            printerViewModel = printerViewModel,
+                            storeProfileViewModel = storeProfileViewModel,
+                            onExitClick = { showExitDialog = true },
+                        )
+                    }
                 }
             }
-        }
         }
         AnimatedVisibility(
             visible = menuExpanded,
@@ -407,6 +416,7 @@ private fun AppRoot() {
         }
     }
 }
+
 @Composable
 private fun ExpandableMenuFab(
     expanded: Boolean,
@@ -453,6 +463,7 @@ private fun ExpandableMenuFab(
         }
     }
 }
+
 @Composable
 private fun MiniMenuItem(
     dest: Dest,
@@ -475,6 +486,7 @@ private fun MiniMenuItem(
         }
     }
 }
+
 private fun Dest.icon() =
     when (this) {
         Dest.POS -> Icons.Rounded.ShoppingCart

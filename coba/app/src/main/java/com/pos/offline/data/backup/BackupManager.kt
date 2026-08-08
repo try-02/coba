@@ -14,37 +14,47 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import kotlin.system.exitProcess
+
 sealed class BackupOutcome {
     object Success : BackupOutcome()
+
     data class Error(
         val throwable: Throwable,
     ) : BackupOutcome()
 }
+
 sealed class RestoreOutcome {
     abstract val requiresRestart: Boolean
+
     object Success : RestoreOutcome() {
         override val requiresRestart = true
     }
+
     data class InvalidFile(
         val reason: String,
     ) : RestoreOutcome() {
         override val requiresRestart = false
     }
+
     data class Error(
         val throwable: Throwable,
         override val requiresRestart: Boolean = true,
     ) : RestoreOutcome()
 }
+
 sealed class ShareOutcome {
     data class Success(
         val file: File,
     ) : ShareOutcome()
+
     data class Error(
         val throwable: Throwable,
     ) : ShareOutcome()
 }
+
 object BackupManager {
     private const val DB_NAME = "pos.db"
+
     fun suggestedBackupFileName(): String {
         val ts =
             java.text
@@ -52,6 +62,7 @@ object BackupManager {
                 .format(java.util.Date())
         return "kasir-offline-backup-$ts.db"
     }
+
     suspend fun exportDatabase(
         context: Context,
         destinationUri: Uri,
@@ -79,10 +90,12 @@ object BackupManager {
                 BackupOutcome.Error(t)
             }
         }
+
     private fun checkpointWal(context: Context) {
         val writable = PosDatabase.getInstance(context).openHelper.writableDatabase
         writable.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
     }
+
     suspend fun validateAndRestore(
         context: Context,
         sourceUri: Uri,
@@ -106,6 +119,7 @@ object BackupManager {
             val bakJournal = File(parentDir, "$DB_NAME-journal.bak")
             val quarantined = mutableListOf<Pair<File, File>>()
             var connectionClosed = false
+
             fun rollbackQuarantine() {
                 for ((backup, original) in quarantined.reversed()) {
                     if (backup.exists()) backup.renameTo(original)
@@ -147,6 +161,7 @@ object BackupManager {
                     stagingFile.delete()
                     return@withContext RestoreOutcome.Error(t, requiresRestart = true)
                 }
+
                 fun quarantineOld(
                     original: File,
                     backup: File,
@@ -201,6 +216,7 @@ object BackupManager {
                 RestoreOutcome.Error(t, requiresRestart = connectionClosed)
             }
         }
+
     private fun validateCandidate(
         context: Context,
         candidate: File,
@@ -256,6 +272,7 @@ object BackupManager {
         }
         return null
     }
+
     private fun runIntegrityCheck(path: String): Boolean {
         val db = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY)
         return db.use {
@@ -264,6 +281,7 @@ object BackupManager {
             }
         }
     }
+
     private fun hasSqliteHeader(file: File): Boolean {
         if (!file.exists() || file.length() < 16) return false
         val header = ByteArray(16)
@@ -271,10 +289,12 @@ object BackupManager {
         val magic = "SQLite format 3\u0000".toByteArray(Charsets.US_ASCII)
         return header.contentEquals(magic)
     }
+
     private fun readUserVersion(path: String): Int {
         val db = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY)
         return db.use { it.version }
     }
+
     private fun readIdentityHash(path: String): String? {
         val db = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY)
         return db.use {
@@ -283,6 +303,7 @@ object BackupManager {
             }
         }
     }
+
     fun recoverFromInterruptedRestore(context: Context) {
         try {
             val parentDir = context.getDatabasePath(DB_NAME).parentFile ?: return
@@ -313,6 +334,7 @@ object BackupManager {
             android.util.Log.e("BackupManager", "Gagal menjalankan recovery restore", t)
         }
     }
+
     suspend fun prepareShareableCopy(context: Context): ShareOutcome =
         withContext(Dispatchers.IO) {
             try {
@@ -334,6 +356,7 @@ object BackupManager {
                 ShareOutcome.Error(t)
             }
         }
+
     fun buildShareIntent(
         context: Context,
         file: File,
@@ -348,16 +371,17 @@ object BackupManager {
             }
         return Intent.createChooser(sendIntent, "Bagikan Cadangan Database")
     }
-fun restartApp(context: Context): Boolean {
-    val packageManager = context.packageManager
-    val intent = packageManager.getLaunchIntentForPackage(context.packageName)
-    val componentName = intent?.component ?: return false
-    val restartIntent = Intent.makeRestartActivityTask(componentName)
-    context.startActivity(restartIntent)
-    if (context is android.app.Activity) {
-        context.finishAffinity()
+
+    fun restartApp(context: Context): Boolean {
+        val packageManager = context.packageManager
+        val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+        val componentName = intent?.component ?: return false
+        val restartIntent = Intent.makeRestartActivityTask(componentName)
+        context.startActivity(restartIntent)
+        if (context is android.app.Activity) {
+            context.finishAffinity()
+        }
+        Runtime.getRuntime().exit(0)
+        return true
     }
-    Runtime.getRuntime().exit(0)
-    return true
-}
 }

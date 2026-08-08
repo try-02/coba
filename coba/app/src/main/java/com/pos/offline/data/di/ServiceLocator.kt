@@ -27,13 +27,15 @@ import com.pos.offline.util.LogoImageProcessor
 import com.pos.offline.util.PrintCoordinator
 import com.pos.offline.util.PrinterConnectionFactory
 import com.pos.offline.util.UsbPrinterHelper
+
 class PosApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.initialize(this)
         installRestoreCrashGuard()
     }
-private fun installRestoreCrashGuard() {
+
+    private fun installRestoreCrashGuard() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             if (RestoreGuard.isInProgress) {
@@ -57,6 +59,7 @@ private fun installRestoreCrashGuard() {
         }
     }
 }
+
 object ServiceLocator {
     private lateinit var appContext: Context
     private val db: PosDatabase by lazy { PosDatabase.getInstance(appContext) }
@@ -102,10 +105,12 @@ object ServiceLocator {
     private val printCoordinator: PrintCoordinator by lazy {
         PrintCoordinator(appContext, printerRepository, storeProfileRepository, printerConnectionFactory)
     }
+
     fun initialize(context: Context) {
         appContext = context.applicationContext
         BackupManager.recoverFromInterruptedRestore(appContext)
     }
+
     fun posViewModelFactory(): ViewModelProvider.Factory =
         PosViewModelFactory(
             productRepository,
@@ -118,7 +123,9 @@ object ServiceLocator {
             printerRepository,
             printerConnectionFactory,
         )
+
     fun inventoryViewModelFactory(): ViewModelProvider.Factory = InventoryViewModelFactory(appContext, productRepository, reportRepository)
+
     fun reportViewModelFactory(): ViewModelProvider.Factory =
         ReportViewModelFactory(
             transactionRepository,
@@ -131,19 +138,31 @@ object ServiceLocator {
             productRepository,
             db.reportDao(),
         )
+
     fun settingsViewModelFactory(): ViewModelProvider.Factory = SettingsViewModelFactory(appContext, cashierRepository, shiftRepository)
+
     fun printerViewModelFactory(): ViewModelProvider.Factory =
         PrinterViewModelFactory(printerRepository, bluetoothPrinterHelper, usbPrinterHelper, printerConnectionFactory)
+
     fun storeProfileViewModelFactory(): ViewModelProvider.Factory = StoreProfileViewModelFactory(storeProfileRepository, logoImageProcessor)
+
     fun transactionRepository(): TransactionRepository = transactionRepository
+
     fun productRepository(): ProductRepository = productRepository
+
     fun cashierRepository(): CashierRepository = cashierRepository
+
     fun shiftRepository(): ShiftRepository = shiftRepository
+
     fun returnRepository(): ReturnRepository = returnRepository
+
     fun printerRepository(): PrinterRepository = printerRepository
+
     fun storeProfileRepository(): StoreProfileRepository = storeProfileRepository
+
     fun printCoordinator(): PrintCoordinator = printCoordinator
 }
+
 class PosViewModelFactory(
     private val productRepository: ProductRepository,
     private val cartRepository: CartRepository,
@@ -169,6 +188,7 @@ class PosViewModelFactory(
             printerConnectionFactory,
         ) as T
 }
+
 class InventoryViewModelFactory(
     private val appContext: Context,
     private val productRepository: ProductRepository,
@@ -177,6 +197,7 @@ class InventoryViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = InventoryViewModel(appContext, productRepository, reportRepository) as T
 }
+
 class ReportViewModelFactory(
     private val transactionRepository: TransactionRepository,
     private val shiftRepository: ShiftRepository,
@@ -202,6 +223,7 @@ class ReportViewModelFactory(
             reportDao,
         ) as T
 }
+
 class SettingsViewModelFactory(
     private val appContext: Context,
     private val cashierRepository: CashierRepository,
@@ -210,6 +232,7 @@ class SettingsViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = SettingsViewModel(appContext, cashierRepository, shiftRepository) as T
 }
+
 class PrinterViewModelFactory(
     private val printerRepository: PrinterRepository,
     private val bluetoothPrinterHelper: BluetoothPrinterHelper,
@@ -220,6 +243,7 @@ class PrinterViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         PrinterViewModel(printerRepository, bluetoothPrinterHelper, usbPrinterHelper, printerConnectionFactory) as T
 }
+
 class StoreProfileViewModelFactory(
     private val storeProfileRepository: StoreProfileRepository,
     private val logoImageProcessor: LogoImageProcessor,

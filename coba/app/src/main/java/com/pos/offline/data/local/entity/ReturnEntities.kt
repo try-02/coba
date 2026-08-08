@@ -1,8 +1,9 @@
 package com.pos.offline.data.local.entity
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import androidx.room.ColumnInfo
+
 @Entity(
     tableName = "returns",
     indices = [
@@ -25,6 +26,7 @@ data class ReturnEntity(
     @ColumnInfo(name = "isWarrantyExchange", defaultValue = "0")
     val isWarrantyExchange: Boolean = false,
 )
+
 @Entity(
     tableName = "return_items",
     indices = [Index(value = ["returnId"])],

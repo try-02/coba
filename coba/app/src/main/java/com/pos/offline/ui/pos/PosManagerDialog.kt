@@ -82,6 +82,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 @Composable
 fun PosDialogManager(
     uiState: PosUiState,
@@ -138,6 +139,7 @@ fun PosDialogManager(
                 onDismiss = { onAction(PosAction.ResetCheckout) },
             )
         }
+
         is CheckoutFlow.Error -> {
             AlertDialog(
                 onDismissRequest = { onAction(PosAction.ResetCheckout) },
@@ -148,6 +150,7 @@ fun PosDialogManager(
                 text = { Text(flow.message) },
             )
         }
+
         else -> {
             Unit
         }
@@ -237,7 +240,9 @@ fun PosDialogManager(
         )
     }
 }
+
 private val shiftDateFmt = SimpleDateFormat("dd/MM HH:mm", Locale.forLanguageTag("id-ID"))
+
 private fun formatElapsedSince(startedAt: Long): String {
     val diffMs = (System.currentTimeMillis() - startedAt).coerceAtLeast(0L)
     val totalMinutes = diffMs / 60_000
@@ -245,6 +250,7 @@ private fun formatElapsedSince(startedAt: Long): String {
     val minutes = totalMinutes % 60
     return if (hours > 0) "berjalan ${hours}j ${minutes}m" else "berjalan ${minutes}m"
 }
+
 @Composable
 internal fun ManageShiftsDialog(
     shifts: List<ShiftEntity>,
@@ -310,6 +316,7 @@ internal fun ManageShiftsDialog(
         },
     )
 }
+
 @Composable
 private fun OpenShiftRow(
     shift: ShiftEntity,
@@ -388,6 +395,7 @@ private fun OpenShiftRow(
         }
     }
 }
+
 @Composable
 internal fun StartShiftDialog(
     cashiers: List<CashierEntity>,
@@ -449,6 +457,7 @@ internal fun StartShiftDialog(
         },
     )
 }
+
 @Composable
 internal fun EndShiftDialog(
     summary: ShiftSummary,
@@ -578,6 +587,7 @@ internal fun EndShiftDialog(
         },
     )
 }
+
 @Composable
 internal fun SuccessDialog(
     result: CheckoutResult,
@@ -625,12 +635,14 @@ internal fun SuccessDialog(
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
+
                         txChange == 0L -> {
                             Text(
                                 "Kembali: ${txChange.toRupiah()}",
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
+
                         else -> {
                             Text(
                                 if (isQrisCashOut) {
@@ -711,6 +723,7 @@ internal fun SuccessDialog(
         },
     )
 }
+
 @Composable
 private fun PrintResultBanner(
     printUiState: PrintUiState,
@@ -724,9 +737,11 @@ private fun PrintResultBanner(
             is ReceiptPrintOutcome.Success -> {
                 "Struk terkirim ke \"${outcome.printer.label}\"." to false
             }
+
             is ReceiptPrintOutcome.SuccessWithNotice -> {
                 "Struk terkirim ke \"${outcome.printer.label}\".\n⚠ ${outcome.notice}" to false
             }
+
             is ReceiptPrintOutcome.Failed -> {
                 val printerCount = outcome.attempts.size
                 val reason = outcome.attempts.firstOrNull()?.message ?: ""
@@ -746,9 +761,11 @@ private fun PrintResultBanner(
                     "$title\nAlasan: $reason" to true
                 }
             }
+
             ReceiptPrintOutcome.NoPrinterConfigured -> {
                 "Printer belum diatur." to true
             }
+
             ReceiptPrintOutcome.AlreadyInProgress -> {
                 "Sedang mencetak, mohon tunggu..." to false
             }
@@ -788,6 +805,7 @@ private fun PrintResultBanner(
         }
     }
 }
+
 @Composable
 internal fun InsufficientPaymentDialog(
     paid: Long,
@@ -840,6 +858,7 @@ internal fun InsufficientPaymentDialog(
         },
     )
 }
+
 @Composable
 internal fun QuantityEditDialog(
     item: CartItemEntity,
@@ -853,6 +872,7 @@ internal fun QuantityEditDialog(
     }
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
     fun confirmWith(qty: Double) = onConfirm(qty.coerceAtLeast(0.0))
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -885,6 +905,7 @@ internal fun QuantityEditDialog(
                                         c.isDigit() -> {
                                             append(c)
                                         }
+
                                         c == '.' && !dotSeen -> {
                                             append(c)
                                             dotSeen = true
@@ -960,6 +981,7 @@ internal fun QuantityEditDialog(
         },
     )
 }
+
 @Composable
 internal fun CashierDropdownField(
     cashiers: List<CashierEntity>,

@@ -1,6 +1,7 @@
 package com.pos.offline.util
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
+
 class HardwareScannerInterceptor(
     private val maxCharGapMs: Long = 80L,
     private val minLength: Int = 6,
@@ -9,6 +10,7 @@ class HardwareScannerInterceptor(
 ) {
     private val buffer = StringBuilder()
     private var lastCharTime = 0L
+
     fun onKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN || event.deviceId == KeyCharacterMap.VIRTUAL_KEYBOARD) return false
         val now = System.currentTimeMillis()

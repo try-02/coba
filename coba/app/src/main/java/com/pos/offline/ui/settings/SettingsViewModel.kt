@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
 data class SettingsUiState(
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
@@ -34,6 +35,7 @@ data class SettingsUiState(
 ) {
     val isBusy: Boolean get() = isExporting || isImporting || isSharing
 }
+
 class SettingsViewModel(
     private val appContext: Context,
     private val cashierRepository: CashierRepository,
@@ -64,23 +66,29 @@ class SettingsViewModel(
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VibrationLevel.SEDANG)
     val vibrationDurationMs: StateFlow<Int> = scanPreferencesRepository.vibrationDurationMs
+
     fun setSoundEnabled(enabled: Boolean) {
         scanPreferencesRepository.setSoundEnabled(enabled)
         if (enabled) testSoundPreview()
     }
+
     fun setSoundVolume(volume: Int) {
         scanPreferencesRepository.setSoundVolume(volume)
     }
+
     fun setSoundDurationMs(duration: Int) {
         scanPreferencesRepository.setSoundDurationMs(duration)
     }
+
     fun testSoundPreview() {
         feedbackManager.playBeep(soundVolume.value, soundDurationMs.value)
     }
+
     fun setVibrationEnabled(enabled: Boolean) {
         scanPreferencesRepository.setVibrationEnabled(enabled)
         if (enabled) testVibrationPreview()
     }
+
     fun setVibrationLevel(level: VibrationLevel) {
         val intensityValue =
             when (level) {
@@ -90,16 +98,20 @@ class SettingsViewModel(
             }
         scanPreferencesRepository.setVibrationIntensity(intensityValue)
     }
+
     fun setVibrationDurationMs(duration: Int) {
         scanPreferencesRepository.setVibrationDurationMs(duration)
     }
+
     fun testVibrationPreview() {
         feedbackManager.playVibration(vibrationLevel.value, vibrationDurationMs.value)
     }
+
     override fun onCleared() {
         super.onCleared()
         feedbackManager.release()
     }
+
     fun exportDatabase(destinationUri: Uri) {
         if (_uiState.value.isBusy) return
         viewModelScope.launch {
@@ -114,6 +126,7 @@ class SettingsViewModel(
             }
         }
     }
+
     fun shareDatabase() {
         if (_uiState.value.isBusy) return
         viewModelScope.launch {
@@ -123,6 +136,7 @@ class SettingsViewModel(
                     is ShareOutcome.Success -> {
                         _shareIntent.emit(BackupManager.buildShareIntent(appContext, result.file))
                     }
+
                     is ShareOutcome.Error -> {
                         _messages.emit("Gagal menyiapkan cadangan untuk dibagikan: ${result.throwable.message}")
                     }
@@ -132,12 +146,15 @@ class SettingsViewModel(
             }
         }
     }
+
     fun requestRestore(uri: Uri) {
         _uiState.value = _uiState.value.copy(pendingRestoreUri = uri)
     }
+
     fun cancelRestore() {
         _uiState.value = _uiState.value.copy(pendingRestoreUri = null)
     }
+
     fun confirmRestore(onRestartRequired: () -> Unit) {
         val uri = _uiState.value.pendingRestoreUri ?: return
         viewModelScope.launch {
@@ -148,11 +165,13 @@ class SettingsViewModel(
                     is RestoreOutcome.Success -> {
                         onRestartRequired()
                     }
+
                     is RestoreOutcome.InvalidFile -> {
                         RestoreGuard.end()
                         _messages.emit("File tidak valid: ${result.reason}")
                         _uiState.value = _uiState.value.copy(isImporting = false)
                     }
+
                     is RestoreOutcome.Error -> {
                         _messages.emit("Gagal memulihkan: ${result.throwable.message}")
                         if (result.requiresRestart) {
@@ -169,12 +188,15 @@ class SettingsViewModel(
             }
         }
     }
+
     fun openAddCashierDialog() {
         _uiState.value = _uiState.value.copy(showAddCashierDialog = true)
     }
+
     fun closeAddCashierDialog() {
         _uiState.value = _uiState.value.copy(showAddCashierDialog = false)
     }
+
     fun addCashier(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) {
@@ -195,6 +217,7 @@ class SettingsViewModel(
             }
         }
     }
+
     fun setCashierActive(
         id: Long,
         active: Boolean,

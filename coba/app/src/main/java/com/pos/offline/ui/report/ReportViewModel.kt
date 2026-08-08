@@ -11,6 +11,7 @@ import com.pos.offline.data.local.entity.TransactionEntity
 import com.pos.offline.data.local.entity.isVoid
 import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.data.repository.PrinterRepository
+import com.pos.offline.data.repository.ProductRemovedDuringCheckoutException
 import com.pos.offline.data.repository.ProductRepository
 import com.pos.offline.data.repository.ReportRepository
 import com.pos.offline.data.repository.ReturnDetail
@@ -23,7 +24,6 @@ import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.data.repository.StoreProfileRepository
 import com.pos.offline.data.repository.TransactionRepository
 import com.pos.offline.data.repository.VoidOutcome
-import com.pos.offline.data.repository.ProductRemovedDuringCheckoutException
 import com.pos.offline.ui.receipt.PrintUiState
 import com.pos.offline.ui.receipt.ReceiptLine
 import com.pos.offline.ui.receipt.ReceiptManager
@@ -55,6 +55,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+
 data class DailyReport(
     val date: LocalDate,
     val transactions: List<TransactionEntity>,
@@ -85,16 +86,21 @@ data class DailyReport(
             )
     }
 }
+
 data class ReportMessage(
     val text: String,
     val isError: Boolean = false,
 )
+
 enum class ReportTab { TRANSACTIONS, SHIFTS }
+
 enum class ReportPeriodType { DAILY, MONTHLY }
+
 data class ClosedShiftDetail(
     val shift: ShiftEntity,
     val summary: ShiftSummary,
 )
+
 data class ReturnSummary(
     val returns: List<ReturnEntity>,
     val cashRefundTotal: Long,
@@ -104,48 +110,61 @@ data class ReturnSummary(
         fun empty() = ReturnSummary(emptyList(), 0L, 0L)
     }
 }
+
 data class PendingPrintTarget(
     val checkoutResult: CheckoutResult,
     val availablePrinters: List<PrinterEntity>,
 )
+
 data class DaySalesGroup(
     val date: LocalDate,
     val transactions: List<TransactionEntity>,
 )
+
 data class MonthSalesGroup(
     val yearMonth: java.time.YearMonth,
     val days: List<DaySalesGroup>,
     val totalTransactions: Int,
 )
+
 sealed class SalesReportUiState {
     object Hidden : SalesReportUiState()
+
     data class Loading(
         val periodType: ReportPeriodType,
     ) : SalesReportUiState()
+
     data class Loaded(
         val periodType: ReportPeriodType,
         val data: SalesReportData,
     ) : SalesReportUiState()
 }
+
 private data class ReportSelection(
     val periodType: ReportPeriodType,
     val includeSalesSummary: Boolean,
     val includeProductsSold: Boolean,
     val includeDeadStock: Boolean,
 )
+
 sealed interface SearchUiState {
     object Idle : SearchUiState
+
     object Loading : SearchUiState
+
     data class InvoiceResults(
         val transactions: List<TransactionEntity>,
     ) : SearchUiState
+
     data class ProductHistoryResults(
         val hierarchy: List<MonthSalesGroup>,
     ) : SearchUiState
+
     data class Empty(
         val query: String,
     ) : SearchUiState
 }
+
 @OptIn(ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
 class ReportViewModel(
     private val transactionRepository: TransactionRepository,
@@ -173,9 +192,11 @@ class ReportViewModel(
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailyReport.empty(LocalDate.now()))
     private val _selectedTab = MutableStateFlow(ReportTab.TRANSACTIONS)
     val selectedTab: StateFlow<ReportTab> = _selectedTab.asStateFlow()
+
     fun selectTab(tab: ReportTab) {
         _selectedTab.value = tab
     }
+
     val closedShifts: StateFlow<List<ShiftEntity>> =
         _selectedDate
             .flatMapLatest { date ->
@@ -184,6 +205,7 @@ class ReportViewModel(
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _selectedShiftDetail = MutableStateFlow<ClosedShiftDetail?>(null)
     val selectedShiftDetail: StateFlow<ClosedShiftDetail?> = _selectedShiftDetail.asStateFlow()
+
     fun openShiftDetail(shift: ShiftEntity) {
         viewModelScope.launch {
             _selectedShiftDetail.value =
@@ -193,9 +215,11 @@ class ReportViewModel(
                 )
         }
     }
+
     fun closeShiftDetail() {
         _selectedShiftDetail.value = null
     }
+
     val returnSummary: StateFlow<ReturnSummary> =
         _selectedDate
             .flatMapLatest { date ->
@@ -204,14 +228,17 @@ class ReportViewModel(
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ReturnSummary.empty())
     private val _selectedReturnDetail = MutableStateFlow<ReturnDetail?>(null)
     val selectedReturnDetail: StateFlow<ReturnDetail?> = _selectedReturnDetail.asStateFlow()
+
     fun openReturnDetail(returnId: Long) {
         viewModelScope.launch {
             _selectedReturnDetail.value = returnRepository.getDetail(returnId)
         }
     }
+
     fun closeReturnDetail() {
         _selectedReturnDetail.value = null
     }
+
     private val _selectedTransaction = MutableStateFlow<CheckoutResult?>(null)
     val selectedTransaction: StateFlow<CheckoutResult?> = _selectedTransaction.asStateFlow()
     private val _messages = MutableSharedFlow<ReportMessage>(extraBufferCapacity = 1)
@@ -220,20 +247,23 @@ class ReportViewModel(
     val printUiState: StateFlow<PrintUiState> = _printUiState.asStateFlow()
     private val _pendingPrintTarget = MutableStateFlow<PendingPrintTarget?>(null)
     val pendingPrintTarget: StateFlow<PendingPrintTarget?> = _pendingPrintTarget.asStateFlow()
+
     fun openTransactionDetail(invoiceId: String) {
         viewModelScope.launch {
             _selectedTransaction.value = transactionRepository.loadReceipt(invoiceId)
         }
     }
-fun closeTransactionDetail() {
-    _selectedTransaction.value = null
-    _showReturnDialog.value = false
-    _returnMessage.value = null
-    if (_printUiState.value !is PrintUiState.Printing) {
-        _printUiState.value = PrintUiState.Idle
+
+    fun closeTransactionDetail() {
+        _selectedTransaction.value = null
+        _showReturnDialog.value = false
+        _returnMessage.value = null
+        if (_printUiState.value !is PrintUiState.Printing) {
+            _printUiState.value = PrintUiState.Idle
+        }
+        _pendingPrintTarget.value = null
     }
-    _pendingPrintTarget.value = null
-}
+
     fun voidSelectedTransaction() {
         val invoiceId = _selectedTransaction.value?.transaction?.id ?: return
         viewModelScope.launch {
@@ -253,35 +283,43 @@ fun closeTransactionDetail() {
                         ),
                     )
                 }
+
                 VoidOutcome.AlreadyVoided -> {
                     _messages.emit(ReportMessage("Transaksi ini sudah dibatalkan sebelumnya.", isError = true))
                 }
+
                 VoidOutcome.ShiftClosed -> {
                     _messages.emit(ReportMessage("Tidak dapat membatalkan — shift transaksi ini sudah ditutup.", isError = true))
                 }
+
                 VoidOutcome.NotFound -> {
                     _messages.emit(ReportMessage("Transaksi tidak ditemukan.", isError = true))
                 }
+
                 VoidOutcome.HasReturn -> {
                     _messages.emit(ReportMessage("Tidak dapat membatalkan — transaksi ini sudah memiliki riwayat retur.", isError = true))
                 }
             }
         }
     }
+
     private val _showReturnDialog = MutableStateFlow(false)
     val showReturnDialog: StateFlow<Boolean> = _showReturnDialog.asStateFlow()
     private val _returnMessage = MutableStateFlow<ReportMessage?>(null)
     val returnMessage: StateFlow<ReportMessage?> = _returnMessage.asStateFlow()
     private val _returnSubmitting = MutableStateFlow(false)
     val returnSubmitting: StateFlow<Boolean> = _returnSubmitting.asStateFlow()
+
     fun openReturnDialog() {
         _returnMessage.value = null
         _showReturnDialog.value = true
     }
+
     fun closeReturnDialog() {
         _showReturnDialog.value = false
         _returnMessage.value = null
     }
+
     fun submitReturn(
         items: List<ReturnItemInput>,
         refundAmount: Long,
@@ -327,18 +365,23 @@ fun closeTransactionDetail() {
                         ),
                     )
                 }
+
                 ReturnOutcome.TransactionNotFound -> {
                     _returnMessage.value = ReportMessage("Transaksi tidak ditemukan.", isError = true)
                 }
+
                 ReturnOutcome.TransactionVoided -> {
                     _returnMessage.value = ReportMessage("Transaksi ini sudah dibatalkan, tidak dapat diretur.", isError = true)
                 }
+
                 ReturnOutcome.AlreadyReturned -> {
                     _returnMessage.value = ReportMessage("Transaksi ini sudah pernah diretur sebelumnya.", isError = true)
                 }
+
                 ReturnOutcome.NoItemsSelected -> {
                     _returnMessage.value = ReportMessage("Pilih minimal satu item untuk diretur.", isError = true)
                 }
+
                 is ReturnOutcome.InvalidQuantity -> {
                     _returnMessage.value =
                         ReportMessage(
@@ -346,6 +389,7 @@ fun closeTransactionDetail() {
                             isError = true,
                         )
                 }
+
                 is ReturnOutcome.InvalidRefundAmount -> {
                     _returnMessage.value =
                         ReportMessage(
@@ -356,31 +400,39 @@ fun closeTransactionDetail() {
             }
         }
     }
-fun printReceipt(result: CheckoutResult) {
-    if (_printUiState.value is PrintUiState.Printing) return
-    _printUiState.value = PrintUiState.Printing(result)
-    viewModelScope.launch {
-        val printers = printerRepository.getAllOrderedByPriority()
-        when {
-            printers.isEmpty() -> {
-                _printUiState.value = PrintUiState.Result(com.pos.offline.util.ReceiptPrintOutcome.NoPrinterConfigured, result)
-            }
-            printers.size == 1 -> { executePrint(printers.first(), result) }
-            else -> {
-                _printUiState.value = PrintUiState.Idle
-                _pendingPrintTarget.value = PendingPrintTarget(result, printers)
+
+    fun printReceipt(result: CheckoutResult) {
+        if (_printUiState.value is PrintUiState.Printing) return
+        _printUiState.value = PrintUiState.Printing(result)
+        viewModelScope.launch {
+            val printers = printerRepository.getAllOrderedByPriority()
+            when {
+                printers.isEmpty() -> {
+                    _printUiState.value = PrintUiState.Result(com.pos.offline.util.ReceiptPrintOutcome.NoPrinterConfigured, result)
+                }
+
+                printers.size == 1 -> {
+                    executePrint(printers.first(), result)
+                }
+
+                else -> {
+                    _printUiState.value = PrintUiState.Idle
+                    _pendingPrintTarget.value = PendingPrintTarget(result, printers)
+                }
             }
         }
     }
-}
+
     fun onPrinterPicked(printer: PrinterEntity) {
         val target = _pendingPrintTarget.value ?: return
         _pendingPrintTarget.value = null
         viewModelScope.launch { executePrint(printer, target.checkoutResult) }
     }
+
     fun cancelPrinterPicker() {
         _pendingPrintTarget.value = null
     }
+
     private suspend fun executePrint(
         printer: PrinterEntity,
         result: CheckoutResult,
@@ -389,10 +441,12 @@ fun printReceipt(result: CheckoutResult) {
         val outcome = printCoordinator.printReceiptToSpecific(printer, result)
         _printUiState.value = PrintUiState.Result(outcome, result)
     }
+
     private val _invoiceSearchQuery = MutableStateFlow("")
     val invoiceSearchQuery: StateFlow<String> = _invoiceSearchQuery.asStateFlow()
     private val _searchResultsState = MutableStateFlow<List<TransactionEntity>>(emptyList())
     val searchResults: StateFlow<List<TransactionEntity>> = _searchResultsState.asStateFlow()
+
     fun searchInvoice(q: String) {
         _invoiceSearchQuery.value = q
         viewModelScope.launch {
@@ -403,9 +457,11 @@ fun printReceipt(result: CheckoutResult) {
             }
         }
     }
+
     fun selectExactDate(date: LocalDate) {
         _selectedDate.value = date
     }
+
     fun searchTransactionsByScannedProduct(barcodeOrName: String) {
         viewModelScope.launch {
             _invoiceSearchQuery.value = barcodeOrName
@@ -418,6 +474,7 @@ fun printReceipt(result: CheckoutResult) {
             _searchResultsState.value = results
         }
     }
+
     private val _productHistoryQuery = MutableStateFlow("")
     val productHistoryQuery: StateFlow<String> = _productHistoryQuery.asStateFlow()
     val productHistoryHierarchy: StateFlow<List<MonthSalesGroup>> =
@@ -459,9 +516,11 @@ fun printReceipt(result: CheckoutResult) {
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun searchProductHistory(query: String) {
         _productHistoryQuery.value = query
     }
+
     val searchUiState: StateFlow<SearchUiState> =
         combine(
             invoiceSearchQuery,
@@ -474,12 +533,15 @@ fun printReceipt(result: CheckoutResult) {
                 activeQuery.isBlank() -> {
                     SearchUiState.Idle
                 }
+
                 productQuery.isNotBlank() && productHierarchy.isNotEmpty() -> {
                     SearchUiState.ProductHistoryResults(productHierarchy)
                 }
+
                 invoiceQuery.isNotBlank() && invoices.isNotEmpty() -> {
                     SearchUiState.InvoiceResults(invoices)
                 }
+
                 else -> {
                     SearchUiState.Empty(activeQuery)
                 }
@@ -489,6 +551,7 @@ fun printReceipt(result: CheckoutResult) {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = SearchUiState.Idle,
         )
+
     fun buildCurrentReportLinesForExportAsync(onResult: (List<ReceiptLine>?) -> Unit) {
         viewModelScope.launch(Dispatchers.Default) {
             val lines = buildCurrentReportLinesForExport()
@@ -497,15 +560,21 @@ fun printReceipt(result: CheckoutResult) {
             }
         }
     }
-    fun processDirectWarranty(product: ProductEntity, qty: Double, note: String) {
+
+    fun processDirectWarranty(
+        product: ProductEntity,
+        qty: Double,
+        note: String,
+    ) {
         prosesTukarGulingGaransi(
             barangRusak = product,
             qtyRusak = qty,
             barangPengganti = product,
             qtyPengganti = qty,
-            catatan = note
+            catatan = note,
         )
     }
+
     fun prosesTukarGulingGaransi(
         barangRusak: ProductEntity,
         qtyRusak: Double,
@@ -538,17 +607,17 @@ fun printReceipt(result: CheckoutResult) {
             } catch (e: ProductRemovedDuringCheckoutException) {
                 e.printStackTrace()
                 viewModelScope.launch {
-
                     _messages.emit(
                         ReportMessage(
                             text = "Produk '${e.productName}' tidak ditemukan (kemungkinan baru saja dihapus). Proses tukar guling dibatalkan.",
-                            isError = true
-                        )
+                            isError = true,
+                        ),
                     )
                 }
             }
         }
     }
+
     private val _selectedPeriodType = MutableStateFlow<ReportPeriodType?>(null)
     val selectedPeriodType: StateFlow<ReportPeriodType?> = _selectedPeriodType.asStateFlow()
     private val _includeSalesSummary = MutableStateFlow(true)
@@ -590,30 +659,37 @@ fun printReceipt(result: CheckoutResult) {
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SalesReportUiState.Hidden)
+
     fun toggleReportPeriod(periodType: ReportPeriodType) {
         _selectedPeriodType.value = if (_selectedPeriodType.value == periodType) null else periodType
     }
+
     fun toggleIncludeSalesSummary(checked: Boolean) {
         _includeSalesSummary.value = checked
         collapseIfNothingSelected()
     }
+
     fun toggleIncludeProductsSold(checked: Boolean) {
         _includeProductsSold.value = checked
         collapseIfNothingSelected()
     }
+
     fun toggleIncludeDeadStock(checked: Boolean) {
         _includeDeadStock.value = checked
         collapseIfNothingSelected()
     }
+
     private fun collapseIfNothingSelected() {
         if (!(_includeSalesSummary.value || _includeProductsSold.value || _includeDeadStock.value)) {
             _selectedPeriodType.value = null
         }
     }
+
     private fun periodLabelFor(
         now: LocalDate,
         isMonthly: Boolean,
     ): String = if (isMonthly) "Bulanan: ${now.month.name} ${now.year}" else "Harian: ${now.format(dateFmt)}"
+
     private suspend fun buildReportLines(
         periodType: ReportPeriodType,
         data: SalesReportData,
@@ -634,11 +710,13 @@ fun printReceipt(result: CheckoutResult) {
                 includeDeadStock = _includeDeadStock.value,
             )
         }
+
     suspend fun buildCurrentReportLinesForExport(): List<ReceiptLine>? =
         withContext(Dispatchers.Default) {
             val state = salesReportUiState.value as? SalesReportUiState.Loaded ?: return@withContext null
             buildReportLines(state.periodType, state.data)
         }
+
     private fun buildEmptyStateNote(data: SalesReportData): String? {
         val soldEmpty = _includeProductsSold.value && data.products.none { it.qtySold > 0.0 }
         val deadEmpty = _includeDeadStock.value && data.products.none { it.qtySold == 0.0 }
@@ -649,6 +727,7 @@ fun printReceipt(result: CheckoutResult) {
             else -> null
         }
     }
+
     private fun appendEmptyStateNote(
         baseMessage: String,
         data: SalesReportData,
@@ -656,6 +735,7 @@ fun printReceipt(result: CheckoutResult) {
         val note = buildEmptyStateNote(data) ?: return baseMessage
         return "$baseMessage (Catatan: $note)"
     }
+
     fun printSalesReport() {
         viewModelScope.launch {
             val state = salesReportUiState.value as? SalesReportUiState.Loaded
@@ -674,29 +754,35 @@ fun printReceipt(result: CheckoutResult) {
                 is com.pos.offline.util.ReceiptPrintOutcome.Success -> {
                     _messages.emit(ReportMessage(appendEmptyStateNote("Laporan berhasil dicetak.", state.data), isError = false))
                 }
+
                 is com.pos.offline.util.ReceiptPrintOutcome.SuccessWithNotice -> {
                     _messages.emit(ReportMessage(appendEmptyStateNote("Laporan dicetak: ${outcome.notice}", state.data), isError = false))
                 }
+
                 is com.pos.offline.util.ReceiptPrintOutcome.Failed -> {
                     _messages.emit(
                         ReportMessage("Gagal mencetak laporan: ${outcome.attempts.firstOrNull()?.message ?: "Unknown"}", isError = true),
                     )
                 }
+
                 com.pos.offline.util.ReceiptPrintOutcome.AlreadyInProgress -> {
                     _messages.emit(ReportMessage("Sedang mencetak, mohon tunggu...", isError = false))
                 }
+
                 com.pos.offline.util.ReceiptPrintOutcome.NoPrinterConfigured -> {
                     _messages.emit(ReportMessage("Printer belum diatur.", isError = true))
                 }
             }
         }
     }
+
     fun notifyPdfExported() {
         viewModelScope.launch {
             val state = salesReportUiState.value as? SalesReportUiState.Loaded ?: return@launch
             _messages.emit(ReportMessage(appendEmptyStateNote("Laporan PDF berhasil dibuat.", state.data), isError = false))
         }
     }
+
     private fun getReportRange(
         now: LocalDate,
         isMonthly: Boolean,
@@ -719,11 +805,13 @@ fun printReceipt(result: CheckoutResult) {
         } else {
             dayBounds(now)
         }
+
     private fun dayBounds(date: LocalDate): Pair<Long, Long> {
         val timestamp = date.atStartOfDay(zone).toInstant().toEpochMilli()
         return com.pos.offline.util
             .getAbsoluteDayRange(timestamp)
     }
+
     private fun aggregate(
         date: LocalDate,
         txs: List<TransactionEntity>,
@@ -731,6 +819,7 @@ fun printReceipt(result: CheckoutResult) {
         if (txs.isEmpty()) return DailyReport.empty(date)
         val completed = txs.filterNot { it.isVoid }
         val voidedCount = txs.size - completed.size
+
         fun actualReceived(tx: TransactionEntity): Long = tx.paidAmount - tx.changeGiven
         val totalDiscount = completed.sumOf { it.discount }
         val totalTax = completed.sumOf { it.tax }
@@ -764,6 +853,7 @@ fun printReceipt(result: CheckoutResult) {
             qrisRevenue = qrisRevenue,
         )
     }
+
     private fun aggregateReturns(returns: List<ReturnEntity>): ReturnSummary {
         val cashRefundTotal =
             returns
@@ -775,17 +865,21 @@ fun printReceipt(result: CheckoutResult) {
                 .sumOf { it.refundAmount }
         return ReturnSummary(returns, cashRefundTotal, qrisRefundTotal)
     }
+
     fun previousDay() {
         _selectedDate.value = _selectedDate.value.minusDays(1)
     }
+
     fun nextDay() {
         val today = LocalDate.now(zone)
         val current = _selectedDate.value
         if (current.isBefore(today)) _selectedDate.value = current.plusDays(1)
     }
+
     fun goToday() {
         _selectedDate.value = LocalDate.now(zone)
     }
+
     companion object {
         val dateFmt: DateTimeFormatter =
             DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.forLanguageTag("id-ID"))

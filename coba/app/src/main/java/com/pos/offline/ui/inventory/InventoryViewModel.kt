@@ -40,6 +40,7 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZoneId
+
 data class ProductFormState(
     val id: Long = 0L,
     val name: String = "",
@@ -54,6 +55,7 @@ data class ProductFormState(
 ) {
     val isNew: Boolean get() = id == 0L
 }
+
 enum class ProductSortOption(
     val label: String,
 ) {
@@ -64,6 +66,7 @@ enum class ProductSortOption(
     STOCK_LOW_FIRST("Stok Terendah"),
     TERLARIS("Terlaris"),
     ;
+
     val comparator: Comparator<ProductEntity>
         get() =
             when (this) {
@@ -75,12 +78,14 @@ enum class ProductSortOption(
                 TERLARIS -> compareBy { it.id }
             }
 }
+
 enum class TopSalesRange(
     val label: String,
 ) {
     HARI_INI("Hari Ini"),
     BULAN_INI("Bulan Ini"),
 }
+
 @OptIn(kotlinx.coroutines.FlowPreview::class, ExperimentalCoroutinesApi::class)
 class InventoryViewModel(
     private val appContext: Context,
@@ -130,22 +135,29 @@ class InventoryViewModel(
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
     private val _messages = Channel<String>(capacity = Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
+
     data class ScanNotFoundState(
         val barcode: String,
     )
+
     private val _scanNotFound = MutableStateFlow<ScanNotFoundState?>(null)
     val scanNotFound: StateFlow<ScanNotFoundState?> = _scanNotFound.asStateFlow()
+
     data class DeletedProductFoundState(
         val product: ProductEntity,
     )
+
     private val _deletedProductFound = MutableStateFlow<DeletedProductFoundState?>(null)
     val deletedProductFound: StateFlow<DeletedProductFoundState?> = _deletedProductFound.asStateFlow()
+
     enum class ImportStatus { NEW, CONFLICT, DUPLICATE_IN_FILE }
+
     data class ImportReviewItem(
         val row: ImportedProductRow,
         val status: ImportStatus,
         val conflictWith: ProductEntity? = null,
     )
+
     data class ExcelUiState(
         val isExporting: Boolean = false,
         val isImporting: Boolean = false,
@@ -154,8 +166,10 @@ class InventoryViewModel(
         val parseErrors: List<String> = emptyList(),
         val showReviewDialog: Boolean = false,
     )
+
     private val _excelState = MutableStateFlow(ExcelUiState())
     val excelState: StateFlow<ExcelUiState> = _excelState.asStateFlow()
+
     private fun getRangeMillis(range: TopSalesRange): Pair<Long, Long> {
         val zone = ZoneId.systemDefault()
         val now = LocalDate.now(zone)
@@ -170,6 +184,7 @@ class InventoryViewModel(
                         .toEpochMilli()
                 start to end
             }
+
             TopSalesRange.BULAN_INI -> {
                 val start =
                     now
@@ -188,12 +203,15 @@ class InventoryViewModel(
             }
         }
     }
+
     fun setTopSalesRange(range: TopSalesRange) {
         _topSalesRange.value = range
     }
+
     fun dismissReviewDialog() {
         _excelState.value = _excelState.value.copy(showReviewDialog = false, reviewItems = emptyList(), parseErrors = emptyList())
     }
+
     fun exportToExcel(destinationUri: Uri) {
         if (_excelState.value.isExporting) return
         viewModelScope.launch {
@@ -217,6 +235,7 @@ class InventoryViewModel(
             }
         }
     }
+
     fun importFromExcel(sourceUri: Uri) {
         if (_excelState.value.isImporting) return
         viewModelScope.launch {
@@ -240,6 +259,7 @@ class InventoryViewModel(
             }
         }
     }
+
     private suspend fun validateImportedRows(rows: List<ImportedProductRow>): List<ImportReviewItem> =
         withContext(Dispatchers.IO) {
             val allProducts = productRepository.getAllProductsOnce()
@@ -259,6 +279,7 @@ class InventoryViewModel(
                 ImportReviewItem(row, status, dbConflict)
             }
         }
+
     fun commitImport() {
         if (_excelState.value.isCommitting) return
         val newRows =
@@ -305,6 +326,7 @@ class InventoryViewModel(
             }
         }
     }
+
     suspend fun onBarcodeScanned(raw: String?): String? {
         val sanitized = sanitizeScannedCode(raw)
         if (sanitized == null) {
@@ -318,10 +340,12 @@ class InventoryViewModel(
                     _scanNotFound.value = ScanNotFoundState(sanitized)
                     null
                 }
+
                 product.active -> {
                     startEdit(product)
                     product.name
                 }
+
                 else -> {
                     _deletedProductFound.value = DeletedProductFoundState(product)
                     product.name
@@ -332,18 +356,22 @@ class InventoryViewModel(
             null
         }
     }
+
     fun dismissScanNotFound() {
         _scanNotFound.value = null
     }
+
     fun startAddFromScanned() {
         val barcode = _scanNotFound.value?.barcode ?: return
         _scanNotFound.value = null
         editingProductSnapshot = null
         _form.value = ProductFormState(barcode = barcode)
     }
+
     fun dismissDeletedProductFound() {
         _deletedProductFound.value = null
     }
+
     fun restoreDeletedProduct() {
         val target = _deletedProductFound.value?.product ?: return
         _deletedProductFound.value = null
@@ -358,16 +386,20 @@ class InventoryViewModel(
             }
         }
     }
+
     fun search(q: String) {
         _searchQuery.value = q
     }
+
     fun setSortOption(option: ProductSortOption) {
         _sortOption.value = option
     }
+
     fun startAdd() {
         editingProductSnapshot = null
         _form.value = ProductFormState()
     }
+
     fun startEdit(product: ProductEntity) {
         editingProductSnapshot = product
         _form.value =
@@ -384,9 +416,11 @@ class InventoryViewModel(
                 createdAt = product.createdAt,
             )
     }
+
     fun dismissForm() {
         _form.value = null
     }
+
     fun save(state: ProductFormState) {
         if (_isSaving.value) return
         viewModelScope.launch {
@@ -436,9 +470,11 @@ class InventoryViewModel(
             }
         }
     }
+
     fun cancelDelete() {
         _pendingDelete.value = null
     }
+
     fun confirmDelete() =
         viewModelScope.launch {
             val target = _pendingDelete.value ?: return@launch
@@ -453,6 +489,7 @@ class InventoryViewModel(
                 _pendingDelete.value = null
             }
         }
+
     fun requestDeleteFromForm(id: Long) {
         val target =
             editingProductSnapshot?.takeIf { it.id == id }
@@ -464,9 +501,11 @@ class InventoryViewModel(
         _form.value = null
         _pendingDelete.value = target
     }
+
     private fun notify(text: String) {
         _messages.trySend(text)
     }
+
     suspend fun checkBarcodeConflict(
         barcode: String,
         excludeId: Long,
@@ -476,6 +515,7 @@ class InventoryViewModel(
         val existing = productRepository.getProductByBarcodeAny(trimmed)
         return if (existing != null && existing.id != excludeId) existing.name else null
     }
+
     suspend fun checkSkuConflict(
         sku: String,
         excludeId: Long,
@@ -485,6 +525,7 @@ class InventoryViewModel(
         val existing = productRepository.getProductBySku(trimmed)
         return if (existing != null && existing.id != excludeId) existing.name else null
     }
+
     fun returnDamagedItemToSupplier(
         productId: Long,
         qty: Double,

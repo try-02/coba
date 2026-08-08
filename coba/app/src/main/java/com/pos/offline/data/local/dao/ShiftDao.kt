@@ -6,16 +6,21 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.pos.offline.data.local.entity.ShiftEntity
 import kotlinx.coroutines.flow.Flow
+
 @Dao
 interface ShiftDao {
     @Query("SELECT * FROM shifts WHERE endedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     fun observeOpenShift(): Flow<ShiftEntity?>
+
     @Query("SELECT * FROM shifts WHERE endedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     suspend fun getOpenShift(): ShiftEntity?
+
     @Query("SELECT * FROM shifts ORDER BY startedAt DESC")
     fun observeAll(): Flow<List<ShiftEntity>>
+
     @Query("SELECT * FROM shifts WHERE endedAt IS NULL ORDER BY startedAt ASC")
     fun observeOpenShifts(): Flow<List<ShiftEntity>>
+
     @Query(
         """
         SELECT * FROM shifts
@@ -27,19 +32,25 @@ interface ShiftDao {
         start: Long,
         end: Long,
     ): Flow<List<ShiftEntity>>
+
     @Insert
     suspend fun insert(shift: ShiftEntity): Long
+
     @Update
     suspend fun update(shift: ShiftEntity)
+
     @Query("SELECT * FROM shifts WHERE id = :id")
     suspend fun getById(id: Long): ShiftEntity?
+
     @Query("SELECT EXISTS(SELECT 1 FROM shifts WHERE cashierId = :cashierId AND endedAt IS NULL)")
     suspend fun hasOpenShiftForCashier(cashierId: Long): Boolean
+
     @Transaction
     suspend fun insertIfNoOpenShift(shift: ShiftEntity): Long {
         if (hasOpenShiftForCashier(shift.cashierId)) return -1L
         return insert(shift)
     }
+
     @Transaction
     suspend fun endIfOpen(
         id: Long,
@@ -60,6 +71,7 @@ interface ShiftDao {
         update(updated)
         return updated
     }
+
     @Query(
         """
         SELECT COALESCE(SUM(paidAmount - changeGiven), 0) FROM transactions
@@ -67,16 +79,18 @@ interface ShiftDao {
           AND paymentMethod = 'CASH'
           AND status = 'COMPLETED'
           AND isWarrantyExchange = 0
-        """
+        """,
     )
     suspend fun cashRevenueForShift(shiftId: Long): Long
-@Query(
-    """
+
+    @Query(
+        """
     SELECT COALESCE(SUM(paidAmount - changeGiven), 0) FROM transactions
     WHERE shiftId = :shiftId AND paymentMethod = 'QRIS' AND status = 'COMPLETED'
     """,
-)
-suspend fun qrisRevenueForShift(shiftId: Long): Long
+    )
+    suspend fun qrisRevenueForShift(shiftId: Long): Long
+
     @Query(
         """
         SELECT COALESCE(SUM(changeGiven), 0) FROM transactions
@@ -85,6 +99,7 @@ suspend fun qrisRevenueForShift(shiftId: Long): Long
         """,
     )
     suspend fun qrisCashChangeOutForShift(shiftId: Long): Long
+
     @Query(
         """
         SELECT COALESCE(SUM(CAST(ROUND(ti.unitCost * ti.quantity) AS INTEGER)), 0)
@@ -94,6 +109,7 @@ suspend fun qrisRevenueForShift(shiftId: Long): Long
         """,
     )
     suspend fun totalCostForShift(shiftId: Long): Long
+
     @Query(
         """
         SELECT COALESCE(SUM(CAST(ROUND(ti.unitCost * ti.quantity) AS INTEGER)), 0)
@@ -103,24 +119,27 @@ suspend fun qrisRevenueForShift(shiftId: Long): Long
         """,
     )
     suspend fun warrantyExchangeCostForShift(shiftId: Long): Long
+
     @Query(
         """
         SELECT COALESCE(SUM(refundAmount), 0) FROM returns
         WHERE shiftId = :shiftId
           AND refundMethod = 'CASH'
           AND isWarrantyExchange = 0
-        """
+        """,
     )
     suspend fun cashRefundsForShift(shiftId: Long): Long
+
     @Query(
         """
         SELECT COALESCE(SUM(refundAmount), 0) FROM returns
         WHERE shiftId = :shiftId
           AND refundMethod = 'QRIS'
           AND isWarrantyExchange = 0
-        """
+        """,
     )
     suspend fun qrisRefundsForShift(shiftId: Long): Long
+
     @Query(
         """
         SELECT COALESCE(SUM(

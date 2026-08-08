@@ -45,6 +45,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.ui.components.rememberBarcodeScanner
 import java.io.File
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PosScreen(
@@ -175,6 +176,7 @@ fun PosScreen(
         onNavigateToSettings = onNavigateToSettings,
     )
 }
+
 @Composable
 private fun PosTopBar(
     uiState: PosUiState,
@@ -200,9 +202,11 @@ private fun PosTopBar(
                     currentActiveShift != null -> {
                         onAction(PosAction.OpenEndShiftDialog(currentActiveShift))
                     }
+
                     shift.openShifts.isEmpty() -> {
                         onAction(PosAction.OpenStartShiftDialog)
                     }
+
                     else -> {
                         onAction(PosAction.OpenShiftListDialog)
                     }

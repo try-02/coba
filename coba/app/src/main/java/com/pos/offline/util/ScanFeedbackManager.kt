@@ -9,11 +9,13 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
+
 enum class VibrationLevel {
     HALUS,
     SEDANG,
     KUAT,
     ;
+
     companion object {
         fun fromString(value: String?): VibrationLevel =
             when (value?.uppercase()) {
@@ -23,6 +25,7 @@ enum class VibrationLevel {
             }
     }
 }
+
 class ScanFeedbackManager(
     context: Context,
 ) {
@@ -47,6 +50,7 @@ class ScanFeedbackManager(
         } catch (e: Exception) {
             null
         }
+
     fun triggerSuccessFeedback(
         soundEnabled: Boolean,
         soundVolume: Int,
@@ -62,6 +66,7 @@ class ScanFeedbackManager(
             playVibration(vibrationLevel, vibrationDurationMs)
         }
     }
+
     fun triggerFailureFeedback(
         soundEnabled: Boolean,
         soundVolume: Int,
@@ -75,7 +80,9 @@ class ScanFeedbackManager(
             playVibration(vibrationLevel, durationMs = 120)
         }
     }
-private var currentToneVolume: Int? = null
+
+    private var currentToneVolume: Int? = null
+
     fun playBeep(
         volume: Int,
         durationMs: Int,
@@ -91,6 +98,7 @@ private var currentToneVolume: Int? = null
         } catch (e: Exception) {
         }
     }
+
     fun playErrorBeep(volume: Int) {
         try {
             if (toneGenerator == null) {
@@ -100,6 +108,7 @@ private var currentToneVolume: Int? = null
         } catch (e: Exception) {
         }
     }
+
     fun playVibration(
         level: VibrationLevel,
         durationMs: Int = 50,
@@ -138,6 +147,7 @@ private var currentToneVolume: Int? = null
         } catch (e: Exception) {
         }
     }
+
     fun release() {
         try {
             toneGenerator?.release()

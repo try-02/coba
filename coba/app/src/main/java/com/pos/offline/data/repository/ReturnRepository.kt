@@ -10,6 +10,7 @@ import com.pos.offline.data.local.entity.ReturnItemEntity
 import com.pos.offline.data.local.entity.hasReturn
 import com.pos.offline.data.local.entity.isVoid
 import kotlinx.coroutines.flow.Flow
+
 data class ReturnItemInput(
     val transactionItemId: Long,
     val productId: Long?,
@@ -19,25 +20,34 @@ data class ReturnItemInput(
     val restocked: Boolean,
     val restockToDamaged: Boolean = false,
 )
+
 data class ReturnDetail(
     val header: ReturnEntity,
     val items: List<ReturnItemEntity>,
 )
+
 sealed class ReturnOutcome {
     data class Success(
         val returnId: Long,
     ) : ReturnOutcome()
+
     data object TransactionNotFound : ReturnOutcome()
+
     data object TransactionVoided : ReturnOutcome()
+
     data object AlreadyReturned : ReturnOutcome()
+
     data object NoItemsSelected : ReturnOutcome()
+
     data class InvalidQuantity(
         val productName: String,
     ) : ReturnOutcome()
+
     data class InvalidRefundAmount(
         val maxAllowed: Long,
     ) : ReturnOutcome()
 }
+
 class ReturnRepository(
     private val database: PosDatabase,
     private val returnDao: ReturnDao,
@@ -48,14 +58,17 @@ class ReturnRepository(
         start: Long,
         end: Long,
     ): Flow<List<ReturnEntity>> = returnDao.observeReturnsBetween(start, end)
+
     suspend fun getDetail(returnId: Long): ReturnDetail? {
         val header = returnDao.getById(returnId) ?: return null
         return ReturnDetail(header, returnDao.getItems(returnId))
     }
+
     suspend fun getDetailByTransactionId(transactionId: String): ReturnDetail? {
         val header = returnDao.getByTransactionId(transactionId) ?: return null
         return ReturnDetail(header, returnDao.getItems(header.id))
     }
+
     suspend fun processReturn(
         transactionId: String,
         itemInputs: List<ReturnItemInput>,
@@ -97,50 +110,53 @@ class ReturnRepository(
                 refundMethod = refundMethod.name,
                 note = note,
             )
-var newReturnId = 0L
-    var conflict: ReturnOutcome? = null
-    try {
-    database.withTransaction {
-        newReturnId = returnDao.insertReturn(header)
-        val itemEntities =
-            itemInputs.map { input ->
-                ReturnItemEntity(
-                    returnId = newReturnId,
-                    transactionItemId = input.transactionItemId,
-                    productId = input.productId,
-                    productName = input.productName,
-                    unitPrice = input.unitPrice,
-                    quantityReturned = input.quantityReturned,
-                    restocked = input.restocked,
-                )
-            }
-        returnDao.insertItems(itemEntities)
-        itemInputs.forEach { input ->
-            if (input.restocked && input.productId != null) {
-                if (input.restockToDamaged) {
-                    productDao.incrementDamagedStock(input.productId, input.quantityReturned, now)
-                } else {
-                    productDao.incrementStock(input.productId, input.quantityReturned, now)
+        var newReturnId = 0L
+        var conflict: ReturnOutcome? = null
+        try {
+            database.withTransaction {
+                newReturnId = returnDao.insertReturn(header)
+                val itemEntities =
+                    itemInputs.map { input ->
+                        ReturnItemEntity(
+                            returnId = newReturnId,
+                            transactionItemId = input.transactionItemId,
+                            productId = input.productId,
+                            productName = input.productName,
+                            unitPrice = input.unitPrice,
+                            quantityReturned = input.quantityReturned,
+                            restocked = input.restocked,
+                        )
+                    }
+                returnDao.insertItems(itemEntities)
+                itemInputs.forEach { input ->
+                    if (input.restocked && input.productId != null) {
+                        if (input.restockToDamaged) {
+                            productDao.incrementDamagedStock(input.productId, input.quantityReturned, now)
+                        } else {
+                            productDao.incrementStock(input.productId, input.quantityReturned, now)
+                        }
+                    }
+                }
+                val affected = transactionDao.setReturnIdIfAbsent(transactionId, newReturnId)
+                if (affected == 0) {
+                    val latest = transactionDao.getById(transactionId)
+                    conflict = if (latest?.isVoid == true) ReturnOutcome.TransactionVoided else ReturnOutcome.AlreadyReturned
+                    throw ReturnConflictRollback
                 }
             }
+        } catch (e: Throwable) {
+            if (e !== ReturnConflictRollback) throw e
         }
-        val affected = transactionDao.setReturnIdIfAbsent(transactionId, newReturnId)
-        if (affected == 0) {
-            val latest = transactionDao.getById(transactionId)
-            conflict = if (latest?.isVoid == true) ReturnOutcome.TransactionVoided else ReturnOutcome.AlreadyReturned
-            throw ReturnConflictRollback
-        }
+        conflict?.let { return it }
+        return ReturnOutcome.Success(newReturnId)
     }
-    } catch (e: Throwable) {
-        if (e !== ReturnConflictRollback) throw e
+
+    private object ReturnConflictRollback : RuntimeException() {
+        private fun readResolve(): Any = ReturnConflictRollback
+
+        override fun fillInStackTrace(): Throwable = this
     }
-    conflict?.let { return it }
-    return ReturnOutcome.Success(newReturnId)
-}
-private object ReturnConflictRollback : RuntimeException() {
-    private fun readResolve(): Any = ReturnConflictRollback
-    override fun fillInStackTrace(): Throwable = this
-}
+
     suspend fun processDirectExchangeWarranty(
         brokenProduct: com.pos.offline.data.local.entity.ProductEntity,
         brokenQty: Double,
@@ -155,67 +171,75 @@ private object ReturnConflictRollback : RuntimeException() {
         val totalBroken = kotlin.math.round(brokenProduct.price * brokenQty).toLong()
         val totalReplacement = kotlin.math.round(replacementProduct.price * replacementQty).toLong()
         val delta = totalReplacement - totalBroken
-        val idSuffix = java.util.UUID.randomUUID().toString().take(8)
+        val idSuffix =
+            java.util.UUID
+                .randomUUID()
+                .toString()
+                .take(8)
         val isRealRefund = delta < 0
         val returnIdPrefix = if (isRealRefund) "RET-DIR-" else "EXC-RET-"
         val syntheticReturnId = "$returnIdPrefix$now-$idSuffix"
         val actualRefundCash = if (isRealRefund) kotlin.math.abs(delta) else 0L
-        val returnHeader = ReturnEntity(
-            transactionId = syntheticReturnId,
-            returnedAt = now,
-            shiftId = shiftId,
-            cashierId = cashierId,
-            cashierName = cashierName,
-            refundAmount = actualRefundCash,
-            refundMethod = PaymentMethod.CASH.name,
-            note = "Tukar Guling Garansi: $note",
-            isWarrantyExchange = !isRealRefund,
-        )
+        val returnHeader =
+            ReturnEntity(
+                transactionId = syntheticReturnId,
+                returnedAt = now,
+                shiftId = shiftId,
+                cashierId = cashierId,
+                cashierName = cashierName,
+                refundAmount = actualRefundCash,
+                refundMethod = PaymentMethod.CASH.name,
+                note = "Tukar Guling Garansi: $note",
+                isWarrantyExchange = !isRealRefund,
+            )
         val isRealSale = delta > 0
         val invoiceIdPrefix = if (isRealSale) "INV-EXC-" else "EXC-INV-"
         val syntheticInvoiceId = "$invoiceIdPrefix$now-$idSuffix"
         val actualSaleCash = if (isRealSale) delta else 0L
         val discountApplied = if (isRealSale) totalBroken else totalReplacement
-        val transactionHeader = com.pos.offline.data.local.entity.TransactionEntity(
-            id = syntheticInvoiceId,
-            createdAt = now,
-            subtotal = totalReplacement,
-            discount = discountApplied,
-            tax = 0L,
-            total = actualSaleCash,
-            paidAmount = actualSaleCash,
-            change = 0L,
-            changeGiven = 0L,
-            changeGivenInCash = true,
-            paymentMethod = PaymentMethod.CASH.name,
-            cashierId = cashierId,
-            cashierName = cashierName,
-            shiftId = shiftId,
-            discountType = com.pos.offline.data.local.entity.DiscountType.NOMINAL.name,
-            discountValue = discountApplied.toDouble(),
-            status = com.pos.offline.data.local.entity.TransactionStatus.COMPLETED.name,
-            isWarrantyExchange = !isRealSale,
-        )
-        val transactionItem = com.pos.offline.data.local.entity.TransactionItemEntity(
-            transactionId = syntheticInvoiceId,
-            productName = replacementProduct.name,
-            unitPrice = replacementProduct.price,
-            quantity = replacementQty,
-            lineTotal = totalReplacement,
-            unitCost = replacementProduct.cost,
-            productId = replacementProduct.id,
-        )
+        val transactionHeader =
+            com.pos.offline.data.local.entity.TransactionEntity(
+                id = syntheticInvoiceId,
+                createdAt = now,
+                subtotal = totalReplacement,
+                discount = discountApplied,
+                tax = 0L,
+                total = actualSaleCash,
+                paidAmount = actualSaleCash,
+                change = 0L,
+                changeGiven = 0L,
+                changeGivenInCash = true,
+                paymentMethod = PaymentMethod.CASH.name,
+                cashierId = cashierId,
+                cashierName = cashierName,
+                shiftId = shiftId,
+                discountType = com.pos.offline.data.local.entity.DiscountType.NOMINAL.name,
+                discountValue = discountApplied.toDouble(),
+                status = com.pos.offline.data.local.entity.TransactionStatus.COMPLETED.name,
+                isWarrantyExchange = !isRealSale,
+            )
+        val transactionItem =
+            com.pos.offline.data.local.entity.TransactionItemEntity(
+                transactionId = syntheticInvoiceId,
+                productName = replacementProduct.name,
+                unitPrice = replacementProduct.price,
+                quantity = replacementQty,
+                lineTotal = totalReplacement,
+                unitCost = replacementProduct.cost,
+                productId = replacementProduct.id,
+            )
         database.withTransaction {
             val newReturnId = returnDao.insertReturn(returnHeader)
-            val returnItem = ReturnItemEntity(
-                returnId = newReturnId,
-                transactionItemId = 0L,
-                productId = brokenProduct.id,
-                productName = brokenProduct.name,
-                unitPrice = brokenProduct.price,
-                quantityReturned = brokenQty,
-                restocked = false,
-            )
+            val returnItem =
+                ReturnItemEntity(
+                    returnId = newReturnId,
+                    transactionItemId = 0L,
+                    productId = brokenProduct.id,
+                    productName = brokenProduct.name,
+                    unitPrice = brokenProduct.price,
+                    quantityReturned = brokenQty,
+                    restocked = false,
+                )
             returnDao.insertItems(listOf(returnItem))
             productDao.incrementDamagedStock(brokenProduct.id, brokenQty, now)
             transactionDao.checkout(transactionHeader, listOf(transactionItem))

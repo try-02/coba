@@ -8,6 +8,7 @@ import com.pos.offline.data.local.entity.ShiftEntity
 import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.receipt.PrintUiState
+
 data class PosUiState(
     val catalog: CatalogState = CatalogState(),
     val cart: CartState = CartState(),
@@ -15,6 +16,7 @@ data class PosUiState(
     val checkout: CheckoutState = CheckoutState(),
     val shift: ShiftState = ShiftState(),
 )
+
 data class CatalogState(
     val products: List<ProductEntity> = emptyList(),
     val categories: List<String> = emptyList(),
@@ -23,11 +25,13 @@ data class CatalogState(
     val cartQtyByProductId: Map<Long, Double> = emptyMap(),
     val stockByProductId: Map<Long, Double> = emptyMap(),
 )
+
 data class CartState(
     val items: List<CartItemEntity> = emptyList(),
     val totals: Totals = Totals(),
     val isEmpty: Boolean = true,
 )
+
 data class PaymentState(
     val method: PaymentMethod = PaymentMethod.CASH,
     val discountType: DiscountType = DiscountType.NOMINAL,
@@ -38,22 +42,28 @@ data class PaymentState(
     val changeGivenOverride: Long? = null,
     val changeGivenInCash: Boolean = true,
 )
+
 data class CheckoutState(
     val flow: CheckoutFlow = CheckoutFlow.Idle,
     val printUiState: PrintUiState = PrintUiState.Idle,
     val openDrawerOnPrint: Boolean = false,
     val isProcessing: Boolean = false,
 )
+
 sealed interface CheckoutFlow {
     data object Idle : CheckoutFlow
+
     data object Processing : CheckoutFlow
+
     data class Success(
         val result: CheckoutResult,
     ) : CheckoutFlow
+
     data class Error(
         val message: String,
     ) : CheckoutFlow
 }
+
 data class ShiftState(
     val activeShift: ShiftEntity? = null,
     val openShifts: List<ShiftEntity> = emptyList(),
@@ -67,6 +77,7 @@ data class ShiftState(
     val isEndingShift: Boolean = false,
     val isOpeningDrawer: Boolean = false,
 )
+
 data class Totals(
     val subtotal: Long = 0L,
     val discount: Long = 0L,
@@ -74,11 +85,13 @@ data class Totals(
     val total: Long = 0L,
     val discountCapped: Boolean = false,
 )
+
 sealed interface PosUiEvent {
     data class ShowMessage(
         val message: String,
     ) : PosUiEvent
 }
+
 data class StockWarningInfo(
     val productName: String,
     val currentStock: Double,

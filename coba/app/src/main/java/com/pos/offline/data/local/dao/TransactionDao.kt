@@ -6,12 +6,15 @@ import androidx.room.Transaction
 import com.pos.offline.data.local.entity.TransactionEntity
 import com.pos.offline.data.local.entity.TransactionItemEntity
 import kotlinx.coroutines.flow.Flow
+
 @Dao
 interface TransactionDao {
     @Insert
     suspend fun insertTransaction(tx: TransactionEntity)
+
     @Insert
     suspend fun insertItems(items: List<TransactionItemEntity>)
+
     @Query(
         """
         SELECT * FROM transactions
@@ -23,6 +26,7 @@ interface TransactionDao {
         startOfDay: Long,
         endOfDay: Long,
     ): Flow<List<TransactionEntity>>
+
     @Query(
         """
         SELECT COALESCE(SUM(total), 0) FROM transactions
@@ -33,12 +37,16 @@ interface TransactionDao {
         startOfDay: Long,
         endOfDay: Long,
     ): Flow<Long>
+
     @Query("SELECT * FROM transactions WHERE id = :invoiceId")
     suspend fun getById(invoiceId: String): TransactionEntity?
+
     @Query("SELECT * FROM transaction_items WHERE transactionId = :invoiceId")
     suspend fun getItems(invoiceId: String): List<TransactionItemEntity>
+
     @Query("SELECT * FROM transactions WHERE shiftId = :shiftId ORDER BY createdAt ASC")
     fun observeByShift(shiftId: Long): Flow<List<TransactionEntity>>
+
     @Query(
         """
         UPDATE transactions
@@ -52,13 +60,15 @@ interface TransactionDao {
         voidedAt: Long?,
         reason: String?,
     )
-@Query("UPDATE transactions SET returnId = :returnId WHERE id = :id")
-suspend fun setReturnId(
-    id: String,
-    returnId: Long,
-)
-@Query(
-    """
+
+    @Query("UPDATE transactions SET returnId = :returnId WHERE id = :id")
+    suspend fun setReturnId(
+        id: String,
+        returnId: Long,
+    )
+
+    @Query(
+        """
     UPDATE transactions
     SET status = :status, voidedAt = :voidedAt, voidReason = :reason
     WHERE id = :id
@@ -66,23 +76,25 @@ suspend fun setReturnId(
       AND returnId IS NULL
       AND (shiftId IS NULL OR shiftId NOT IN (SELECT id FROM shifts WHERE endedAt IS NOT NULL))
     """,
-)
-suspend fun voidIfEligible(
-    id: String,
-    status: String,
-    voidedAt: Long,
-    reason: String?,
-): Int
-@Query(
-    """
+    )
+    suspend fun voidIfEligible(
+        id: String,
+        status: String,
+        voidedAt: Long,
+        reason: String?,
+    ): Int
+
+    @Query(
+        """
     UPDATE transactions SET returnId = :returnId
     WHERE id = :id AND returnId IS NULL AND status != 'VOID'
     """,
-)
-suspend fun setReturnIdIfAbsent(
-    id: String,
-    returnId: Long,
-): Int
+    )
+    suspend fun setReturnIdIfAbsent(
+        id: String,
+        returnId: Long,
+    ): Int
+
     @Transaction
     suspend fun checkout(
         tx: TransactionEntity,
@@ -91,6 +103,7 @@ suspend fun setReturnIdIfAbsent(
         insertTransaction(tx)
         insertItems(items)
     }
+
     @Query(
         """
         SELECT * FROM transactions

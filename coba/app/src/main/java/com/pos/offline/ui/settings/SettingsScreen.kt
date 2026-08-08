@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +59,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -79,9 +82,6 @@ import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.ui.components.GlassCard
 import com.pos.offline.util.VibrationLevel
 import com.pos.offline.util.bouncyOverscroll
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.runtime.CompositionLocalProvider
 import com.pos.offline.util.iosGlideFlingBehavior
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -201,7 +201,7 @@ fun SettingsScreen(
     ) { innerPadding ->
         @OptIn(ExperimentalFoundationApi::class)
         CompositionLocalProvider(
-            LocalOverscrollConfiguration provides null
+            LocalOverscrollConfiguration provides null,
         ) {
             Column(
                 modifier =
@@ -213,253 +213,254 @@ fun SettingsScreen(
                         .bouncyOverscroll()
                         .verticalScroll(
                             state = rememberScrollState(),
-                            flingBehavior = iosGlideFlingBehavior()
+                            flingBehavior = iosGlideFlingBehavior(),
                         ),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Spacer(Modifier.height(4.dp))
-            SectionLabel("Umpan Balik Pemindai (Scanner Feedback)")
-            FuturisticFeedbackControls(
-                isSoundEnabled = isSoundEnabled,
-                soundVolume = soundVolume,
-                soundDurationMs = soundDurationMs,
-                isVibrationEnabled = isVibrationEnabled,
-                vibrationLevel = vibrationLevel,
-                vibrationDurationMs = vibrationDurationMs,
-                onSoundToggle = { viewModel.setSoundEnabled(it) },
-                onSoundVolumeChange = { viewModel.setSoundVolume(it) },
-                onSoundDurationChange = { viewModel.setSoundDurationMs(it) },
-                onTestSound = { viewModel.testSoundPreview() },
-                onVibrationToggle = { viewModel.setVibrationEnabled(it) },
-                onVibrationLevelChange = { viewModel.setVibrationLevel(it) },
-                onVibrationDurationChange = { viewModel.setVibrationDurationMs(it) },
-                onTestVibration = { viewModel.testVibrationPreview() },
-            )
-            SectionLabel("Cadangkan & Pulihkan")
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(14.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Rounded.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "Cadangan tersimpan sebagai satu berkas (.db). Simpan " +
-                                "ke folder pilihan Anda, atau bagikan langsung ke " +
-                                "WhatsApp/Email/Drive — aplikasi tidak menyinkronkan " +
-                                "data secara otomatis.",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = { exportLauncher.launch(BackupManager.suggestedBackupFileName()) },
-                            enabled = !uiState.isBusy,
-                            modifier = Modifier.weight(1f),
+                SectionLabel("Umpan Balik Pemindai (Scanner Feedback)")
+                FuturisticFeedbackControls(
+                    isSoundEnabled = isSoundEnabled,
+                    soundVolume = soundVolume,
+                    soundDurationMs = soundDurationMs,
+                    isVibrationEnabled = isVibrationEnabled,
+                    vibrationLevel = vibrationLevel,
+                    vibrationDurationMs = vibrationDurationMs,
+                    onSoundToggle = { viewModel.setSoundEnabled(it) },
+                    onSoundVolumeChange = { viewModel.setSoundVolume(it) },
+                    onSoundDurationChange = { viewModel.setSoundDurationMs(it) },
+                    onTestSound = { viewModel.testSoundPreview() },
+                    onVibrationToggle = { viewModel.setVibrationEnabled(it) },
+                    onVibrationLevelChange = { viewModel.setVibrationLevel(it) },
+                    onVibrationDurationChange = { viewModel.setVibrationDurationMs(it) },
+                    onTestVibration = { viewModel.testVibrationPreview() },
+                )
+                SectionLabel("Cadangkan & Pulihkan")
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(
+                                Icons.Rounded.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Cadangan tersimpan sebagai satu berkas (.db). Simpan " +
+                                    "ke folder pilihan Anda, atau bagikan langsung ke " +
+                                    "WhatsApp/Email/Drive — aplikasi tidak menyinkronkan " +
+                                    "data secara otomatis.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            if (uiState.isExporting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(14.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                            } else {
-                                Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Simpan", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Button(
+                                onClick = { exportLauncher.launch(BackupManager.suggestedBackupFileName()) },
+                                enabled = !uiState.isBusy,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                if (uiState.isExporting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                } else {
+                                    Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Simpan", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = { viewModel.shareDatabase() },
+                                enabled = !uiState.isBusy,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                if (uiState.isSharing) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Bagikan", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
                             }
                         }
                         OutlinedButton(
-                            onClick = { viewModel.shareDatabase() },
+                            onClick = { importLauncher.launch("*/*") },
                             enabled = !uiState.isBusy,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            if (uiState.isSharing) {
+                            if (uiState.isImporting) {
                                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Memulihkan…", fontSize = 13.sp)
                             } else {
-                                Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Bagikan", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(Icons.Rounded.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Pulihkan Cadangan (Restore)", fontSize = 13.sp)
                             }
                         }
                     }
-                    OutlinedButton(
-                        onClick = { importLauncher.launch("*/*") },
-                        enabled = !uiState.isBusy,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        if (uiState.isImporting) {
-                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Memulihkan…", fontSize = 13.sp)
+                }
+                SectionLabel("Kelola Kasir")
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (cashiers.isEmpty()) {
+                            Text(
+                                "Belum ada kasir. Fitur ini opsional — aplikasi tetap " +
+                                    "bisa dipakai tanpa memilih kasir/shift sama sekali.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         } else {
-                            Icon(Icons.Rounded.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Pulihkan Cadangan (Restore)", fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-            SectionLabel("Kelola Kasir")
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(14.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (cashiers.isEmpty()) {
-                        Text(
-                            "Belum ada kasir. Fitur ini opsional — aplikasi tetap " +
-                                "bisa dipakai tanpa memilih kasir/shift sama sekali.",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        cashiers.forEach { cashier ->
-                            CashierRow(
-                                cashier = cashier,
-                                onToggleActive = { active ->
-                                    viewModel.setCashierActive(cashier.id, active)
-                                },
-                            )
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = { viewModel.openAddCashierDialog() },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Tambah Kasir", fontSize = 13.sp)
-                    }
-                }
-            }
-            SectionLabel("Profil Toko & Struk")
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(14.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (storeProfile.storeName.isBlank() && storeProfile.logoBytes == null) {
-                        Text(
-                            "Profil toko belum diatur. Nama toko, alamat, & logo akan " +
-                                "tampil di struk cetak.",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            LogoPreview(
-                                logoBytes = storeProfile.logoBytes,
-                                modifier =
-                                    Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(6.dp)),
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    storeProfile.storeName.ifBlank { "(Nama toko belum diisi)" },
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                    fontWeight = FontWeight.Medium,
-                                )
-                                Text(
-                                    if (storeProfile.autoPrintEnabled) "Cetak otomatis aktif" else "Cetak otomatis nonaktif",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            cashiers.forEach { cashier ->
+                                CashierRow(
+                                    cashier = cashier,
+                                    onToggleActive = { active ->
+                                        viewModel.setCashierActive(cashier.id, active)
+                                    },
                                 )
                             }
                         }
-                    }
-                    OutlinedButton(
-                        onClick = { showStoreProfileDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.Rounded.Storefront, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Edit Profil Toko", fontSize = 13.sp)
+                        OutlinedButton(
+                            onClick = { viewModel.openAddCashierDialog() },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Tambah Kasir", fontSize = 13.sp)
+                        }
                     }
                 }
-            }
-            SectionLabel("Printer Struk")
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(14.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (printers.isEmpty()) {
+                SectionLabel("Profil Toko & Struk")
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (storeProfile.storeName.isBlank() && storeProfile.logoBytes == null) {
+                            Text(
+                                "Profil toko belum diatur. Nama toko, alamat, & logo akan " +
+                                    "tampil di struk cetak.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                LogoPreview(
+                                    logoBytes = storeProfile.logoBytes,
+                                    modifier =
+                                        Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(6.dp)),
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        storeProfile.storeName.ifBlank { "(Nama toko belum diisi)" },
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    Text(
+                                        if (storeProfile.autoPrintEnabled) "Cetak otomatis aktif" else "Cetak otomatis nonaktif",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { showStoreProfileDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Rounded.Storefront, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Edit Profil Toko", fontSize = 13.sp)
+                        }
+                    }
+                }
+                SectionLabel("Printer Struk")
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (printers.isEmpty()) {
+                            Text(
+                                "Belum ada printer thermal ditambahkan. Struk tetap bisa " +
+                                    "dicetak/dibagikan sebagai PDF tanpa printer fisik.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            val defaultPrinter = printers.find { it.isDefault }
+                            Text(
+                                "Printer utama: ${defaultPrinter?.label ?: "-"}",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                "${printers.size} printer tersimpan",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = { showPrinterDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Rounded.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Kelola Printer", fontSize = 13.sp)
+                        }
+                    }
+                }
+                SectionLabel("Sesi Aplikasi")
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            "Belum ada printer thermal ditambahkan. Struk tetap bisa " +
-                                "dicetak/dibagikan sebagai PDF tanpa printer fisik.",
+                            "Keluar dari aplikasi kasir dengan aman. Semua data penjualan Anda tetap tersimpan utuh di memori lokal perangkat.",
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    } else {
-                        val defaultPrinter = printers.find { it.isDefault }
-                        Text(
-                            "Printer utama: ${defaultPrinter?.label ?: "-"}",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Text(
-                            "${printers.size} printer tersimpan",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = { showPrinterDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.Rounded.Print, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Kelola Printer", fontSize = 13.sp)
+                        Button(
+                            onClick = onExitClick,
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                ),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.Logout,
+                                contentDescription = "Keluar Aplikasi",
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Keluar Aplikasi", fontSize = 13.sp)
+                        }
                     }
                 }
+                Spacer(Modifier.height(96.dp))
             }
-            SectionLabel("Sesi Aplikasi")
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(14.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "Keluar dari aplikasi kasir dengan aman. Semua data penjualan Anda tetap tersimpan utuh di memori lokal perangkat.",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Button(
-                        onClick = onExitClick,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                            ),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.Logout,
-                            contentDescription = "Keluar Aplikasi",
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Keluar Aplikasi", fontSize = 13.sp)
-                    }
-                }
-            }
-            Spacer(Modifier.height(96.dp))
         }
     }
 }
-}
+
 @Composable
 private fun FuturisticFeedbackControls(
     isSoundEnabled: Boolean,
@@ -609,6 +610,7 @@ private fun FuturisticFeedbackControls(
         }
     }
 }
+
 @Composable
 private fun FeedbackSectionCard(
     icon: ImageVector,
@@ -679,6 +681,7 @@ private fun FeedbackSectionCard(
         }
     }
 }
+
 @Composable
 private fun CashierRow(
     cashier: CashierEntity,
@@ -720,6 +723,7 @@ private fun CashierRow(
         )
     }
 }
+
 @Composable
 private fun AddCashierDialog(
     onDismiss: () -> Unit,
@@ -750,6 +754,7 @@ private fun AddCashierDialog(
         },
     )
 }
+
 @Composable
 private fun SectionLabel(text: String) {
     Text(
@@ -760,6 +765,7 @@ private fun SectionLabel(text: String) {
         modifier = Modifier.padding(start = 2.dp),
     )
 }
+
 @Composable
 private fun RestoreConfirmDialog(
     onDismiss: () -> Unit,

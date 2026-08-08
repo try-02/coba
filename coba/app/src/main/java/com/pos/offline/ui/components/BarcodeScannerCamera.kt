@@ -1,13 +1,9 @@
 package com.pos.offline.ui.components
 import android.app.Activity
-import androidx.core.view.WindowCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.content.ContextCompat
-import android.view.WindowManager
-import android.content.ContextWrapper
 import android.content.Context
+import android.content.ContextWrapper
 import android.util.Size
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -17,13 +13,13 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,8 +64,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,17 +76,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -109,6 +109,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 import androidx.compose.ui.geometry.Size as GeometrySize
+
 @Composable
 fun BarcodeScannerCamera(
     onBarcodeScanned: suspend (String) -> Boolean,
@@ -140,6 +141,7 @@ fun BarcodeScannerCamera(
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
     var cameraError by remember { mutableStateOf<String?>(null) }
+
     fun attemptBind() {
         val provider = cameraProvider ?: return
         val previewView = previewViewRef ?: return
@@ -294,7 +296,7 @@ fun BarcodeScannerCamera(
         )
         ScannerViewfinder(
             scanState = scanVisualState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         )
         cameraError?.let { message ->
             Box(
@@ -317,6 +319,7 @@ fun BarcodeScannerCamera(
         }
     }
 }
+
 @Composable
 fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
     val context = LocalContext.current
@@ -371,10 +374,12 @@ fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
                     showScanner = true
                     pendingOpen = false
                 }
+
                 CameraPermissionState.PERMANENTLY_DENIED -> {
                     showDeniedDialog = true
                     pendingOpen = false
                 }
+
                 else -> {
                     Unit
                 }
@@ -416,254 +421,255 @@ fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
         )
     }
     if (showScanner) {
-    Dialog(
-        onDismissRequest = { showScanner = false },
-        properties =
-            DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false,
-            ),
-    ) {
-        val view = LocalView.current
-        LaunchedEffect(view) {
-            (view.parent as? DialogWindowProvider)?.window?.let { window ->
-                window.setLayout(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                )
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-
-            }
-        }
-        BackHandler { showScanner = false }
-        val (statusBarHeight, navBarHeight) = rememberRealSystemBarInsets()
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
+        Dialog(
+            onDismissRequest = { showScanner = false },
+            properties =
+                DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
         ) {
-            BarcodeScannerCamera(
-                isMultiScanMode = isMultiScanMode,
-                onBarcodeScanned = { code ->
-                    val scannedName = onScannedState.value(code)
-                    val isSuccess = scannedName != null
-                    if (isSuccess) {
-                        scanErrorMessage = null
-                        feedbackManager.triggerSuccessFeedback(
-                            soundEnabled = isSoundEnabled,
-                            soundVolume = soundVolume,
-                            soundDurationMs = soundDurationMs,
-                            vibrationEnabled = isVibrationEnabled,
-                            vibrationLevel = vibrationLevel,
-                            vibrationDurationMs = vibrationDurationMs,
-                        )
-                        scannedCountBatch++
-                        lastScannedCodeText = scannedName
-                        if (!isMultiScanMode) {
-                            showScanner = false
-                        }
-                    } else {
-                        scanErrorMessage = "Produk tidak ditemukan ($code)"
-                        feedbackManager.triggerFailureFeedback(
-                            soundEnabled = isSoundEnabled,
-                            soundVolume = soundVolume,
-                            vibrationEnabled = isVibrationEnabled,
-                            vibrationLevel = vibrationLevel,
-                        )
-                    }
-                    isSuccess
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
-            AnimatedVisibility(
-                visible = scannedCountBatch > 0 && scanErrorMessage == null,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically(),
-                modifier =
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(start = 16.dp, top = 12.dp),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    tonalElevation = 6.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = "$scannedCountBatch Item Masuk Keranjang",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+            val view = LocalView.current
+            LaunchedEffect(view) {
+                (view.parent as? DialogWindowProvider)?.window?.let { window ->
+                    window.setLayout(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                    )
+                    WindowCompat.setDecorFitsSystemWindows(window, false)
+                    window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
                 }
             }
-            AnimatedVisibility(
-                visible = scanErrorMessage != null,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically(),
+            BackHandler { showScanner = false }
+            val (statusBarHeight, navBarHeight) = rememberRealSystemBarInsets()
+            Box(
                 modifier =
                     Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(start = 16.dp, top = 12.dp, end = 60.dp),
+                        .fillMaxSize()
+                        .background(Color.Black),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    tonalElevation = 8.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = scanErrorMessage ?: "",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
-            IconButton(
-                onClick = { showScanner = false },
-                modifier =
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .statusBarsPadding()
-                        .padding(16.dp),
-            ) {
-                Icon(Icons.Rounded.Close, contentDescription = "Tutup", tint = Color.White)
-            }
-            Card(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = Color.Black.copy(alpha = 0.85f),
-                    ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.Repeat,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp),
+                BarcodeScannerCamera(
+                    isMultiScanMode = isMultiScanMode,
+                    onBarcodeScanned = { code ->
+                        val scannedName = onScannedState.value(code)
+                        val isSuccess = scannedName != null
+                        if (isSuccess) {
+                            scanErrorMessage = null
+                            feedbackManager.triggerSuccessFeedback(
+                                soundEnabled = isSoundEnabled,
+                                soundVolume = soundVolume,
+                                soundDurationMs = soundDurationMs,
+                                vibrationEnabled = isVibrationEnabled,
+                                vibrationLevel = vibrationLevel,
+                                vibrationDurationMs = vibrationDurationMs,
                             )
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = "Mode Multi-Scan (Beruntun)",
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Text(
-                                    text = if (isMultiScanMode) "Kamera tetap terbuka setelah scan" else "Kamera otomatis tutup 1x scan",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 10.sp,
-                                )
+                            scannedCountBatch++
+                            lastScannedCodeText = scannedName
+                            if (!isMultiScanMode) {
+                                showScanner = false
                             }
+                        } else {
+                            scanErrorMessage = "Produk tidak ditemukan ($code)"
+                            feedbackManager.triggerFailureFeedback(
+                                soundEnabled = isSoundEnabled,
+                                soundVolume = soundVolume,
+                                vibrationEnabled = isVibrationEnabled,
+                                vibrationLevel = vibrationLevel,
+                            )
                         }
-                        Switch(
-                            checked = isMultiScanMode,
-                            onCheckedChange = { isMultiScanMode = it },
-                            colors =
-                                SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                ),
-                        )
-                    }
-                    AnimatedVisibility(visible = lastScannedCodeText.isNotEmpty()) {
+                        isSuccess
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+                AnimatedVisibility(
+                    visible = scannedCountBatch > 0 && scanErrorMessage == null,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically(),
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopStart)
+                            .statusBarsPadding()
+                            .padding(start = 16.dp, top = 12.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        tonalElevation = 6.dp,
+                    ) {
                         Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                Icons.Rounded.QrCodeScanner,
+                                Icons.Rounded.Check,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(18.dp),
                             )
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "Terakhir: $lastScannedCodeText",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                modifier = Modifier.weight(1f),
+                                text = "$scannedCountBatch Item Masuk Keranjang",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
-                    Button(
-                        onClick = { showScanner = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                }
+                AnimatedVisibility(
+                    visible = scanErrorMessage != null,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically(),
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopStart)
+                            .statusBarsPadding()
+                            .padding(start = 16.dp, top = 12.dp, end = 60.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        tonalElevation = 8.dp,
                     ) {
-                        Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = if (scannedCountBatch > 0) "Selesai ($scannedCountBatch Item Dipindai)" else "Selesai",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Rounded.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = scanErrorMessage ?: "",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+                IconButton(
+                    onClick = { showScanner = false },
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .statusBarsPadding()
+                            .padding(16.dp),
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Tutup", tint = Color.White)
+                }
+                Card(
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = Color.Black.copy(alpha = 0.85f),
+                        ),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.Repeat,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "Mode Multi-Scan (Beruntun)",
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Text(
+                                        text = if (isMultiScanMode) "Kamera tetap terbuka setelah scan" else "Kamera otomatis tutup 1x scan",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 10.sp,
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = isMultiScanMode,
+                                onCheckedChange = { isMultiScanMode = it },
+                                colors =
+                                    SwitchDefaults.colors(
+                                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                            )
+                        }
+                        AnimatedVisibility(visible = lastScannedCodeText.isNotEmpty()) {
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.QrCodeScanner,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Terakhir: $lastScannedCodeText",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = { showScanner = false },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = if (scannedCountBatch > 0) "Selesai ($scannedCountBatch Item Dipindai)" else "Selesai",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                 }
             }
         }
-    }
     }
     return {
         when (permState) {
             CameraPermissionState.GRANTED -> {
                 showScanner = true
             }
+
             CameraPermissionState.SHOW_RATIONALE, CameraPermissionState.PERMANENTLY_DENIED -> {
                 showDeniedDialog = true
             }
+
             else -> {
                 pendingOpen = true
                 requestPermission()
@@ -671,6 +677,7 @@ fun rememberBarcodeScanner(onScanned: suspend (String) -> String?): () -> Unit {
         }
     }
 }
+
 private fun Context.findActivity(): Activity? {
     var ctx = this
     while (ctx is ContextWrapper) {
@@ -679,6 +686,7 @@ private fun Context.findActivity(): Activity? {
     }
     return null
 }
+
 @Composable
 private fun rememberRealSystemBarInsets(): Pair<Dp, Dp> {
     val context = LocalContext.current
@@ -692,78 +700,117 @@ private fun rememberRealSystemBarInsets(): Pair<Dp, Dp> {
         with(density) { statusPx.toDp() to navPx.toDp() }
     }
 }
+
 @Composable
 private fun ScannerViewfinder(
     scanState: ScanVisualState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val animatedColor by animateColorAsState(
-        targetValue = when (scanState) {
-            ScanVisualState.IDLE -> Color.White
-            ScanVisualState.SUCCESS -> Color(0xFF4CAF50)
-            ScanVisualState.ERROR -> Color(0xFFF44336)
-        },
+        targetValue =
+            when (scanState) {
+                ScanVisualState.IDLE -> Color.White
+                ScanVisualState.SUCCESS -> Color(0xFF4CAF50)
+                ScanVisualState.ERROR -> Color(0xFFF44336)
+            },
         animationSpec = tween(durationMillis = 200),
-        label = "colorAnimation"
+        label = "colorAnimation",
     )
     val animatedStrokeDp by animateDpAsState(
-        targetValue = when (scanState) {
-            ScanVisualState.IDLE -> 4.dp
-            else -> 9.dp
-        },
+        targetValue =
+            when (scanState) {
+                ScanVisualState.IDLE -> 4.dp
+                else -> 9.dp
+            },
         animationSpec = tween(durationMillis = 200),
-        label = "strokeAnimation"
+        label = "strokeAnimation",
     )
     Box(
-        modifier = modifier.drawWithCache {
-            val boxWidth = size.width * 0.75f
-            val boxHeight = size.height * 0.35f
-            val left = (size.width - boxWidth) / 2f
-            val top = (size.height - boxHeight) / 2f
-            val right = left + boxWidth
-            val bottom = top + boxHeight
-            val cornerRadiusPx = 16.dp.toPx()
-            val cornerLength = 40.dp.toPx()
-            val outerRect = Rect(0f, 0f, size.width, size.height)
-            val boxRect = RoundRect(
-                rect = Rect(left, top, right, bottom),
-                cornerRadius = CornerRadius(cornerRadiusPx)
-            )
-            val overlayPath = Path().apply { addRect(outerRect) }
-            val cutoutPath = Path().apply { addRoundRect(boxRect) }
-            val dimmedPath = Path.combine(
-                operation = PathOperation.Difference,
-                path1 = overlayPath,
-                path2 = cutoutPath,
-            )
-            onDrawWithContent {
-                drawContent()
-                drawPath(dimmedPath, Color.Black.copy(alpha = 0.55f))
-                val color = animatedColor
-                val strokeWidthPx = animatedStrokeDp.toPx()
-                val strokeStyle = Stroke(width = strokeWidthPx)
-                drawLine(color, Offset(left, top + cornerRadiusPx), Offset(left, top + cornerLength), strokeWidthPx)
-                drawLine(color, Offset(left + cornerRadiusPx, top), Offset(left + cornerLength, top), strokeWidthPx)
-                drawArc(color, startAngle = 180f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(left, top), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-                drawLine(color, Offset(right, top + cornerRadiusPx), Offset(right, top + cornerLength), strokeWidthPx)
-                drawLine(color, Offset(right - cornerRadiusPx, top), Offset(right - cornerLength, top), strokeWidthPx)
-                drawArc(color, startAngle = 270f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(right - cornerRadiusPx * 2, top), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-                drawLine(color, Offset(left, bottom - cornerRadiusPx), Offset(left, bottom - cornerLength), strokeWidthPx)
-                drawLine(color, Offset(left + cornerRadiusPx, bottom), Offset(left + cornerLength, bottom), strokeWidthPx)
-                drawArc(color, startAngle = 90f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(left, bottom - cornerRadiusPx * 2), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-                drawLine(color, Offset(right, bottom - cornerRadiusPx), Offset(right, bottom - cornerLength), strokeWidthPx)
-                drawLine(color, Offset(right - cornerRadiusPx, bottom), Offset(right - cornerLength, bottom), strokeWidthPx)
-                drawArc(color, startAngle = 0f, sweepAngle = 90f, useCenter = false,
-                    topLeft = Offset(right - cornerRadiusPx * 2, bottom - cornerRadiusPx * 2), size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2), style = strokeStyle)
-            }
-        }
+        modifier =
+            modifier.drawWithCache {
+                val boxWidth = size.width * 0.75f
+                val boxHeight = size.height * 0.35f
+                val left = (size.width - boxWidth) / 2f
+                val top = (size.height - boxHeight) / 2f
+                val right = left + boxWidth
+                val bottom = top + boxHeight
+                val cornerRadiusPx = 16.dp.toPx()
+                val cornerLength = 40.dp.toPx()
+                val outerRect = Rect(0f, 0f, size.width, size.height)
+                val boxRect =
+                    RoundRect(
+                        rect = Rect(left, top, right, bottom),
+                        cornerRadius = CornerRadius(cornerRadiusPx),
+                    )
+                val overlayPath = Path().apply { addRect(outerRect) }
+                val cutoutPath = Path().apply { addRoundRect(boxRect) }
+                val dimmedPath =
+                    Path.combine(
+                        operation = PathOperation.Difference,
+                        path1 = overlayPath,
+                        path2 = cutoutPath,
+                    )
+                onDrawWithContent {
+                    drawContent()
+                    drawPath(dimmedPath, Color.Black.copy(alpha = 0.55f))
+                    val color = animatedColor
+                    val strokeWidthPx = animatedStrokeDp.toPx()
+                    val strokeStyle = Stroke(width = strokeWidthPx)
+                    drawLine(color, Offset(left, top + cornerRadiusPx), Offset(left, top + cornerLength), strokeWidthPx)
+                    drawLine(color, Offset(left + cornerRadiusPx, top), Offset(left + cornerLength, top), strokeWidthPx)
+                    drawArc(
+                        color,
+                        startAngle = 180f,
+                        sweepAngle = 90f,
+                        useCenter = false,
+                        topLeft = Offset(left, top),
+                        size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2),
+                        style = strokeStyle,
+                    )
+                    drawLine(color, Offset(right, top + cornerRadiusPx), Offset(right, top + cornerLength), strokeWidthPx)
+                    drawLine(color, Offset(right - cornerRadiusPx, top), Offset(right - cornerLength, top), strokeWidthPx)
+                    drawArc(
+                        color,
+                        startAngle = 270f,
+                        sweepAngle = 90f,
+                        useCenter = false,
+                        topLeft = Offset(right - cornerRadiusPx * 2, top),
+                        size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2),
+                        style = strokeStyle,
+                    )
+                    drawLine(color, Offset(left, bottom - cornerRadiusPx), Offset(left, bottom - cornerLength), strokeWidthPx)
+                    drawLine(color, Offset(left + cornerRadiusPx, bottom), Offset(left + cornerLength, bottom), strokeWidthPx)
+                    drawArc(
+                        color,
+                        startAngle = 90f,
+                        sweepAngle = 90f,
+                        useCenter = false,
+                        topLeft = Offset(left, bottom - cornerRadiusPx * 2),
+                        size = GeometrySize(cornerRadiusPx * 2, cornerRadiusPx * 2),
+                        style = strokeStyle,
+                    )
+                    drawLine(color, Offset(right, bottom - cornerRadiusPx), Offset(right, bottom - cornerLength), strokeWidthPx)
+                    drawLine(color, Offset(right - cornerRadiusPx, bottom), Offset(right - cornerLength, bottom), strokeWidthPx)
+                    drawArc(
+                        color,
+                        startAngle = 0f,
+                        sweepAngle = 90f,
+                        useCenter = false,
+                        topLeft = Offset(right - cornerRadiusPx * 2, bottom - cornerRadiusPx * 2),
+                        size =
+                            GeometrySize(
+                                cornerRadiusPx * 2,
+                                cornerRadiusPx * 2,
+                            ),
+                        style = strokeStyle,
+                    )
+                }
+            },
     )
 }
+
 enum class ScanVisualState {
     IDLE,
     SUCCESS,
-    ERROR
+    ERROR,
 }

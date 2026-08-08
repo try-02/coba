@@ -4,6 +4,7 @@ import androidx.room.Query
 import com.pos.offline.data.local.entity.ProductEntity
 import com.pos.offline.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
+
 data class SalesSummary(
     val transactionCount: Int,
     val subtotalSum: Long,
@@ -11,17 +12,20 @@ data class SalesSummary(
     val totalSum: Long,
     val actualReceivedSum: Long,
 )
+
 data class ProfitAndItemsSummary(
     val itemsSoldSum: Double,
     val revenueSum: Long,
     val costSum: Long,
 )
+
 data class PaymentMethodSummary(
     val paymentMethod: String,
     val total: Long,
     val count: Int,
     val actualReceived: Long,
 )
+
 data class ProductSalesRow(
     val productId: Long,
     val productName: String,
@@ -31,6 +35,7 @@ data class ProductSalesRow(
     val qtySold: Double,
     val revenue: Long,
 )
+
 @Dao
 interface ReportDao {
     @Query(
@@ -47,6 +52,7 @@ interface ReportDao {
         start: Long,
         end: Long,
     ): SalesSummary
+
     @Query(
         """
         SELECT COALESCE(SUM(ti.quantity), 0) as itemsSoldSum,
@@ -61,6 +67,7 @@ interface ReportDao {
         start: Long,
         end: Long,
     ): ProfitAndItemsSummary
+
     @Query(
         """
         SELECT COALESCE(SUM(CAST(ROUND(ti.quantity * ti.unitCost) AS INTEGER)), 0)
@@ -73,6 +80,7 @@ interface ReportDao {
         start: Long,
         end: Long,
     ): Long
+
     @Query(
         """
         SELECT COALESCE(SUM(
@@ -95,6 +103,7 @@ interface ReportDao {
         start: Long,
         end: Long,
     ): Long
+
     @Query(
         """
         SELECT paymentMethod,
@@ -109,6 +118,7 @@ interface ReportDao {
         start: Long,
         end: Long,
     ): List<PaymentMethodSummary>
+
     @Query(
         """
         SELECT COALESCE(SUM(refundAmount), 0) FROM returns
@@ -119,6 +129,7 @@ interface ReportDao {
         start: Long,
         end: Long,
     ): Long
+
     @Query(
         """
         SELECT p.id as productId, p.name as productName, p.sku as sku, p.price as price, p.stock as stock,
@@ -141,6 +152,7 @@ interface ReportDao {
         limit: Int = Int.MAX_VALUE,
         activeOnly: Boolean = false,
     ): List<ProductSalesRow>
+
     @Query(
         """
         SELECT p.*
@@ -158,6 +170,7 @@ interface ReportDao {
         start: Long,
         end: Long,
     ): Flow<List<ProductEntity>>
+
     @Query(
         """
         SELECT DISTINCT t.*
@@ -175,6 +188,7 @@ interface ReportDao {
         query: String,
         productId: Long? = null,
     ): List<TransactionEntity>
+
     @Query(
         """
         SELECT DISTINCT t.*

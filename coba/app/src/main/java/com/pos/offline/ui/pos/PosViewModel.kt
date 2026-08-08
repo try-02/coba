@@ -9,8 +9,8 @@ import com.pos.offline.data.local.entity.ShiftEntity
 import com.pos.offline.data.repository.CartRepository
 import com.pos.offline.data.repository.CashierRepository
 import com.pos.offline.data.repository.CheckoutResult
-import com.pos.offline.data.repository.ProductRemovedDuringCheckoutException
 import com.pos.offline.data.repository.PrinterRepository
+import com.pos.offline.data.repository.ProductRemovedDuringCheckoutException
 import com.pos.offline.data.repository.ProductRepository
 import com.pos.offline.data.repository.ShiftEndOutcome
 import com.pos.offline.data.repository.ShiftRepository
@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
 @OptIn(kotlinx.coroutines.FlowPreview::class, ExperimentalCoroutinesApi::class)
 class PosViewModel(
     private val productRepository: ProductRepository,
@@ -218,6 +219,7 @@ class PosViewModel(
         )
     private val _uiEvents = MutableSharedFlow<PosUiEvent>(extraBufferCapacity = 4)
     val uiEvents: SharedFlow<PosUiEvent> = _uiEvents.asSharedFlow()
+
     init {
         viewModelScope.launch {
             allCategories.collect { list ->
@@ -234,10 +236,12 @@ class PosViewModel(
                     shifts.isEmpty() -> {
                         if (currentActiveId != null) _activeShiftId.value = null
                     }
+
                     currentActiveId != null && shifts.none { it.id == currentActiveId } -> {
                         _activeShiftId.value =
                             if (shifts.size == 1) shifts.first().id else null
                     }
+
                     currentActiveId == null && shifts.size == 1 -> {
                         _activeShiftId.value = shifts.first().id
                     }
@@ -245,34 +249,43 @@ class PosViewModel(
             }
         }
     }
+
     fun onAction(action: PosAction) {
         when (action) {
             is PosAction.Search -> {
                 _searchQuery.value = action.query
             }
+
             is PosAction.SelectCategory -> {
                 _selectedCategory.value = action.category
             }
+
             is PosAction.AddToCart -> {
                 viewModelScope.launch { tryAddToCart(action.product) }
             }
+
             is PosAction.IncreaseQty -> {
                 increaseQty(action.item)
             }
+
             is PosAction.DecreaseQty -> {
                 decreaseQty(action.item)
             }
+
             is PosAction.SetQuantity -> {
                 setQuantityDirect(action.item, action.qty)
             }
+
             is PosAction.RemoveFromCart -> {
                 viewModelScope.launch {
                     cartRepository.remove(action.item.productId)
                 }
             }
+
             PosAction.ClearCart -> {
                 clearCart()
             }
+
             PosAction.ToggleDiscountType -> {
                 _discountType.value =
                     if (_discountType.value == DiscountType.NOMINAL) {
@@ -282,6 +295,7 @@ class PosViewModel(
                     }
                 _discountValue.value = 0.0
             }
+
             is PosAction.SetDiscountValue -> {
                 _discountValue.value =
                     when (_discountType.value) {
@@ -289,49 +303,63 @@ class PosViewModel(
                         DiscountType.PERCENT -> action.value.coerceIn(0.0, 100.0)
                     }
             }
+
             is PosAction.SetTaxRate -> {
                 _taxRate.value = action.rate.coerceIn(0.0, 1.0)
             }
+
             is PosAction.SetPaid -> {
                 _paid.value = action.amount.coerceAtLeast(0L)
                 _changeGivenOverride.value = null
                 _changeGivenInCash.value = true
             }
+
             is PosAction.SetChangeGivenOverride -> {
                 _changeGivenOverride.value = action.value
             }
+
             is PosAction.SetChangeGivenInCash -> {
                 _changeGivenInCash.value = action.value
             }
+
             is PosAction.SetPaymentMethod -> {
                 _paymentMethod.value = action.method
                 _changeGivenInCash.value = true
             }
+
             PosAction.Checkout -> {
                 checkout()
             }
+
             PosAction.ResetCheckout -> {
                 _checkoutFlow.value = CheckoutFlow.Idle
                 _printUiState.value = PrintUiState.Idle
             }
+
             is PosAction.PrintReceipt -> {
                 printReceipt(action.result)
             }
+
             is PosAction.ToggleOpenDrawer -> {
                 _openDrawerOnPrint.value = action.enabled
             }
+
             PosAction.OpenStartShiftDialog -> {
                 _showStartShiftDialog.value = true
             }
+
             PosAction.DismissStartShiftDialog -> {
                 _showStartShiftDialog.value = false
             }
+
             PosAction.OpenShiftListDialog -> {
                 _showShiftListDialog.value = true
             }
+
             PosAction.DismissShiftListDialog -> {
                 _showShiftListDialog.value = false
             }
+
             is PosAction.OpenEndShiftDialog -> {
                 viewModelScope.launch {
                     _endShiftTarget.value = action.shift
@@ -339,28 +367,35 @@ class PosViewModel(
                     _showEndShiftDialog.value = true
                 }
             }
+
             PosAction.DismissEndShiftDialog -> {
                 _showEndShiftDialog.value = false
                 _shiftSummary.value = null
                 _endShiftTarget.value = null
             }
+
             is PosAction.StartShift -> {
                 startShift(action.cashierId, action.startingCash)
             }
+
             is PosAction.EndShift -> {
                 endShift(action.actualCash)
             }
+
             is PosAction.SelectActiveShift -> {
                 _activeShiftId.value = action.shiftId
             }
+
             PosAction.OpenCashDrawer -> {
                 openCashDrawerManually()
             }
+
             PosAction.DismissStockWarning -> {
                 _stockWarning.value = null
             }
         }
     }
+
     suspend fun onBarcodeScanned(raw: String): String? {
         val barcode = sanitizeScannedCode(raw)
         if (barcode == null) {
@@ -379,6 +414,7 @@ class PosViewModel(
         }
         return null
     }
+
     private suspend fun tryAddToCart(product: ProductEntity): Boolean {
         val result =
             cartRepository.changeQuantity(
@@ -393,17 +429,23 @@ class PosViewModel(
         }
         return true
     }
-private fun increaseQty(item: CartItemEntity) =
-    viewModelScope.launch {
-        val stock = productRepository.getById(item.productId)?.stock
-        val result = cartRepository.changeQuantity(
-            productId = item.productId, name = item.name, unitPrice = item.unitPrice,
-            delta = 1.0, maxStock = stock,
-        )
-        if (result.crossedIntoExcess && stock != null) {
-            _stockWarning.value = StockWarningInfo(item.name, stock)
+
+    private fun increaseQty(item: CartItemEntity) =
+        viewModelScope.launch {
+            val stock = productRepository.getById(item.productId)?.stock
+            val result =
+                cartRepository.changeQuantity(
+                    productId = item.productId,
+                    name = item.name,
+                    unitPrice = item.unitPrice,
+                    delta = 1.0,
+                    maxStock = stock,
+                )
+            if (result.crossedIntoExcess && stock != null) {
+                _stockWarning.value = StockWarningInfo(item.name, stock)
+            }
         }
-    }
+
     private fun decreaseQty(item: CartItemEntity) =
         viewModelScope.launch {
             cartRepository.changeQuantity(
@@ -413,6 +455,7 @@ private fun increaseQty(item: CartItemEntity) =
                 delta = -1.0,
             )
         }
+
     private fun setQuantityDirect(
         item: CartItemEntity,
         newQuantity: Double,
@@ -428,6 +471,7 @@ private fun increaseQty(item: CartItemEntity) =
         }
         cartRepository.setQuantity(item.productId, newQuantity)
     }
+
     private fun clearCart() =
         viewModelScope.launch {
             cartRepository.clear()
@@ -437,6 +481,7 @@ private fun increaseQty(item: CartItemEntity) =
             _changeGivenOverride.value = null
             _changeGivenInCash.value = true
         }
+
     private fun checkout() =
         viewModelScope.launch {
             if (_checkoutFlow.value is CheckoutFlow.Processing) return@launch
@@ -495,12 +540,14 @@ private fun increaseQty(item: CartItemEntity) =
                 maybeAutoPrint(success.result)
             }
         }
+
     private suspend fun maybeAutoPrint(result: CheckoutResult) {
         val profile = storeProfileRepository.get()
         if (profile.autoPrintEnabled) {
             printReceipt(result)
         }
     }
+
     private fun printReceipt(result: CheckoutResult) {
         if (_printUiState.value is PrintUiState.Printing) return
         viewModelScope.launch {
@@ -510,6 +557,7 @@ private fun increaseQty(item: CartItemEntity) =
             _printUiState.value = PrintUiState.Result(outcome, result)
         }
     }
+
     private fun startShift(
         cashierId: Long,
         startingCash: Long,
@@ -524,6 +572,7 @@ private fun increaseQty(item: CartItemEntity) =
                     _activeShiftId.value = outcome.shiftId
                     _uiEvents.emit(PosUiEvent.ShowMessage("Shift dimulai untuk ${cashier.name}."))
                 }
+
                 ShiftStartOutcome.AlreadyOpenForCashier -> {
                     _uiEvents.emit(
                         PosUiEvent.ShowMessage(
@@ -536,6 +585,7 @@ private fun increaseQty(item: CartItemEntity) =
             _isStartingShift.value = false
         }
     }
+
     private fun endShift(actualCash: Long) =
         viewModelScope.launch {
             if (_isEndingShift.value) return@launch
@@ -547,9 +597,11 @@ private fun increaseQty(item: CartItemEntity) =
                         if (_activeShiftId.value == shift.id) _activeShiftId.value = null
                         _uiEvents.emit(PosUiEvent.ShowMessage("Shift ditutup untuk ${shift.cashierName}."))
                     }
+
                     ShiftEndOutcome.AlreadyClosed -> {
                         _uiEvents.emit(PosUiEvent.ShowMessage("Shift ini sudah ditutup sebelumnya."))
                     }
+
                     ShiftEndOutcome.NotFound -> {
                         _uiEvents.emit(PosUiEvent.ShowMessage("Shift tidak ditemukan."))
                     }
@@ -561,6 +613,7 @@ private fun increaseQty(item: CartItemEntity) =
                 _isEndingShift.value = false
             }
         }
+
     private fun openCashDrawerManually() {
         if (_isOpeningDrawer.value) return
         viewModelScope.launch {
@@ -579,6 +632,7 @@ private fun increaseQty(item: CartItemEntity) =
                     is CashDrawerResult.Success -> {
                         _uiEvents.emit(PosUiEvent.ShowMessage("Laci kasir dibuka."))
                     }
+
                     is CashDrawerResult.Failure -> {
                         _uiEvents.emit(PosUiEvent.ShowMessage(outcome.message))
                     }
@@ -588,6 +642,7 @@ private fun increaseQty(item: CartItemEntity) =
             }
         }
     }
+
     companion object {
         fun computeTotals(
             items: List<CartItemEntity>,

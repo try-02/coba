@@ -5,7 +5,6 @@ import com.pos.offline.data.local.entity.ProductEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.coroutineContext
 import org.dhatim.fastexcel.BorderSide
 import org.dhatim.fastexcel.BorderStyle
 import org.dhatim.fastexcel.Workbook
@@ -14,11 +13,17 @@ import org.dhatim.fastexcel.reader.ReadableWorkbook
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import kotlin.coroutines.coroutineContext
 import kotlin.math.round
+
 sealed class ExcelOutcome {
     object Success : ExcelOutcome()
-    data class Error(val throwable: Throwable) : ExcelOutcome()
+
+    data class Error(
+        val throwable: Throwable,
+    ) : ExcelOutcome()
 }
+
 data class ImportedProductRow(
     val sku: String,
     val barcode: String?,
@@ -28,29 +33,41 @@ data class ImportedProductRow(
     val cost: Long,
     val stock: Double,
 )
+
 data class ExcelImportResult(
     val rows: List<ImportedProductRow>,
     val errors: List<String>,
 )
+
 object ExcelManager {
     private const val MAX_IMPORT_ROWS = 50_000
     private const val MAX_IMPORT_FILE_SIZE = 50L * 1024 * 1024
-    private val HEADERS = listOf(
-        "No",
-        "SKU",
-        "Barcode",
-        "Nama Produk",
-        "Kategori",
-        "Harga Jual",
-        "Modal",
-        "Stok",
-        "Margin",
-        "Nilai Stok"
-    )
-    private val COLUMN_WIDTHS = listOf(
-        6.0, 15.0, 18.0, 32.0, 18.0,
-        18.0, 18.0, 12.0, 14.0, 20.0
-    )
+    private val HEADERS =
+        listOf(
+            "No",
+            "SKU",
+            "Barcode",
+            "Nama Produk",
+            "Kategori",
+            "Harga Jual",
+            "Modal",
+            "Stok",
+            "Margin",
+            "Nilai Stok",
+        )
+    private val COLUMN_WIDTHS =
+        listOf(
+            6.0,
+            15.0,
+            18.0,
+            32.0,
+            18.0,
+            18.0,
+            18.0,
+            12.0,
+            14.0,
+            20.0,
+        )
     private const val REQUIRED_IMPORT_COLUMNS = 7
     private const val COLOR_HEADER_BG = "1F4E79"
     private const val COLOR_HEADER_TEXT = "FFFFFF"
@@ -62,30 +79,33 @@ object ExcelManager {
     private const val COLOR_SUMMARY_BG = "D6E4F0"
     private const val COLOR_NEGATIVE = "FF0000"
     private const val COLOR_POSITIVE = "006100"
-    fun suggestedExportFileName(): String =
-        "produk_${System.currentTimeMillis()}.xlsx"
+
+    fun suggestedExportFileName(): String = "produk_${System.currentTimeMillis()}.xlsx"
+
     suspend fun exportProducts(
         context: Context,
         products: List<ProductEntity>,
         destinationUri: Uri,
-    ): ExcelOutcome = withContext(Dispatchers.IO) {
-        var outputStream: OutputStream? = null
-        try {
-            outputStream = context.contentResolver.openOutputStream(destinationUri)
-                ?: return@withContext ExcelOutcome.Error(
-                    IOException("Tidak bisa membuka output stream")
-                )
-            writeWorkbook(outputStream, products)
-            ExcelOutcome.Success
-        } catch (e: Exception) {
-            ExcelOutcome.Error(e)
-        } finally {
+    ): ExcelOutcome =
+        withContext(Dispatchers.IO) {
+            var outputStream: OutputStream? = null
             try {
-                outputStream?.close()
-            } catch (_: Exception) {
+                outputStream = context.contentResolver.openOutputStream(destinationUri)
+                    ?: return@withContext ExcelOutcome.Error(
+                        IOException("Tidak bisa membuka output stream"),
+                    )
+                writeWorkbook(outputStream, products)
+                ExcelOutcome.Success
+            } catch (e: Exception) {
+                ExcelOutcome.Error(e)
+            } finally {
+                try {
+                    outputStream?.close()
+                } catch (_: Exception) {
+                }
             }
         }
-    }
+
     private fun writeWorkbook(
         outputStream: OutputStream,
         products: List<ProductEntity>,
@@ -113,17 +133,27 @@ object ExcelManager {
             }
             val summaryRow = products.size + 2
             writeSummaryRow(
-                ws, summaryRow, products.size,
-                totalPrice, totalCost, totalStock, totalStockValue
+                ws,
+                summaryRow,
+                products.size,
+                totalPrice,
+                totalCost,
+                totalStock,
+                totalStockValue,
             )
         }
     }
-    private fun writeTitleRow(ws: Worksheet, productCount: Int) {
+
+    private fun writeTitleRow(
+        ws: Worksheet,
+        productCount: Int,
+    ) {
         ws.rowHeight(0, 30.0)
         val title = "Data Produk — Total: $productCount produk"
         ws.value(0, 0, title)
         for (col in HEADERS.indices) {
-            ws.style(0, col)
+            ws
+                .style(0, col)
                 .bold()
                 .fontSize(if (col == 0) 14 else 11)
                 .fontColor(COLOR_TITLE_TEXT)
@@ -133,11 +163,13 @@ object ExcelManager {
                 .set()
         }
     }
+
     private fun writeHeaderRow(ws: Worksheet) {
         ws.rowHeight(1, 24.0)
         HEADERS.forEachIndexed { col, title ->
             ws.value(1, col, title)
-            ws.style(1, col)
+            ws
+                .style(1, col)
                 .bold()
                 .fontSize(11)
                 .fontColor(COLOR_HEADER_TEXT)
@@ -149,6 +181,7 @@ object ExcelManager {
                 .set()
         }
     }
+
     private fun writeDataRow(
         ws: Worksheet,
         rowIndex: Int,
@@ -162,7 +195,8 @@ object ExcelManager {
         val marginColor = if (margin >= 0) COLOR_POSITIVE else COLOR_NEGATIVE
         ws.rowHeight(rowIndex, 20.0)
         ws.value(rowIndex, 0, number)
-        ws.style(rowIndex, 0)
+        ws
+            .style(rowIndex, 0)
             .fontSize(10)
             .fillColor(bgColor)
             .horizontalAlignment("center")
@@ -175,7 +209,8 @@ object ExcelManager {
         ws.value(rowIndex, 2, p.barcode)
         applyTextStyle(ws, rowIndex, 2, bgColor)
         ws.value(rowIndex, 3, p.name)
-        ws.style(rowIndex, 3)
+        ws
+            .style(rowIndex, 3)
             .bold()
             .fontSize(10)
             .fillColor(bgColor)
@@ -190,7 +225,8 @@ object ExcelManager {
         ws.value(rowIndex, 6, p.cost.toDouble())
         applyCurrencyStyle(ws, rowIndex, 6, bgColor)
         ws.value(rowIndex, 7, p.stock)
-        ws.style(rowIndex, 7)
+        ws
+            .style(rowIndex, 7)
             .fontSize(10)
             .fillColor(bgColor)
             .format("#,##0.##")
@@ -200,7 +236,8 @@ object ExcelManager {
             .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
             .set()
         ws.value(rowIndex, 8, margin.toDouble())
-        ws.style(rowIndex, 8)
+        ws
+            .style(rowIndex, 8)
             .bold()
             .fontSize(10)
             .fillColor(bgColor)
@@ -214,8 +251,15 @@ object ExcelManager {
         ws.value(rowIndex, 9, stockValue)
         applyCurrencyStyle(ws, rowIndex, 9, bgColor)
     }
-    private fun applyTextStyle(ws: Worksheet, row: Int, col: Int, bgColor: String) {
-        ws.style(row, col)
+
+    private fun applyTextStyle(
+        ws: Worksheet,
+        row: Int,
+        col: Int,
+        bgColor: String,
+    ) {
+        ws
+            .style(row, col)
             .fontSize(10)
             .fillColor(bgColor)
             .verticalAlignment("center")
@@ -223,8 +267,15 @@ object ExcelManager {
             .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
             .set()
     }
-    private fun applyCurrencyStyle(ws: Worksheet, row: Int, col: Int, bgColor: String) {
-        ws.style(row, col)
+
+    private fun applyCurrencyStyle(
+        ws: Worksheet,
+        row: Int,
+        col: Int,
+        bgColor: String,
+    ) {
+        ws
+            .style(row, col)
             .fontSize(10)
             .fillColor(bgColor)
             .format("#,##0")
@@ -234,6 +285,7 @@ object ExcelManager {
             .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
             .set()
     }
+
     private fun writeSummaryRow(
         ws: Worksheet,
         rowIndex: Int,
@@ -247,14 +299,16 @@ object ExcelManager {
         val marginColor = if (totalMargin >= 0) COLOR_POSITIVE else COLOR_NEGATIVE
         ws.rowHeight(rowIndex, 26.0)
         for (col in 0..2) {
-            ws.style(rowIndex, col)
+            ws
+                .style(rowIndex, col)
                 .fillColor(COLOR_SUMMARY_BG)
                 .borderStyle(BorderSide.TOP, BorderStyle.DOUBLE)
                 .borderColor(BorderSide.TOP, COLOR_HEADER_BG)
                 .set()
         }
         ws.value(rowIndex, 3, "TOTAL ($productCount produk)")
-        ws.style(rowIndex, 3)
+        ws
+            .style(rowIndex, 3)
             .bold()
             .fontSize(11)
             .fillColor(COLOR_SUMMARY_BG)
@@ -263,7 +317,8 @@ object ExcelManager {
             .borderStyle(BorderSide.TOP, BorderStyle.DOUBLE)
             .borderColor(BorderSide.TOP, COLOR_HEADER_BG)
             .set()
-        ws.style(rowIndex, 4)
+        ws
+            .style(rowIndex, 4)
             .fillColor(COLOR_SUMMARY_BG)
             .borderStyle(BorderSide.TOP, BorderStyle.DOUBLE)
             .borderColor(BorderSide.TOP, COLOR_HEADER_BG)
@@ -275,7 +330,8 @@ object ExcelManager {
         ws.value(rowIndex, 7, totalStock)
         applySummaryNumberStyle(ws, rowIndex, 7, "#,##0.##")
         ws.value(rowIndex, 8, totalMargin.toDouble())
-        ws.style(rowIndex, 8)
+        ws
+            .style(rowIndex, 8)
             .bold()
             .fontSize(11)
             .fillColor(COLOR_SUMMARY_BG)
@@ -289,13 +345,15 @@ object ExcelManager {
         ws.value(rowIndex, 9, totalStockValue)
         applySummaryNumberStyle(ws, rowIndex, 9, "#,##0")
     }
+
     private fun applySummaryNumberStyle(
         ws: Worksheet,
         row: Int,
         col: Int,
         numberFormat: String,
     ) {
-        ws.style(row, col)
+        ws
+            .style(row, col)
             .bold()
             .fontSize(11)
             .fillColor(COLOR_SUMMARY_BG)
@@ -306,41 +364,42 @@ object ExcelManager {
             .borderColor(BorderSide.TOP, COLOR_HEADER_BG)
             .set()
     }
+
     suspend fun importProducts(
         context: Context,
         sourceUri: Uri,
-    ): ExcelImportResult = withContext(Dispatchers.IO) {
-        var inputStream: InputStream? = null
-        try {
-            val fileSize = getFileSize(context, sourceUri)
-            if (fileSize > MAX_IMPORT_FILE_SIZE) {
-                val maxMb = MAX_IMPORT_FILE_SIZE / (1024 * 1024)
-                return@withContext ExcelImportResult(
-                    emptyList(),
-                    listOf("File terlalu besar (maks ${maxMb} MB)")
-                )
-            }
-            inputStream = context.contentResolver.openInputStream(sourceUri)
-                ?: return@withContext ExcelImportResult(
-                    emptyList(),
-                    listOf("File tidak bisa dibuka")
-                )
-            readWorkbook(inputStream)
-        } catch (e: Exception) {
-            ExcelImportResult(
-                emptyList(),
-                listOf("Error membaca file: ${e.message}")
-            )
-        } finally {
+    ): ExcelImportResult =
+        withContext(Dispatchers.IO) {
+            var inputStream: InputStream? = null
             try {
-                inputStream?.close()
-            } catch (_: Exception) {
+                val fileSize = getFileSize(context, sourceUri)
+                if (fileSize > MAX_IMPORT_FILE_SIZE) {
+                    val maxMb = MAX_IMPORT_FILE_SIZE / (1024 * 1024)
+                    return@withContext ExcelImportResult(
+                        emptyList(),
+                        listOf("File terlalu besar (maks $maxMb MB)"),
+                    )
+                }
+                inputStream = context.contentResolver.openInputStream(sourceUri)
+                    ?: return@withContext ExcelImportResult(
+                        emptyList(),
+                        listOf("File tidak bisa dibuka"),
+                    )
+                readWorkbook(inputStream)
+            } catch (e: Exception) {
+                ExcelImportResult(
+                    emptyList(),
+                    listOf("Error membaca file: ${e.message}"),
+                )
+            } finally {
+                try {
+                    inputStream?.close()
+                } catch (_: Exception) {
+                }
             }
         }
-    }
-    private suspend fun readWorkbook(
-        inputStream: InputStream,
-    ): ExcelImportResult {
+
+    private suspend fun readWorkbook(inputStream: InputStream): ExcelImportResult {
         val rows = ArrayList<ImportedProductRow>(256)
         val errors = mutableListOf<String>()
         ReadableWorkbook(inputStream).use { wb ->
@@ -367,7 +426,7 @@ object ExcelManager {
                     if (rows.size >= MAX_IMPORT_ROWS) {
                         errors.add(
                             "Import dibatasi $MAX_IMPORT_ROWS baris. " +
-                                    "Sisa baris diabaikan."
+                                "Sisa baris diabaikan.",
                         )
                         break
                     }
@@ -383,9 +442,9 @@ object ExcelManager {
                         emptyList(),
                         listOf(
                             "Header tidak ditemukan. " +
-                                    "File harus memiliki kolom: SKU, Barcode, Nama, " +
-                                    "Kategori, Harga Jual, Modal, Stok"
-                        )
+                                "File harus memiliki kolom: SKU, Barcode, Nama, " +
+                                "Kategori, Harga Jual, Modal, Stok",
+                        ),
                     )
                 }
             }
@@ -393,12 +452,11 @@ object ExcelManager {
         rows.trimToSize()
         return ExcelImportResult(rows, errors)
     }
-    private fun detectHeader(
-        row: org.dhatim.fastexcel.reader.Row,
-    ): Int? {
+
+    private fun detectHeader(row: org.dhatim.fastexcel.reader.Row): Int? {
         if (row.cellCount < REQUIRED_IMPORT_COLUMNS) return null
-        fun cell(c: Int): String =
-            getSafeCellString(row, c).lowercase()
+
+        fun cell(c: Int): String = getSafeCellString(row, c).lowercase()
         val cell0 = cell(0)
         val cell1 = cell(1)
         val cell2 = cell(2)
@@ -412,118 +470,155 @@ object ExcelManager {
         }
         val allCells = (0 until minOf(row.cellCount, 10)).map { cell(it) }
         val headerKeywords = listOf("sku", "nama", "harga", "modal", "stok")
-        val matchCount = headerKeywords.count { keyword ->
-            allCells.any { it.contains(keyword) }
-        }
+        val matchCount =
+            headerKeywords.count { keyword ->
+                allCells.any { it.contains(keyword) }
+            }
         if (matchCount >= 3) {
             return if (cell0 == "no" || cell0 == "no." ||
                 cell0.contains("nomor") || cell0 == "#"
-            ) 1 else 0
+            ) {
+                1
+            } else {
+                0
+            }
         }
         return null
     }
+
     private fun parseRow(
         row: org.dhatim.fastexcel.reader.Row,
         rowIndex: Int,
         skipOffset: Int,
     ): Pair<ImportedProductRow?, String?>? {
-        fun cell(logicalCol: Int): String =
-            getSafeCellString(row, logicalCol + skipOffset)
-        val allBlank = (0 until REQUIRED_IMPORT_COLUMNS).all {
-            cell(it).isBlank()
-        }
+        fun cell(logicalCol: Int): String = getSafeCellString(row, logicalCol + skipOffset)
+        val allBlank =
+            (0 until REQUIRED_IMPORT_COLUMNS).all {
+                cell(it).isBlank()
+            }
         if (allBlank) return null
         val skuCell = cell(0).lowercase()
         val nameCell = cell(2).lowercase()
         val totalRegex = Regex("total\\s*\\(\\s*\\d+\\s*produk\\s*\\)")
-        val isSummaryRow = (skuCell.isBlank() && totalRegex.containsMatchIn(nameCell)) ||
-                           skuCell == "total" || skuCell == "jumlah"
+        val isSummaryRow =
+            (skuCell.isBlank() && totalRegex.containsMatchIn(nameCell)) ||
+                skuCell == "total" || skuCell == "jumlah"
         if (isSummaryRow) {
             return null
         }
         return try {
             Pair(
                 ImportedProductRow(
-                    sku = cell(0).also {
-                        require(it.isNotBlank()) { "SKU kosong" }
-                    },
+                    sku =
+                        cell(0).also {
+                            require(it.isNotBlank()) { "SKU kosong" }
+                        },
                     barcode = cell(1).ifBlank { null },
-                    name = cell(2).also {
-                        require(it.isNotBlank()) { "Nama kosong" }
-                    },
+                    name =
+                        cell(2).also {
+                            require(it.isNotBlank()) { "Nama kosong" }
+                        },
                     category = cell(3).ifBlank { null },
                     price = parseCurrency(cell(4), "Harga"),
                     cost = parseCurrency(cell(5), "Modal"),
                     stock = parseQty(cell(6), "Stok"),
                 ),
-                null
+                null,
             )
         } catch (e: Exception) {
             Pair(null, "Baris ${rowIndex + 1}: ${e.message}")
         }
     }
-    private fun parseCurrency(s: String, field: String): Long {
-        val value = parseFlexibleNumber(s)
-            ?: error("$field tidak valid: \"$s\"")
+
+    private fun parseCurrency(
+        s: String,
+        field: String,
+    ): Long {
+        val value =
+            parseFlexibleNumber(s)
+                ?: error("$field tidak valid: \"$s\"")
         require(value >= 0) { "$field bernilai negatif" }
         return round(value).toLong()
     }
-    private fun parseQty(s: String, field: String): Double {
-        val value = parseFlexibleNumber(s)
-            ?: error("$field tidak valid: \"$s\"")
+
+    private fun parseQty(
+        s: String,
+        field: String,
+    ): Double {
+        val value =
+            parseFlexibleNumber(s)
+                ?: error("$field tidak valid: \"$s\"")
         require(value >= 0) { "$field bernilai negatif" }
         return value
     }
+
     private fun parseFlexibleNumber(raw: String): Double? {
-        val cleaned = raw.trim().filter {
-            it.isDigit() || it == '.' || it == ',' || it == '-'
-        }
+        val cleaned =
+            raw.trim().filter {
+                it.isDigit() || it == '.' || it == ',' || it == '-'
+            }
         if (cleaned.isBlank() || cleaned == "-") return null
         val negative = cleaned.startsWith("-")
         val body = cleaned.removePrefix("-")
         if (body.isBlank()) return null
         val hasDot = body.contains('.')
         val hasComma = body.contains(',')
-        val normalized = when {
-            hasDot && hasComma -> {
-                val lastDot = body.lastIndexOf('.')
-                val lastComma = body.lastIndexOf(',')
-                if (lastComma > lastDot) {
-                    body.replace(".", "").replace(',', '.')
-                } else {
-                    body.replace(",", "")
+        val normalized =
+            when {
+                hasDot && hasComma -> {
+                    val lastDot = body.lastIndexOf('.')
+                    val lastComma = body.lastIndexOf(',')
+                    if (lastComma > lastDot) {
+                        body.replace(".", "").replace(',', '.')
+                    } else {
+                        body.replace(",", "")
+                    }
+                }
+
+                hasDot -> {
+                    val dotCount = body.count { it == '.' }
+                    val digitsAfter = body.length - body.lastIndexOf('.') - 1
+                    if (dotCount > 1 || digitsAfter == 3) {
+                        body.replace(".", "")
+                    } else {
+                        body
+                    }
+                }
+
+                hasComma -> {
+                    val commaCount = body.count { it == ',' }
+                    val digitsAfter = body.length - body.lastIndexOf(',') - 1
+                    if (commaCount > 1 || digitsAfter == 3) {
+                        body.replace(",", "")
+                    } else {
+                        body.replace(',', '.')
+                    }
+                }
+
+                else -> {
+                    body
                 }
             }
-            hasDot -> {
-                val dotCount = body.count { it == '.' }
-                val digitsAfter = body.length - body.lastIndexOf('.') - 1
-                if (dotCount > 1 || digitsAfter == 3) {
-                    body.replace(".", "")
-                } else body
-            }
-            hasComma -> {
-                val commaCount = body.count { it == ',' }
-                val digitsAfter = body.length - body.lastIndexOf(',') - 1
-                if (commaCount > 1 || digitsAfter == 3) {
-                    body.replace(",", "")
-                } else {
-                    body.replace(',', '.')
-                }
-            }
-            else -> body
-        }
         val value = normalized.toDoubleOrNull() ?: return null
         return if (negative) -value else value
     }
-    private fun getFileSize(context: Context, uri: Uri): Long {
-        return try {
-            context.contentResolver.openAssetFileDescriptor(uri, "r")
+
+    private fun getFileSize(
+        context: Context,
+        uri: Uri,
+    ): Long =
+        try {
+            context.contentResolver
+                .openAssetFileDescriptor(uri, "r")
                 ?.use { it.length } ?: -1L
         } catch (_: Exception) {
             -1L
         }
-    }
-    private fun getSafeCellString(row: org.dhatim.fastexcel.reader.Row, col: Int): String {
+
+    private fun getSafeCellString(
+        row: org.dhatim.fastexcel.reader.Row,
+        col: Int,
+    ): String {
         if (col < 0 || col >= row.cellCount) return ""
         val cell = row.getCell(col) ?: return ""
         val textValue = cell.text ?: cell.value?.toString() ?: ""

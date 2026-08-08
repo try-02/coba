@@ -12,25 +12,32 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+
 data class PrintAttemptFailure(
     val printer: PrinterEntity,
     val message: String,
 )
+
 sealed class ReceiptPrintOutcome {
     data class Success(
         val printer: PrinterEntity,
     ) : ReceiptPrintOutcome()
+
     data class SuccessWithNotice(
         val printer: PrinterEntity,
         val notice: String,
     ) : ReceiptPrintOutcome()
+
     data class Failed(
         val attempts: List<PrintAttemptFailure>,
         val fallbackPdf: File?,
     ) : ReceiptPrintOutcome()
+
     object NoPrinterConfigured : ReceiptPrintOutcome()
+
     object AlreadyInProgress : ReceiptPrintOutcome()
 }
+
 class PrintCoordinator(
     private val appContext: Context,
     private val printerRepository: PrinterRepository,
@@ -38,6 +45,7 @@ class PrintCoordinator(
     private val connectionFactory: PrinterConnectionFactory,
 ) {
     private val activeJobs = ConcurrentHashMap.newKeySet<String>()
+
     suspend fun printReceiptAuto(
         result: CheckoutResult,
         openCashDrawer: Boolean = false,
@@ -50,6 +58,7 @@ class PrintCoordinator(
                 executeSequential(candidates, result, openCashDrawer)
             }
         }
+
     suspend fun printReceiptToSpecific(
         printer: PrinterEntity,
         result: CheckoutResult,
@@ -58,6 +67,7 @@ class PrintCoordinator(
         runGuarded(result.transaction.id) {
             executeSequential(listOf(printer), result, openCashDrawer)
         }
+
     suspend fun printCustomLines(
         printer: PrinterEntity,
         lines: List<ReceiptLine>,
@@ -69,6 +79,7 @@ class PrintCoordinator(
                 is PrintResult.Failure -> ReceiptPrintOutcome.Failed(listOf(PrintAttemptFailure(printer, printResult.message)), null)
             }
         }
+
     private suspend fun runGuarded(
         key: String,
         block: suspend () -> ReceiptPrintOutcome,
@@ -80,12 +91,14 @@ class PrintCoordinator(
             activeJobs.remove(key)
         }
     }
+
     private suspend fun resolveCascadeOrder(): List<PrinterEntity> {
         val default = printerRepository.getDefault()
         val ordered = printerRepository.getAllOrderedByPriority()
         val rest = ordered.filter { it.id != default?.id }
         return listOfNotNull(default) + rest
     }
+
     private suspend fun executeSequential(
         candidates: List<PrinterEntity>,
         result: CheckoutResult,
@@ -119,6 +132,7 @@ class PrintCoordinator(
                     }
                     return ReceiptPrintOutcome.Success(printer)
                 }
+
                 is PrintResult.Failure -> {
                     var msg = printResult.message
                     if (printer.supportsStatusQuery && printResult.statusQueryFailed) {
@@ -140,6 +154,7 @@ class PrintCoordinator(
             }
         return ReceiptPrintOutcome.Failed(failures, fallbackPdf)
     }
+
     companion object {
         private const val TAG = "PrintCoordinator"
     }

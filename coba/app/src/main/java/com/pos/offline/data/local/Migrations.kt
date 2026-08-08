@@ -1,6 +1,7 @@
 package com.pos.offline.data.local
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+
 object Migrations {
     val MIGRATION_1_2 =
         object : Migration(1, 2) {
@@ -256,18 +257,18 @@ object Migrations {
         object : Migration(14, 15) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 try {
-db.execSQL(
-    """
-    CREATE TABLE IF NOT EXISTS `cart_items_new` (
-        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        `productId` INTEGER NOT NULL,
-        `name` TEXT NOT NULL,
-        `unitPrice` INTEGER NOT NULL,
-        `quantity` REAL NOT NULL DEFAULT 1,
-        FOREIGN KEY(`productId`) REFERENCES `products`(`id`) ON DELETE CASCADE
-    )
-    """.trimIndent(),
-)
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `cart_items_new` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `productId` INTEGER NOT NULL,
+                            `name` TEXT NOT NULL,
+                            `unitPrice` INTEGER NOT NULL,
+                            `quantity` REAL NOT NULL DEFAULT 1,
+                            FOREIGN KEY(`productId`) REFERENCES `products`(`id`) ON DELETE CASCADE
+                        )
+                        """.trimIndent(),
+                    )
 
                     db.execSQL(
                         """

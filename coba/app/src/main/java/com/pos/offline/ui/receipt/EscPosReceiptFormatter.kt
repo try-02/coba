@@ -7,13 +7,16 @@ import com.pos.offline.data.local.entity.StoreProfileEntity
 import com.pos.offline.data.local.entity.TransactionEntity
 import com.pos.offline.data.local.entity.TransactionItemEntity
 import com.pos.offline.data.repository.CheckoutResult
+
 object EscPosReceiptFormatter {
     private const val MAX_IMAGE_HEIGHT_PX = 256
+
     fun build(
         printer: EscPosPrinter,
         checkoutResult: CheckoutResult,
         storeProfile: StoreProfileEntity,
     ): List<String> = build(printer, checkoutResult.transaction, checkoutResult.items, storeProfile)
+
     fun build(
         printer: EscPosPrinter,
         transaction: TransactionEntity,
@@ -32,6 +35,7 @@ object EscPosReceiptFormatter {
         val markup = ReceiptManager.linesToEscPosMarkup(lines)
         return listOfNotNull(logoMarkup, markup)
     }
+
     private fun buildLogoHex(
         printer: EscPosPrinter,
         logoBytes: ByteArray?,

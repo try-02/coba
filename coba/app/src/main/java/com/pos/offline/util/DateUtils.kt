@@ -1,5 +1,6 @@
 package com.pos.offline.util
 import java.util.Calendar
+
 fun getAbsoluteDayRange(timestamp: Long): Pair<Long, Long> {
     val calendar =
         Calendar.getInstance().apply {

@@ -1,7 +1,17 @@
 package com.pos.offline.ui.pos
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +46,7 @@ import androidx.compose.material.icons.rounded.AttachMoney
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.MoreHoriz
@@ -45,7 +56,6 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.SwapHoriz
-import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -55,6 +65,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -75,6 +86,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.pos.offline.data.local.entity.CartItemEntity
 import com.pos.offline.data.local.entity.DiscountType
 import com.pos.offline.data.local.entity.PaymentMethod
@@ -83,23 +96,11 @@ import com.pos.offline.data.local.entity.ShiftEntity
 import com.pos.offline.ui.components.GlassCard
 import com.pos.offline.ui.components.ThousandsSeparatorTransformation
 import com.pos.offline.ui.components.formatPercentTrim
-import com.pos.offline.util.formatQuantity
-import com.pos.offline.util.toRupiah
 import com.pos.offline.util.bouncyOverscroll
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.runtime.CompositionLocalProvider
+import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import com.pos.offline.util.toRupiah
+
 @Composable
 internal fun ShiftIndicatorBar(
     openShift: ShiftEntity?,
@@ -192,6 +193,7 @@ internal fun ShiftIndicatorBar(
         }
     }
 }
+
 @Composable
 internal fun CompactSearchBar(
     query: String,
@@ -238,6 +240,7 @@ internal fun CompactSearchBar(
         },
     )
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun CategoryChipsRow(
@@ -246,12 +249,12 @@ internal fun CategoryChipsRow(
     onSelect: (String?) -> Unit,
 ) {
     CompositionLocalProvider(
-        LocalOverscrollConfiguration provides null
+        LocalOverscrollConfiguration provides null,
     ) {
         LazyRow(
             modifier = Modifier.bouncyOverscroll(Orientation.Horizontal),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
-            flingBehavior = iosGlideFlingBehavior()
+            flingBehavior = iosGlideFlingBehavior(),
         ) {
             item(key = "__all__") {
                 CategoryChip(label = "Semua", selected = selected == null, onClick = { onSelect(null) })
@@ -262,6 +265,7 @@ internal fun CategoryChipsRow(
         }
     }
 }
+
 @Composable
 private fun CategoryChip(
     label: String,
@@ -298,6 +302,7 @@ private fun CategoryChip(
         )
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ProductPane(
@@ -308,36 +313,38 @@ internal fun ProductPane(
 ) {
     var selectedProductForDetails by remember { mutableStateOf<ProductEntity?>(null) }
     CompositionLocalProvider(
-        LocalOverscrollConfiguration provides null
+        LocalOverscrollConfiguration provides null,
     ) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 104.dp),
-            modifier = modifier
-                .padding(horizontal = 12.dp)
-                .bouncyOverscroll(),
+            modifier =
+                modifier
+                    .padding(horizontal = 12.dp)
+                    .bouncyOverscroll(),
             contentPadding = PaddingValues(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
-            flingBehavior = iosGlideFlingBehavior()
+            flingBehavior = iosGlideFlingBehavior(),
         ) {
             items(items = products, key = { it.id }, contentType = { "product" }) { product ->
-            val qtyInCart = cartQtyByProductId[product.id] ?: 0.0
-            ProductCard(
-                product = product,
-                remainingStock = product.stock - qtyInCart,
-                onAdd = { onAdd(product) },
-                onLongClick = { selectedProductForDetails = product }
-            )
+                val qtyInCart = cartQtyByProductId[product.id] ?: 0.0
+                ProductCard(
+                    product = product,
+                    remainingStock = product.stock - qtyInCart,
+                    onAdd = { onAdd(product) },
+                    onLongClick = { selectedProductForDetails = product },
+                )
             }
         }
     }
     selectedProductForDetails?.let { product ->
         ProductDetailPopup(
             product = product,
-            onDismiss = { selectedProductForDetails = null }
+            onDismiss = { selectedProductForDetails = null },
         )
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ProductCard(
@@ -350,16 +357,16 @@ private fun ProductCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(0.dp),
-        onClick = null
+        onClick = null,
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onAdd,
-                    onLongClick = onLongClick
-                )
-                .padding(6.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        onClick = onAdd,
+                        onLongClick = onLongClick,
+                    ).padding(6.dp),
         ) {
             Column {
                 Text(
@@ -426,6 +433,7 @@ private fun ProductCard(
         }
     }
 }
+
 @Composable
 internal fun CartPaneContent(
     modifier: Modifier,
@@ -439,6 +447,7 @@ internal fun CartPaneContent(
 ) {
     val expanded = localState.isCartExpanded
     val showFull = !collapsible || expanded
+
     fun attemptCheckout() {
         if (payment.paid in 1 until cart.totals.total) {
             localState.showInsufficientPayment()
@@ -553,61 +562,61 @@ internal fun CartPaneContent(
             if (showFull) {
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
                 Box(
-                modifier =
-                    Modifier
-                        .weight(1f, fill = false)
-                        .fillMaxWidth()
-                        .clipToBounds(),
-            ) {
-                @OptIn(ExperimentalFoundationApi::class)
-                CompositionLocalProvider(
-                    LocalOverscrollConfiguration provides null
+                    modifier =
+                        Modifier
+                            .weight(1f, fill = false)
+                            .fillMaxWidth()
+                            .clipToBounds(),
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        state = listState,
-                        flingBehavior = iosGlideFlingBehavior()
+                    @OptIn(ExperimentalFoundationApi::class)
+                    CompositionLocalProvider(
+                        LocalOverscrollConfiguration provides null,
                     ) {
-                        if (cart.isEmpty) {
-                            item(key = "empty_cart") {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
-                                            Icons.Rounded.ShoppingCart,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(32.dp),
-                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                        )
-                                        Spacer(Modifier.height(8.dp))
-                                        Text(
-                                            "Keranjang masih kosong",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                        )
-                                        Text(
-                                            "Ketuk produk di atas untuk menambahkan",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                        )
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            state = listState,
+                            flingBehavior = iosGlideFlingBehavior(),
+                        ) {
+                            if (cart.isEmpty) {
+                                item(key = "empty_cart") {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(
+                                                Icons.Rounded.ShoppingCart,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(32.dp),
+                                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            )
+                                            Spacer(Modifier.height(8.dp))
+                                            Text(
+                                                "Keranjang masih kosong",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                            )
+                                            Text(
+                                                "Ketuk produk di atas untuk menambahkan",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                        } else {
-                            items(items = cart.items, key = { it.id }) { item ->
-                                CartRow(
-                                    item = item,
-                                    onIncrease = { onAction(PosAction.IncreaseQty(item)) },
-                                    onDecrease = { onAction(PosAction.DecreaseQty(item)) },
-                                    onRemove = { onAction(PosAction.RemoveFromCart(item)) },
-                                    onQuantityClick = { localState.startQtyEdit(item) },
-                                    modifier = Modifier.animateItem(),
-                                )
+                            } else {
+                                items(items = cart.items, key = { it.id }) { item ->
+                                    CartRow(
+                                        item = item,
+                                        onIncrease = { onAction(PosAction.IncreaseQty(item)) },
+                                        onDecrease = { onAction(PosAction.DecreaseQty(item)) },
+                                        onRemove = { onAction(PosAction.RemoveFromCart(item)) },
+                                        onQuantityClick = { localState.startQtyEdit(item) },
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                }
                             }
                         }
-                    }
                     }
                     val showTopFade by remember { derivedStateOf { listState.canScrollBackward } }
                     val showBottomFade by remember { derivedStateOf { listState.canScrollForward } }
@@ -689,6 +698,7 @@ internal fun CartPaneContent(
         }
     }
 }
+
 @Composable
 internal fun CartRow(
     item: CartItemEntity,
@@ -746,6 +756,7 @@ internal fun CartRow(
         }
     }
 }
+
 @Composable
 private fun QuantityStepper(
     qty: Double,
@@ -773,6 +784,7 @@ private fun QuantityStepper(
         CompactActionBox(icon = Icons.Rounded.Add, contentDescription = "Tambah", onClick = onIncrease)
     }
 }
+
 @Composable
 internal fun CompactActionBox(
     icon: ImageVector,
@@ -802,6 +814,7 @@ internal fun CompactActionBox(
         )
     }
 }
+
 @Composable
 internal fun TotalsSummary(
     payment: PaymentState,
@@ -892,6 +905,7 @@ internal fun TotalsSummary(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+
                 change > 0L -> {
                     ChangeGivenField(
                         maxChange = change,
@@ -911,6 +925,7 @@ internal fun TotalsSummary(
                         )
                     }
                 }
+
                 else -> {
                     SummaryLine(
                         "Kembalian",
@@ -922,6 +937,7 @@ internal fun TotalsSummary(
         }
     }
 }
+
 @Composable
 private fun CompactPaymentSwitch(
     selected: PaymentMethod,
@@ -967,6 +983,7 @@ private fun CompactPaymentSwitch(
         )
     }
 }
+
 @Composable
 private fun PayMoneyField(
     value: Long,
@@ -1035,6 +1052,7 @@ private fun PayMoneyField(
         },
     )
 }
+
 @Composable
 private fun InlinePresetChip(
     label: String,
@@ -1057,6 +1075,7 @@ private fun InlinePresetChip(
         )
     }
 }
+
 @Composable
 private fun ChangeGivenField(
     maxChange: Long,
@@ -1128,6 +1147,7 @@ private fun ChangeGivenField(
         }
     }
 }
+
 @Composable
 private fun QrisCashChangeToggle(
     changeGivenAmount: Long,
@@ -1190,6 +1210,7 @@ private fun QrisCashChangeToggle(
         )
     }
 }
+
 @Composable
 internal fun SummaryLine(
     label: String,
@@ -1221,6 +1242,7 @@ internal fun SummaryLine(
         )
     }
 }
+
 @Composable
 internal fun MoneyField(
     label: String,
@@ -1277,6 +1299,7 @@ internal fun MoneyField(
         },
     )
 }
+
 @Composable
 internal fun DiscountField(
     type: DiscountType,
@@ -1324,6 +1347,7 @@ internal fun DiscountField(
                                 c.isDigit() -> {
                                     append(c)
                                 }
+
                                 c == '.' && !dotSeen -> {
                                     append(c)
                                     dotSeen = true
@@ -1399,6 +1423,7 @@ internal fun DiscountField(
         },
     )
 }
+
 @Composable
 internal fun DecimalField(
     label: String,
@@ -1420,6 +1445,7 @@ internal fun DecimalField(
                             c.isDigit() -> {
                                 append(c)
                             }
+
                             c == '.' && !dotSeen -> {
                                 append(c)
                                 dotSeen = true
@@ -1468,6 +1494,7 @@ internal fun DecimalField(
         },
     )
 }
+
 @Composable
 private fun ProductDetailPopup(
     product: ProductEntity,
@@ -1481,51 +1508,54 @@ private fun ProductDetailPopup(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss
-                ),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(tween(250)) + scaleIn(initialScale = 0.8f, animationSpec = tween(250)),
-                exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200))
+                exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200)),
             ) {
                 GlassCard(
-                    modifier = Modifier
-                        .width(320.dp)
-                        .padding(16.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {}
-                        ),
+                    modifier =
+                        Modifier
+                            .width(320.dp)
+                            .padding(16.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {},
+                            ),
                     cornerRadius = 24.dp,
-                    contentPadding = PaddingValues(20.dp)
+                    contentPadding = PaddingValues(20.dp),
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.Rounded.Inventory2,
                                 contentDescription = null,
                                 modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                         }
 
@@ -1533,17 +1563,17 @@ private fun ProductDetailPopup(
                             text = product.name,
                             style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
                             fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
 
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 4.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
 
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             PopupDetailRow("Kategori", product.category.ifBlank { "-" })
                             PopupDetailRow("SKU", product.sku)
@@ -1562,7 +1592,7 @@ private fun ProductDetailPopup(
                         Button(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
                         ) {
                             Text("Tutup", fontSize = 13.sp)
                         }
@@ -1574,22 +1604,26 @@ private fun ProductDetailPopup(
 }
 
 @Composable
-private fun PopupDetailRow(label: String, value: String, isError: Boolean = false) {
+private fun PopupDetailRow(
+    label: String,
+    value: String,
+    isError: Boolean = false,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
             fontWeight = FontWeight.SemiBold,
-            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
         )
     }
 }

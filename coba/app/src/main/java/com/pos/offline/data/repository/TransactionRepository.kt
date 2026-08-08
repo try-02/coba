@@ -13,23 +13,31 @@ import com.pos.offline.data.local.entity.TransactionStatus
 import com.pos.offline.data.local.entity.isVoid
 import com.pos.offline.util.roundToRupiah
 import kotlinx.coroutines.flow.Flow
+
 data class CheckoutResult(
     val transaction: TransactionEntity,
     val items: List<TransactionItemEntity>,
 )
+
 class ProductRemovedDuringCheckoutException(
     val productName: String,
 ) : RuntimeException("Produk '$productName' tidak ditemukan (kemungkinan baru saja dihapus).")
+
 sealed class VoidOutcome {
     data class Success(
         val restoredStockCount: Int,
         val skippedStockCount: Int,
     ) : VoidOutcome()
+
     data object AlreadyVoided : VoidOutcome()
+
     data object NotFound : VoidOutcome()
+
     data object ShiftClosed : VoidOutcome()
+
     data object HasReturn : VoidOutcome()
 }
+
 class TransactionRepository(
     private val database: PosDatabase,
     private val transactionDao: TransactionDao,
@@ -41,11 +49,14 @@ class TransactionRepository(
         startOfDay: Long,
         endOfDay: Long,
     ): Flow<List<TransactionEntity>> = transactionDao.observeByDateRange(startOfDay, endOfDay)
+
     fun dailyRevenue(
         startOfDay: Long,
         endOfDay: Long,
     ): Flow<Long> = transactionDao.observeDailyRevenue(startOfDay, endOfDay)
+
     fun transactionsByShift(shiftId: Long): Flow<List<TransactionEntity>> = transactionDao.observeByShift(shiftId)
+
     suspend fun checkout(
         cart: List<CartItemEntity>,
         discountType: DiscountType,
@@ -114,7 +125,6 @@ class TransactionRepository(
             cart.forEach { item ->
                 val affected = productDao.decrementStock(item.productId, item.quantity, now)
                 if (affected == 0) {
-
                     throw ProductRemovedDuringCheckoutException(item.name)
                 }
             }
@@ -123,53 +133,56 @@ class TransactionRepository(
         }
         return CheckoutResult(transaction, items)
     }
+
     suspend fun loadReceipt(invoiceId: String): CheckoutResult? {
         val tx = transactionDao.getById(invoiceId) ?: return null
         val items = transactionDao.getItems(invoiceId)
         return CheckoutResult(tx, items)
     }
-suspend fun voidTransaction(invoiceId: String): VoidOutcome {
-    val preCheck = transactionDao.getById(invoiceId) ?: return VoidOutcome.NotFound
-    if (preCheck.isVoid) return VoidOutcome.AlreadyVoided
-    if (preCheck.returnId != null) return VoidOutcome.HasReturn
-    preCheck.shiftId?.let { shiftId ->
-        if (shiftRepository.getById(shiftId)?.endedAt != null) return VoidOutcome.ShiftClosed
-    }
-    val items = transactionDao.getItems(invoiceId)
-    val now = System.currentTimeMillis()
-    var restored = 0
-    var skipped = 0
-    var succeeded = false
-    database.withTransaction {
-        val affected =
-            transactionDao.voidIfEligible(
-                id = invoiceId,
-                status = TransactionStatus.VOID.name,
-                voidedAt = now,
-                reason = null,
-            )
-        if (affected == 0) return@withTransaction
-        succeeded = true
-        items.forEach { item ->
-            val pid = item.productId
-            if (pid != null) {
-                productDao.incrementStock(pid, item.quantity, now)
-                restored++
-            } else {
-                skipped++
+
+    suspend fun voidTransaction(invoiceId: String): VoidOutcome {
+        val preCheck = transactionDao.getById(invoiceId) ?: return VoidOutcome.NotFound
+        if (preCheck.isVoid) return VoidOutcome.AlreadyVoided
+        if (preCheck.returnId != null) return VoidOutcome.HasReturn
+        preCheck.shiftId?.let { shiftId ->
+            if (shiftRepository.getById(shiftId)?.endedAt != null) return VoidOutcome.ShiftClosed
+        }
+        val items = transactionDao.getItems(invoiceId)
+        val now = System.currentTimeMillis()
+        var restored = 0
+        var skipped = 0
+        var succeeded = false
+        database.withTransaction {
+            val affected =
+                transactionDao.voidIfEligible(
+                    id = invoiceId,
+                    status = TransactionStatus.VOID.name,
+                    voidedAt = now,
+                    reason = null,
+                )
+            if (affected == 0) return@withTransaction
+            succeeded = true
+            items.forEach { item ->
+                val pid = item.productId
+                if (pid != null) {
+                    productDao.incrementStock(pid, item.quantity, now)
+                    restored++
+                } else {
+                    skipped++
+                }
             }
         }
-    }
-    if (!succeeded) {
-        val latest = transactionDao.getById(invoiceId)
-        return when {
-            latest?.isVoid == true -> VoidOutcome.AlreadyVoided
-            latest?.returnId != null -> VoidOutcome.HasReturn
-            else -> VoidOutcome.ShiftClosed
+        if (!succeeded) {
+            val latest = transactionDao.getById(invoiceId)
+            return when {
+                latest?.isVoid == true -> VoidOutcome.AlreadyVoided
+                latest?.returnId != null -> VoidOutcome.HasReturn
+                else -> VoidOutcome.ShiftClosed
+            }
         }
+        return VoidOutcome.Success(restoredStockCount = restored, skippedStockCount = skipped)
     }
-    return VoidOutcome.Success(restoredStockCount = restored, skippedStockCount = skipped)
-}
+
     suspend fun searchGlobalTransactions(query: String): List<TransactionEntity> {
         if (query.isBlank()) return emptyList()
         return transactionDao.searchGlobalTransactions(query.trim())

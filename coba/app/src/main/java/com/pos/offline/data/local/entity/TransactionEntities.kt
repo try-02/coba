@@ -3,6 +3,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+
 @Entity(
     tableName = "transactions",
     indices = [Index(value = ["createdAt"])],
@@ -39,6 +40,7 @@ data class TransactionEntity(
     @ColumnInfo(name = "isWarrantyExchange", defaultValue = "0")
     val isWarrantyExchange: Boolean = false,
 )
+
 @Entity(
     tableName = "transaction_items",
     indices = [
@@ -58,5 +60,6 @@ data class TransactionItemEntity(
     val unitCost: Long = 0L,
     val productId: Long? = null,
 )
+
 val TransactionEntity.hasReturn: Boolean
     get() = returnId != null

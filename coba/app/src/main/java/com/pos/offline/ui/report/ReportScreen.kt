@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,7 +32,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -83,6 +85,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -129,9 +132,10 @@ import com.pos.offline.ui.receipt.PrintUiState
 import com.pos.offline.ui.receipt.ReceiptManager
 import com.pos.offline.ui.receipt.forTransaction
 import com.pos.offline.util.ReceiptPrintOutcome
-import com.pos.offline.util.formatQuantity
-import com.pos.offline.util.toRupiah
 import com.pos.offline.util.bouncyOverscroll
+import com.pos.offline.util.formatQuantity
+import com.pos.offline.util.iosGlideFlingBehavior
+import com.pos.offline.util.toRupiah
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -140,10 +144,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.runtime.CompositionLocalProvider
-import com.pos.offline.util.iosGlideFlingBehavior
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
@@ -265,294 +266,301 @@ fun ReportScreen(
             },
             contentWindowInsets = WindowInsets.statusBars.union(WindowInsets.navigationBars),
         ) { inner ->
-        @OptIn(ExperimentalFoundationApi::class)
-        CompositionLocalProvider(
-            LocalOverscrollConfiguration provides null
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner)
-                    .consumeWindowInsets(inner)
-                    .bouncyOverscroll()
-                    .imePadding(),
-                contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                flingBehavior = iosGlideFlingBehavior()
+            @OptIn(ExperimentalFoundationApi::class)
+            CompositionLocalProvider(
+                LocalOverscrollConfiguration provides null,
             ) {
-                item(key = "unified_search_actions") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CompactReportSearchBar(
-                            query = productHistoryQuery,
-                            onQueryChange = { query ->
-                                viewModel.searchProductHistory(query)
-                                viewModel.searchInvoice(query)
-                            },
-                            modifier = Modifier.weight(1f).height(34.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        CompactSquareIconButton(
-                            icon = Icons.Rounded.QrCodeScanner,
-                            contentDescription = "Scan Barcode",
-                            onClick = { openScanner() },
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        CompactSquareIconButton(
-                            icon = Icons.Rounded.Build,
-                            contentDescription = "Klaim Garansi Direct",
-                            onClick = { showDirectWarrantyScreen = true },
-                            isError = true,
-                        )
-                    }
-                }
-                when (val state = searchUiState) {
-                    is SearchUiState.ProductHistoryResults -> {
-                        item(key = "product_history_header") {
-                            Text(
-                                "Hasil Pencarian Produk Lintas 1 Tahun",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                LazyColumn(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(inner)
+                            .consumeWindowInsets(inner)
+                            .bouncyOverscroll()
+                            .imePadding(),
+                    contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    flingBehavior = iosGlideFlingBehavior(),
+                ) {
+                    item(key = "unified_search_actions") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CompactReportSearchBar(
+                                query = productHistoryQuery,
+                                onQueryChange = { query ->
+                                    viewModel.searchProductHistory(query)
+                                    viewModel.searchInvoice(query)
+                                },
+                                modifier = Modifier.weight(1f).height(34.dp),
                             )
-                        }
-                        items(
-                            items = state.hierarchy,
-                            key = { "month_${it.yearMonth}" },
-                        ) { monthGroup ->
-                            MonthGroupCard(
-                                monthGroup = monthGroup,
-                                onTransactionClick = { txId -> viewModel.openTransactionDetail(txId) },
+                            Spacer(Modifier.width(6.dp))
+                            CompactSquareIconButton(
+                                icon = Icons.Rounded.QrCodeScanner,
+                                contentDescription = "Scan Barcode",
+                                onClick = { openScanner() },
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            CompactSquareIconButton(
+                                icon = Icons.Rounded.Build,
+                                contentDescription = "Klaim Garansi Direct",
+                                onClick = { showDirectWarrantyScreen = true },
+                                isError = true,
                             )
                         }
                     }
-                    is SearchUiState.InvoiceResults -> {
-                        item(key = "invoice_search_header") {
-                            Text(
-                                "Hasil Pencarian Struk (${state.transactions.size})",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                        items(
-                            items = state.transactions,
-                            key = { "invoice_${it.id}" },
-                        ) { tx ->
-                            TransactionRow(
-                                tx = tx,
-                                onClick = { viewModel.openTransactionDetail(tx.id) },
-                            )
-                        }
-                    }
-                    is SearchUiState.Empty -> {
-                        item(key = "search_empty_state") {
-                            Text(
-                                "Data \"${state.query}\" tidak ditemukan dalam 365 hari terakhir.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                modifier = Modifier.padding(vertical = 12.dp),
-                            )
-                        }
-                    }
-                    SearchUiState.Loading -> {
-                        item(key = "search_loading") {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    when (val state = searchUiState) {
+                        is SearchUiState.ProductHistoryResults -> {
+                            item(key = "product_history_header") {
+                                Text(
+                                    "Hasil Pencarian Produk Lintas 1 Tahun",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
                             }
-                        }
-                    }
-                    SearchUiState.Idle -> {
-                        item(key = "date_navigator") {
-                            DateNavigator(
-                                label = selectedDate.format(ReportViewModel.dateFmt),
-                                isToday = isToday,
-                                onPrevious = viewModel::previousDay,
-                                onNext = viewModel::nextDay,
-                                onToday = viewModel::goToday,
-                                onCalendarClick = { showDatePicker = true },
-                            )
-                        }
-                        item(key = "sales_report_generator") {
-                            val periodType by viewModel.selectedPeriodType.collectAsStateWithLifecycle()
-                            val includeSalesSummary by viewModel.includeSalesSummary.collectAsStateWithLifecycle()
-                            val includeProductsSold by viewModel.includeProductsSold.collectAsStateWithLifecycle()
-                            val includeDeadStock by viewModel.includeDeadStock.collectAsStateWithLifecycle()
-                            val salesReportState by viewModel.salesReportUiState.collectAsStateWithLifecycle()
-                            val scope = rememberCoroutineScope()
-                            val context = LocalContext.current
-                            GlassCard(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                        .animateContentSize(
-                                            animationSpec =
-                                                spring(
-                                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                                    stiffness = Spring.StiffnessLow,
-                                                ),
-                                        ),
-                                contentPadding = PaddingValues(12.dp),
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        "Generator Laporan Penjualan",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                    ReportPeriodToggleRow(
-                                        selected = periodType,
-                                        enabled = true,
-                                        onSelect = viewModel::toggleReportPeriod,
-                                    )
-                                    Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(
-                                                checked = includeSalesSummary,
-                                                onCheckedChange = viewModel::toggleIncludeSalesSummary,
-                                            )
-                                            Text("Ringkasan Penjualan & Keuangan", fontSize = 12.sp)
-                                        }
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(
-                                                checked = includeProductsSold,
-                                                onCheckedChange = viewModel::toggleIncludeProductsSold,
-                                            )
-                                            Text("Daftar Produk Terjual", fontSize = 12.sp)
-                                        }
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(
-                                                checked = includeDeadStock,
-                                                onCheckedChange = viewModel::toggleIncludeDeadStock,
-                                            )
-                                            Text("Daftar Produk Tidak Laku (Dead Stock)", fontSize = 12.sp)
-                                        }
-                                    }
-                                    if (periodType != null) {
-                                        SalesReportResultCard(
-                                            uiState = salesReportState,
-                                            onPrint = viewModel::printSalesReport,
-                                            onExportPdf = {
-                                                viewModel.buildCurrentReportLinesForExportAsync { lines ->
-                                                    if (lines != null) {
-                                                        scope.launch {
-                                                            val file =
-                                                                ReceiptManager.exportPdfFromLines(
-                                                                    context,
-                                                                    lines,
-                                                                    "Laporan_${periodType?.name}_$selectedDate",
-                                                                )
-                                                            viewModel.notifyPdfExported()
-                                                            onSharePdfFile(file)
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        item(key = "summary") { SummarySection(report = report) }
-                        if (report.transactionCount > 0) {
-                            item(key = "revenue_trend_chart") {
-                                RevenueTrendChart(
-                                    date = report.date,
-                                    transactions = report.transactions.filterNot { it.isVoid },
-                                    totalRevenue = report.totalRevenue,
-                                    hourly = report.hourlyRevenue,
+                            items(
+                                items = state.hierarchy,
+                                key = { "month_${it.yearMonth}" },
+                            ) { monthGroup ->
+                                MonthGroupCard(
+                                    monthGroup = monthGroup,
+                                    onTransactionClick = { txId -> viewModel.openTransactionDetail(txId) },
                                 )
                             }
                         }
-                        item(key = "tab_switcher") {
-                            ReportTabSwitcher(selected = selectedTab, onSelect = viewModel::selectTab)
+
+                        is SearchUiState.InvoiceResults -> {
+                            item(key = "invoice_search_header") {
+                                Text(
+                                    "Hasil Pencarian Struk (${state.transactions.size})",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            items(
+                                items = state.transactions,
+                                key = { "invoice_${it.id}" },
+                            ) { tx ->
+                                TransactionRow(
+                                    tx = tx,
+                                    onClick = { viewModel.openTransactionDetail(tx.id) },
+                                )
+                            }
                         }
-                        when (selectedTab) {
-                            ReportTab.TRANSACTIONS -> {
-                                item(key = "list_header") {
-                                    Text(
-                                        "Daftar Transaksi (${report.transactions.size})",
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
+
+                        is SearchUiState.Empty -> {
+                            item(key = "search_empty_state") {
+                                Text(
+                                    "Data \"${state.query}\" tidak ditemukan dalam 365 hari terakhir.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                )
+                            }
+                        }
+
+                        SearchUiState.Loading -> {
+                            item(key = "search_loading") {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                                 }
-                                if (report.transactions.isEmpty()) {
-                                    item(key = "empty") { EmptyReport() }
-                                } else {
-                                    items(
-                                        items = report.transactions,
-                                        key = { it.id },
-                                        contentType = { "transaction" },
-                                    ) { tx ->
-                                        TransactionRow(
-                                            tx = tx,
-                                            onClick = { viewModel.openTransactionDetail(tx.id) },
+                            }
+                        }
+
+                        SearchUiState.Idle -> {
+                            item(key = "date_navigator") {
+                                DateNavigator(
+                                    label = selectedDate.format(ReportViewModel.dateFmt),
+                                    isToday = isToday,
+                                    onPrevious = viewModel::previousDay,
+                                    onNext = viewModel::nextDay,
+                                    onToday = viewModel::goToday,
+                                    onCalendarClick = { showDatePicker = true },
+                                )
+                            }
+                            item(key = "sales_report_generator") {
+                                val periodType by viewModel.selectedPeriodType.collectAsStateWithLifecycle()
+                                val includeSalesSummary by viewModel.includeSalesSummary.collectAsStateWithLifecycle()
+                                val includeProductsSold by viewModel.includeProductsSold.collectAsStateWithLifecycle()
+                                val includeDeadStock by viewModel.includeDeadStock.collectAsStateWithLifecycle()
+                                val salesReportState by viewModel.salesReportUiState.collectAsStateWithLifecycle()
+                                val scope = rememberCoroutineScope()
+                                val context = LocalContext.current
+                                GlassCard(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .animateContentSize(
+                                                animationSpec =
+                                                    spring(
+                                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        stiffness = Spring.StiffnessLow,
+                                                    ),
+                                            ),
+                                    contentPadding = PaddingValues(12.dp),
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(
+                                            "Generator Laporan Penjualan",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
                                         )
+                                        ReportPeriodToggleRow(
+                                            selected = periodType,
+                                            enabled = true,
+                                            onSelect = viewModel::toggleReportPeriod,
+                                        )
+                                        Column {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Checkbox(
+                                                    checked = includeSalesSummary,
+                                                    onCheckedChange = viewModel::toggleIncludeSalesSummary,
+                                                )
+                                                Text("Ringkasan Penjualan & Keuangan", fontSize = 12.sp)
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Checkbox(
+                                                    checked = includeProductsSold,
+                                                    onCheckedChange = viewModel::toggleIncludeProductsSold,
+                                                )
+                                                Text("Daftar Produk Terjual", fontSize = 12.sp)
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Checkbox(
+                                                    checked = includeDeadStock,
+                                                    onCheckedChange = viewModel::toggleIncludeDeadStock,
+                                                )
+                                                Text("Daftar Produk Tidak Laku (Dead Stock)", fontSize = 12.sp)
+                                            }
+                                        }
+                                        if (periodType != null) {
+                                            SalesReportResultCard(
+                                                uiState = salesReportState,
+                                                onPrint = viewModel::printSalesReport,
+                                                onExportPdf = {
+                                                    viewModel.buildCurrentReportLinesForExportAsync { lines ->
+                                                        if (lines != null) {
+                                                            scope.launch {
+                                                                val file =
+                                                                    ReceiptManager.exportPdfFromLines(
+                                                                        context,
+                                                                        lines,
+                                                                        "Laporan_${periodType?.name}_$selectedDate",
+                                                                    )
+                                                                viewModel.notifyPdfExported()
+                                                                onSharePdfFile(file)
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             }
-                            ReportTab.SHIFTS -> {
-                                item(key = "payment_breakdown") {
-                                    PaymentBreakdownSection(
-                                        cashRevenue = report.cashRevenue,
-                                        qrisRevenue = report.qrisRevenue,
+                            item(key = "summary") { SummarySection(report = report) }
+                            if (report.transactionCount > 0) {
+                                item(key = "revenue_trend_chart") {
+                                    RevenueTrendChart(
+                                        date = report.date,
+                                        transactions = report.transactions.filterNot { it.isVoid },
+                                        totalRevenue = report.totalRevenue,
+                                        hourly = report.hourlyRevenue,
                                     )
                                 }
-                                item(key = "return_summary") {
-                                    ReturnSummarySection(
-                                        cashRefundTotal = returnSummary.cashRefundTotal,
-                                        qrisRefundTotal = returnSummary.qrisRefundTotal,
-                                    )
-                                }
-                                item(key = "returns_header") {
-                                    Text(
-                                        "Daftar Retur (${returnSummary.returns.size})",
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
-                                }
-                                if (returnSummary.returns.isEmpty()) {
-                                    item(key = "empty_returns") { EmptyReturns() }
-                                } else {
-                                    items(
-                                        items = returnSummary.returns,
-                                        key = { "return_${it.id}" },
-                                        contentType = { "return" },
-                                    ) { ret ->
-                                        ReturnRow(
-                                            ret = ret,
-                                            onClick = { viewModel.openReturnDetail(ret.id) },
+                            }
+                            item(key = "tab_switcher") {
+                                ReportTabSwitcher(selected = selectedTab, onSelect = viewModel::selectTab)
+                            }
+                            when (selectedTab) {
+                                ReportTab.TRANSACTIONS -> {
+                                    item(key = "list_header") {
+                                        Text(
+                                            "Daftar Transaksi (${report.transactions.size})",
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(top = 2.dp),
                                         )
                                     }
+                                    if (report.transactions.isEmpty()) {
+                                        item(key = "empty") { EmptyReport() }
+                                    } else {
+                                        items(
+                                            items = report.transactions,
+                                            key = { it.id },
+                                            contentType = { "transaction" },
+                                        ) { tx ->
+                                            TransactionRow(
+                                                tx = tx,
+                                                onClick = { viewModel.openTransactionDetail(tx.id) },
+                                            )
+                                        }
+                                    }
                                 }
-                                item(key = "closed_shifts_header") {
-                                    Text(
-                                        "Riwayat Tutup Shift (${closedShifts.size})",
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
-                                }
-                                if (closedShifts.isEmpty()) {
-                                    item(key = "empty_shifts") { EmptyClosedShifts() }
-                                } else {
-                                    items(
-                                        items = closedShifts,
-                                        key = { it.id },
-                                        contentType = { "closed_shift" },
-                                    ) { shift ->
-                                        ClosedShiftRow(
-                                            shift = shift,
-                                            onClick = { viewModel.openShiftDetail(shift) },
+
+                                ReportTab.SHIFTS -> {
+                                    item(key = "payment_breakdown") {
+                                        PaymentBreakdownSection(
+                                            cashRevenue = report.cashRevenue,
+                                            qrisRevenue = report.qrisRevenue,
                                         )
+                                    }
+                                    item(key = "return_summary") {
+                                        ReturnSummarySection(
+                                            cashRefundTotal = returnSummary.cashRefundTotal,
+                                            qrisRefundTotal = returnSummary.qrisRefundTotal,
+                                        )
+                                    }
+                                    item(key = "returns_header") {
+                                        Text(
+                                            "Daftar Retur (${returnSummary.returns.size})",
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(top = 2.dp),
+                                        )
+                                    }
+                                    if (returnSummary.returns.isEmpty()) {
+                                        item(key = "empty_returns") { EmptyReturns() }
+                                    } else {
+                                        items(
+                                            items = returnSummary.returns,
+                                            key = { "return_${it.id}" },
+                                            contentType = { "return" },
+                                        ) { ret ->
+                                            ReturnRow(
+                                                ret = ret,
+                                                onClick = { viewModel.openReturnDetail(ret.id) },
+                                            )
+                                        }
+                                    }
+                                    item(key = "closed_shifts_header") {
+                                        Text(
+                                            "Riwayat Tutup Shift (${closedShifts.size})",
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(top = 2.dp),
+                                        )
+                                    }
+                                    if (closedShifts.isEmpty()) {
+                                        item(key = "empty_shifts") { EmptyClosedShifts() }
+                                    } else {
+                                        items(
+                                            items = closedShifts,
+                                            key = { it.id },
+                                            contentType = { "closed_shift" },
+                                        ) { shift ->
+                                            ClosedShiftRow(
+                                                shift = shift,
+                                                onClick = { viewModel.openShiftDetail(shift) },
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -560,7 +568,6 @@ fun ReportScreen(
                     }
                 }
             }
-        }
         }
         androidx.compose.animation.AnimatedVisibility(
             visible = showDirectWarrantyScreen,
@@ -660,6 +667,7 @@ fun ReportScreen(
         )
     }
 }
+
 @Composable
 private fun ReportPeriodToggleRow(
     selected: ReportPeriodType?,
@@ -691,6 +699,7 @@ private fun ReportPeriodToggleRow(
         )
     }
 }
+
 @Composable
 private fun ReportPeriodChip(
     label: String,
@@ -721,6 +730,7 @@ private fun ReportPeriodChip(
         )
     }
 }
+
 @Composable
 private fun SalesReportResultCard(
     uiState: SalesReportUiState,
@@ -753,6 +763,7 @@ private fun SalesReportResultCard(
                     Text("Memuat laporan...", style = MaterialTheme.typography.bodySmall)
                 }
             }
+
             is SalesReportUiState.Loaded -> {
                 val data = uiState.data
                 val periodLabel = if (uiState.periodType == ReportPeriodType.MONTHLY) "Bulanan" else "Harian"
@@ -777,12 +788,14 @@ private fun SalesReportResultCard(
                     }
                 }
             }
+
             SalesReportUiState.Hidden -> {
                 Unit
             }
         }
     }
 }
+
 @Composable
 private fun DateNavigator(
     label: String,
@@ -853,6 +866,7 @@ private fun DateNavigator(
         }
     }
 }
+
 @Composable
 fun ProductHistorySearchSection(
     query: String,
@@ -937,6 +951,7 @@ fun ProductHistorySearchSection(
         }
     }
 }
+
 @Composable
 private fun MonthExpandableCard(
     monthGroup: MonthSalesGroup,
@@ -991,6 +1006,7 @@ private fun MonthExpandableCard(
         }
     }
 }
+
 @Composable
 private fun DayExpandableSection(
     dayGroup: DaySalesGroup,
@@ -1037,6 +1053,7 @@ private fun DayExpandableSection(
         }
     }
 }
+
 @Composable
 private fun CompactNavIcon(
     icon: ImageVector,
@@ -1065,6 +1082,7 @@ private fun CompactNavIcon(
         )
     }
 }
+
 @Composable
 private fun TodayPillButton(onClick: () -> Unit) {
     Row(
@@ -1091,6 +1109,7 @@ private fun TodayPillButton(onClick: () -> Unit) {
         )
     }
 }
+
 @Composable
 private fun SummarySection(report: DailyReport) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1143,6 +1162,7 @@ private fun SummarySection(report: DailyReport) {
         }
     }
 }
+
 @Composable
 private fun StatCard(
     modifier: Modifier = Modifier,
@@ -1181,6 +1201,7 @@ private fun StatCard(
         }
     }
 }
+
 private fun Long.toCompactRupiah(): String {
     fun trim(d: Double): String {
         val rounded = Math.round(d * 10) / 10.0
@@ -1197,6 +1218,7 @@ private fun Long.toCompactRupiah(): String {
         else -> "Rp$this"
     }
 }
+
 @Composable
 private fun RevenueTrendChart(
     date: LocalDate,
@@ -1287,10 +1309,12 @@ private fun RevenueTrendChart(
                 val plotBottom = size.height - bottomAxisHeight
                 val plotWidth = plotRight - plotLeft
                 val plotHeight = plotBottom - plotTop
+
                 fun xFor(time: Long): Float {
                     val ratio = (time - dayStartMillis).toFloat() / (dayEndMillis - dayStartMillis).toFloat()
                     return plotLeft + ratio.coerceIn(0f, 1f) * plotWidth
                 }
+
                 fun yFor(value: Long): Float {
                     val ratio = value.toFloat() / maxRevenue.toFloat()
                     return plotBottom - ratio.coerceIn(0f, 1f) * plotHeight
@@ -1368,6 +1392,7 @@ private fun RevenueTrendChart(
         }
     }
 }
+
 @Composable
 private fun ReportTabSwitcher(
     selected: ReportTab,
@@ -1396,6 +1421,7 @@ private fun ReportTabSwitcher(
         )
     }
 }
+
 @Composable
 private fun ReportTabChip(
     label: String,
@@ -1425,6 +1451,7 @@ private fun ReportTabChip(
         )
     }
 }
+
 @Composable
 private fun PaymentBreakdownSection(
     cashRevenue: Long,
@@ -1452,6 +1479,7 @@ private fun PaymentBreakdownSection(
         }
     }
 }
+
 @Composable
 private fun ReturnSummarySection(
     cashRefundTotal: Long,
@@ -1479,6 +1507,7 @@ private fun ReturnSummarySection(
         }
     }
 }
+
 @Composable
 private fun ReturnRow(
     ret: ReturnEntity,
@@ -1536,6 +1565,7 @@ private fun ReturnRow(
         }
     }
 }
+
 @Composable
 private fun EmptyReturns() {
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
@@ -1555,6 +1585,7 @@ private fun EmptyReturns() {
         }
     }
 }
+
 @Composable
 private fun ReturnDetailDialog(
     detail: ReturnDetail,
@@ -1584,20 +1615,20 @@ private fun ReturnDetailDialog(
                 Spacer(Modifier.height(4.dp))
                 val isSynthetic = header.transactionId.startsWith("EXC-") || header.transactionId.startsWith("RET-DIR-")
                 if (!isSynthetic) {
-                TextButton(
-                    onClick = { onViewOriginalTransaction(header.transactionId) },
-                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.ReceiptLong,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text("Lihat Transaksi Asal", style = MaterialTheme.typography.labelSmall)
+                    TextButton(
+                        onClick = { onViewOriginalTransaction(header.transactionId) },
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ReceiptLong,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Lihat Transaksi Asal", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Spacer(Modifier.height(6.dp))
                 }
-                Spacer(Modifier.height(6.dp))
-            }
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 SummaryLine("Kasir", header.cashierName.ifBlank { "Tanpa kasir" })
                 SummaryLine("Shift", header.shiftId?.let { "#$it" } ?: "Tanpa shift")
@@ -1636,6 +1667,7 @@ private fun ReturnDetailDialog(
         },
     )
 }
+
 @Composable
 private fun ReturnDetailItemRow(item: ReturnItemEntity) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -1663,6 +1695,7 @@ private fun ReturnDetailItemRow(item: ReturnItemEntity) {
         RestockBadge(restocked = item.restocked, hasProduct = item.productId != null)
     }
 }
+
 @Composable
 private fun RestockBadge(
     restocked: Boolean,
@@ -1680,6 +1713,7 @@ private fun RestockBadge(
         color = color,
     )
 }
+
 @Composable
 private fun TransactionRow(
     tx: TransactionEntity,
@@ -1737,6 +1771,7 @@ private fun TransactionRow(
         }
     }
 }
+
 @Composable
 private fun VoidBadge() {
     Surface(
@@ -1752,6 +1787,7 @@ private fun VoidBadge() {
         )
     }
 }
+
 @Composable
 private fun ReturnedBadge() {
     Surface(
@@ -1767,6 +1803,7 @@ private fun ReturnedBadge() {
         )
     }
 }
+
 @Composable
 private fun ReceiptActionsRow(
     onPrint: () -> Unit,
@@ -1799,6 +1836,7 @@ private fun ReceiptActionsRow(
         )
     }
 }
+
 @Composable
 private fun ReceiptActionButton(
     icon: ImageVector,
@@ -1831,6 +1869,7 @@ private fun ReceiptActionButton(
         )
     }
 }
+
 @Composable
 private fun TransactionDetailDialog(
     result: CheckoutResult,
@@ -1996,9 +2035,11 @@ private fun TransactionDetailDialog(
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
+
                     tx.change == 0L -> {
                         SummaryLine("Kembali", tx.change.toRupiah(), color = MaterialTheme.colorScheme.primary)
                     }
+
                     else -> {
                         val isQrisCashOut = tx.paymentMethod == PaymentMethod.QRIS.name && tx.changeGivenInCash
                         SummaryLine(
@@ -2026,6 +2067,7 @@ private fun TransactionDetailDialog(
         },
     )
 }
+
 @Composable
 private fun ReprintResultBanner(
     printUiState: PrintUiState,
@@ -2039,9 +2081,11 @@ private fun ReprintResultBanner(
             is ReceiptPrintOutcome.Success -> {
                 "Struk terkirim ke \"${outcome.printer.label}\"." to false
             }
+
             is ReceiptPrintOutcome.SuccessWithNotice -> {
                 "Struk terkirim ke \"${outcome.printer.label}\".\n⚠ ${outcome.notice}" to false
             }
+
             is ReceiptPrintOutcome.Failed -> {
                 val printerCount = outcome.attempts.size
                 val reason = outcome.attempts.firstOrNull()?.message ?: ""
@@ -2056,9 +2100,11 @@ private fun ReprintResultBanner(
                     "$title\nAlasan: $reason" to true
                 }
             }
+
             ReceiptPrintOutcome.NoPrinterConfigured -> {
                 "Printer belum diatur." to true
             }
+
             ReceiptPrintOutcome.AlreadyInProgress -> {
                 "Sedang mencetak, mohon tunggu..." to false
             }
@@ -2097,6 +2143,7 @@ private fun ReprintResultBanner(
         }
     }
 }
+
 @Composable
 private fun VoidConfirmDialog(
     invoiceId: String,
@@ -2122,6 +2169,7 @@ private fun VoidConfirmDialog(
         },
     )
 }
+
 private data class ReturnRowState(
     val transactionItemId: Long,
     val productId: Long?,
@@ -2133,6 +2181,7 @@ private data class ReturnRowState(
     val restocked: Boolean = productId != null,
     val restockToDamaged: Boolean = false,
 )
+
 @Composable
 private fun ReturnItemDialog(
     result: CheckoutResult,
@@ -2323,6 +2372,7 @@ private fun ReturnItemDialog(
         },
     )
 }
+
 @Composable
 private fun ReturnItemRow(
     row: ReturnRowState,
@@ -2411,6 +2461,7 @@ private fun ReturnItemRow(
         }
     }
 }
+
 @Composable
 private fun MiniStepper(
     qty: Double,
@@ -2451,6 +2502,7 @@ private fun MiniStepper(
         }
     }
 }
+
 @Composable
 private fun RefundMethodToggle(
     selected: PaymentMethod,
@@ -2492,6 +2544,7 @@ private fun RefundMethodToggle(
         }
     }
 }
+
 @Composable
 private fun RefundAmountField(
     value: String,
@@ -2543,6 +2596,7 @@ private fun RefundAmountField(
         },
     )
 }
+
 @Composable
 private fun ClosedShiftRow(
     shift: ShiftEntity,
@@ -2612,6 +2666,7 @@ private fun ClosedShiftRow(
         }
     }
 }
+
 @Composable
 private fun ClosedShiftDetailDialog(
     detail: ClosedShiftDetail,
@@ -2721,6 +2776,7 @@ private fun ClosedShiftDetailDialog(
         },
     )
 }
+
 @Composable
 private fun EmptyClosedShifts() {
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
@@ -2740,6 +2796,7 @@ private fun EmptyClosedShifts() {
         }
     }
 }
+
 @Composable
 private fun SummaryLine(
     label: String,
@@ -2761,6 +2818,7 @@ private fun SummaryLine(
         )
     }
 }
+
 @Composable
 private fun EmptyReport() {
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
@@ -2780,6 +2838,7 @@ private fun EmptyReport() {
         }
     }
 }
+
 @Composable
 private fun MonthGroupCard(
     monthGroup: MonthSalesGroup,
@@ -2856,6 +2915,7 @@ private fun MonthGroupCard(
         }
     }
 }
+
 @Composable
 private fun CompactReportSearchBar(
     query: String,
@@ -2922,6 +2982,7 @@ private fun CompactReportSearchBar(
         },
     )
 }
+
 @Composable
 private fun CompactSquareIconButton(
     icon: ImageVector,

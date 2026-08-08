@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pos.offline.data.local.entity.ProductEntity
 import com.pos.offline.ui.inventory.InventoryViewModel
 import com.pos.offline.util.toRupiah
+
 @Composable
 fun DirectWarrantyScreen(
     inventoryViewModel: InventoryViewModel,
@@ -224,6 +225,7 @@ fun DirectWarrantyScreen(
         )
     }
 }
+
 @Composable
 private fun WarrantyClaimDialog(
     product: ProductEntity,
@@ -302,7 +304,7 @@ private fun WarrantyClaimDialog(
                 }
                 TextButton(
                     onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                 ) {
                     Text("Batal", fontSize = 13.sp)
                 }
@@ -310,6 +312,7 @@ private fun WarrantyClaimDialog(
         },
     )
 }
+
 @Composable
 private fun ExchangeClaimDialog(
     brokenProduct: ProductEntity,
@@ -434,6 +437,7 @@ private fun ExchangeClaimDialog(
         },
     )
 }
+
 @Composable
 private fun WarrantyProductRow(
     product: ProductEntity,
@@ -483,6 +487,7 @@ private fun WarrantyProductRow(
         }
     }
 }
+
 @Composable
 private fun WarrantySearchBar(
     query: String,
@@ -549,6 +554,7 @@ private fun WarrantySearchBar(
         },
     )
 }
+
 @Composable
 private fun WarrantySquareIconButton(
     icon: ImageVector,

@@ -5,16 +5,16 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
 import android.text.TextPaint
 import android.text.TextUtils
-import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
 import com.pos.offline.data.local.entity.PaymentMethod
 import com.pos.offline.data.local.entity.StoreProfileEntity
 import com.pos.offline.data.local.entity.isVoid
 import com.pos.offline.data.repository.CheckoutResult
-import com.pos.offline.data.repository.SalesReportData
 import com.pos.offline.data.repository.ReturnDetail
+import com.pos.offline.data.repository.SalesReportData
 import com.pos.offline.ui.components.paymentMethodLabel
 import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.toRupiah
@@ -27,7 +27,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.graphics.Color as AndroidColor
+
 enum class ReceiptAlign { LEFT, CENTER, RIGHT }
+
 data class ReceiptLine(
     val left: String = "",
     val right: String = "",
@@ -35,10 +37,12 @@ data class ReceiptLine(
     val bold: Boolean = false,
     val large: Boolean = false,
 )
+
 object ReceiptManager {
     private val dateFmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.forLanguageTag("id-ID"))
     private const val DEFAULT_DIVIDER_WIDTH = 32
     private val RESERVED_MARKUP_CHARS = Regex("[\\[\\]<>]")
+
     fun buildLines(
         result: CheckoutResult,
         storeProfile: StoreProfileEntity? = null,
@@ -126,8 +130,10 @@ object ReceiptManager {
         lines += ReceiptLine(left = "")
         return lines
     }
+
     private fun divider(width: Int = DEFAULT_DIVIDER_WIDTH): ReceiptLine =
         ReceiptLine(left = "-".repeat(width.coerceAtLeast(1)), align = ReceiptAlign.CENTER)
+
     suspend fun exportToPdf(
         context: Context,
         result: CheckoutResult,
@@ -137,6 +143,7 @@ object ReceiptManager {
             val lines = buildLines(result, storeProfile)
             exportPdfFromLines(context, lines, result.transaction.id)
         }
+
     suspend fun exportPdfFromLines(
         context: Context,
         lines: List<ReceiptLine>,
@@ -170,6 +177,7 @@ object ReceiptManager {
                 document.close()
             }
         }
+
     fun renderToBitmap(
         result: CheckoutResult,
         scale: Int = 3,
@@ -189,59 +197,69 @@ object ReceiptManager {
         }
         return bmp
     }
-private fun drawLine(
-    canvas: Canvas,
-    line: ReceiptLine,
-    pageWidth: Float,
-    margin: Float,
-    y: Float,
-    scale: Float = 1f,
-) {
-    val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = AndroidColor.BLACK
-        textSize = (if (line.large) 16f else 11f) * scale
-        typeface = if (line.bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-    }
-    val availableWidth = pageWidth - (margin * 2f)
-    if (line.right.isNotEmpty()) {
-        val rightPaint = if (line.bold) {
-            TextPaint(textPaint).apply { typeface = Typeface.DEFAULT }
+
+    private fun drawLine(
+        canvas: Canvas,
+        line: ReceiptLine,
+        pageWidth: Float,
+        margin: Float,
+        y: Float,
+        scale: Float = 1f,
+    ) {
+        val textPaint =
+            TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = AndroidColor.BLACK
+                textSize = (if (line.large) 16f else 11f) * scale
+                typeface = if (line.bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            }
+        val availableWidth = pageWidth - (margin * 2f)
+        if (line.right.isNotEmpty()) {
+            val rightPaint =
+                if (line.bold) {
+                    TextPaint(textPaint).apply { typeface = Typeface.DEFAULT }
+                } else {
+                    textPaint
+                }
+            val rightW = rightPaint.measureText(line.right)
+            val spacing = 8f * scale
+            val maxLeftWidth = (availableWidth - rightW - spacing).coerceAtLeast(0f)
+            val truncatedLeft =
+                TextUtils
+                    .ellipsize(
+                        line.left,
+                        textPaint,
+                        maxLeftWidth,
+                        TextUtils.TruncateAt.END,
+                    ).toString()
+            canvas.drawText(truncatedLeft, margin, y, textPaint)
+            canvas.drawText(line.right, pageWidth - margin - rightW, y, rightPaint)
         } else {
-            textPaint
-        }
-        val rightW = rightPaint.measureText(line.right)
-        val spacing = 8f * scale
-        val maxLeftWidth = (availableWidth - rightW - spacing).coerceAtLeast(0f)
-        val truncatedLeft = TextUtils.ellipsize(
-            line.left,
-            textPaint,
-            maxLeftWidth,
-            TextUtils.TruncateAt.END
-        ).toString()
-        canvas.drawText(truncatedLeft, margin, y, textPaint)
-        canvas.drawText(line.right, pageWidth - margin - rightW, y, rightPaint)
-    } else {
-        val truncatedText = TextUtils.ellipsize(
-            line.left,
-            textPaint,
-            availableWidth,
-            TextUtils.TruncateAt.END
-        ).toString()
-        when (line.align) {
-            ReceiptAlign.LEFT -> {
-                canvas.drawText(truncatedText, margin, y, textPaint)
-            }
-            ReceiptAlign.CENTER -> {
-                val tw = textPaint.measureText(truncatedText)
-                canvas.drawText(truncatedText, (pageWidth - tw) / 2f, y, textPaint)
-            }
-            ReceiptAlign.RIGHT -> {
-                val tw = textPaint.measureText(truncatedText)
-                canvas.drawText(truncatedText, pageWidth - margin - tw, y, textPaint)
+            val truncatedText =
+                TextUtils
+                    .ellipsize(
+                        line.left,
+                        textPaint,
+                        availableWidth,
+                        TextUtils.TruncateAt.END,
+                    ).toString()
+            when (line.align) {
+                ReceiptAlign.LEFT -> {
+                    canvas.drawText(truncatedText, margin, y, textPaint)
+                }
+
+                ReceiptAlign.CENTER -> {
+                    val tw = textPaint.measureText(truncatedText)
+                    canvas.drawText(truncatedText, (pageWidth - tw) / 2f, y, textPaint)
+                }
+
+                ReceiptAlign.RIGHT -> {
+                    val tw = textPaint.measureText(truncatedText)
+                    canvas.drawText(truncatedText, pageWidth - margin - tw, y, textPaint)
+                }
             }
         }
     }
-}
+
     fun buildShareIntent(
         context: Context,
         result: CheckoutResult,
@@ -265,6 +283,7 @@ private fun drawLine(
             }
         return Intent.createChooser(sendIntent, "Bagikan Struk")
     }
+
     fun buildPdfShareIntent(
         context: Context,
         file: File,
@@ -279,6 +298,7 @@ private fun drawLine(
             }
         return Intent.createChooser(sendIntent, "Bagikan Struk PDF")
     }
+
     fun linesToEscPosMarkup(lines: List<ReceiptLine>): String {
         val sb = StringBuilder()
         for (line in lines) {
@@ -302,6 +322,7 @@ private fun drawLine(
         }
         return sb.toString()
     }
+
     fun buildSalesReportLines(
         data: SalesReportData,
         storeProfile: StoreProfileEntity?,
@@ -368,6 +389,7 @@ private fun drawLine(
         lines += ReceiptLine(left = "")
         return lines
     }
+
     fun buildReturnReceiptLines(
         returnDetail: ReturnDetail,
         storeProfile: StoreProfileEntity?,
@@ -399,10 +421,11 @@ private fun drawLine(
             val lineTotal = kotlin.math.round(item.unitPrice * item.quantityReturned).toLong()
             if (item.quantityReturned > 1.0) {
                 lines += ReceiptLine(left = name, bold = true)
-                lines += ReceiptLine(
-                    left = "  ${item.quantityReturned.formatQuantity()} x ${item.unitPrice.toRupiah()}",
-                    right = lineTotal.toRupiah()
-                )
+                lines +=
+                    ReceiptLine(
+                        left = "  ${item.quantityReturned.formatQuantity()} x ${item.unitPrice.toRupiah()}",
+                        right = lineTotal.toRupiah(),
+                    )
             } else {
                 lines += ReceiptLine(left = name, right = lineTotal.toRupiah(), bold = true)
             }

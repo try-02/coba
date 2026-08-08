@@ -2,6 +2,8 @@ package com.pos.offline.ui.inventory
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +28,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -66,6 +68,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,16 +93,13 @@ import com.pos.offline.data.local.entity.ProductEntity
 import com.pos.offline.ui.components.GlassCard
 import com.pos.offline.ui.components.ThousandsSeparatorTransformation
 import com.pos.offline.ui.components.rememberBarcodeScanner
-import com.pos.offline.util.sanitizeScannedCode
 import com.pos.offline.util.ExcelManager
-import com.pos.offline.util.formatQuantity
-import com.pos.offline.util.toRupiah
 import com.pos.offline.util.bouncyOverscroll
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.runtime.CompositionLocalProvider
+import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
+import com.pos.offline.util.sanitizeScannedCode
+import com.pos.offline.util.toRupiah
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -241,30 +241,30 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         topSalesRangeLabel = topSalesRange.label,
                     )
                 } else {
-                @OptIn(ExperimentalFoundationApi::class)
-                CompositionLocalProvider(
-                    LocalOverscrollConfiguration provides null
-                ) {
-                    LazyColumn(
-                        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 96.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.bouncyOverscroll(),
-                        flingBehavior = iosGlideFlingBehavior()
+                    @OptIn(ExperimentalFoundationApi::class)
+                    CompositionLocalProvider(
+                        LocalOverscrollConfiguration provides null,
                     ) {
-                        items(
-                            items = products,
-                            key = { it.id },
-                            contentType = { "product" },
-                        ) { product ->
-                            ProductRow(
-                                product = product,
-                                onEdit = { viewModel.startEdit(product) },
-                            )
+                        LazyColumn(
+                            contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.bouncyOverscroll(),
+                            flingBehavior = iosGlideFlingBehavior(),
+                        ) {
+                            items(
+                                items = products,
+                                key = { it.id },
+                                contentType = { "product" },
+                            ) { product ->
+                                ProductRow(
+                                    product = product,
+                                    onEdit = { viewModel.startEdit(product) },
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
         }
         SmallFloatingActionButton(
             onClick = viewModel::startAdd,
@@ -354,6 +354,7 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         )
     }
 }
+
 @Composable
 private fun ExcelIconButton(
     icon: ImageVector,
@@ -382,6 +383,7 @@ private fun ExcelIconButton(
         }
     }
 }
+
 @Composable
 private fun ImportReviewDialog(
     reviewItems: List<InventoryViewModel.ImportReviewItem>,
@@ -461,6 +463,7 @@ private fun ImportReviewDialog(
         },
     )
 }
+
 @Composable
 private fun ImportStatBadge(
     text: String,
@@ -476,6 +479,7 @@ private fun ImportStatBadge(
         )
     }
 }
+
 @Composable
 private fun ImportReviewRow(item: InventoryViewModel.ImportReviewItem) {
     val (label, color) =
@@ -522,6 +526,7 @@ private fun ImportReviewRow(item: InventoryViewModel.ImportReviewItem) {
         }
     }
 }
+
 @Composable
 private fun ProductRow(
     product: ProductEntity,
@@ -588,6 +593,7 @@ private fun ProductRow(
         }
     }
 }
+
 @Composable
 private fun CategoryBadge(category: String) {
     Surface(color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
@@ -602,6 +608,7 @@ private fun CategoryBadge(category: String) {
         )
     }
 }
+
 @Composable
 private fun CompactIconAction(
     icon: ImageVector,
@@ -622,6 +629,7 @@ private fun CompactIconAction(
         Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(16.dp))
     }
 }
+
 @Composable
 private fun StockBadge(stock: Double) {
     val color =
@@ -640,6 +648,7 @@ private fun StockBadge(stock: Double) {
         )
     }
 }
+
 @Composable
 private fun DamagedStockBadge(stock: Double) {
     Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.16f), shape = RoundedCornerShape(6.dp)) {
@@ -652,6 +661,7 @@ private fun DamagedStockBadge(stock: Double) {
         )
     }
 }
+
 @Composable
 private fun EmptyInventory(
     hasQuery: Boolean,
@@ -684,6 +694,7 @@ private fun EmptyInventory(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     )
                 }
+
                 !hasQuery -> {
                     Text(
                         "Ketuk tombol + untuk mulai",
@@ -695,6 +706,7 @@ private fun EmptyInventory(
         }
     }
 }
+
 @Composable
 private fun CompactInventorySearchBar(
     query: String,
@@ -759,6 +771,7 @@ private fun CompactInventorySearchBar(
         },
     )
 }
+
 @Composable
 private fun SortMenuButton(
     current: ProductSortOption,
@@ -804,6 +817,7 @@ private fun SortMenuButton(
         }
     }
 }
+
 @Composable
 private fun ScanIconButton(onClick: () -> Unit) {
     Box(
@@ -823,6 +837,7 @@ private fun ScanIconButton(onClick: () -> Unit) {
         )
     }
 }
+
 @Composable
 private fun ProductFormDialog(
     state: ProductFormState,
@@ -1139,6 +1154,7 @@ private fun ProductFormDialog(
         )
     }
 }
+
 @Composable
 private fun DecimalNumberField(
     value: String,
@@ -1157,6 +1173,7 @@ private fun DecimalNumberField(
                             c.isDigit() -> {
                                 append(c)
                             }
+
                             c == '.' && !dotSeen -> {
                                 append(c)
                                 dotSeen = true
@@ -1174,6 +1191,7 @@ private fun DecimalNumberField(
         modifier = modifier,
     )
 }
+
 @Composable
 private fun CategoryField(
     value: String,
@@ -1232,6 +1250,7 @@ private fun CategoryField(
         }
     }
 }
+
 @Composable
 private fun MoneyNumberField(
     value: String,
@@ -1252,6 +1271,7 @@ private fun MoneyNumberField(
         modifier = modifier,
     )
 }
+
 @Composable
 private fun TopSalesRangePicker(
     selected: TopSalesRange,
@@ -1276,6 +1296,7 @@ private fun TopSalesRangePicker(
         }
     }
 }
+
 @Composable
 private fun TopSalesChip(
     label: String,

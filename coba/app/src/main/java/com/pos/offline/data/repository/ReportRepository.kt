@@ -4,6 +4,7 @@ import com.pos.offline.data.local.dao.ProductSalesRow
 import com.pos.offline.data.local.dao.ProfitAndItemsSummary
 import com.pos.offline.data.local.dao.ReportDao
 import com.pos.offline.data.local.dao.SalesSummary
+
 data class SalesReportData(
     val summary: SalesSummary,
     val profitItems: ProfitAndItemsSummary,
@@ -15,6 +16,7 @@ data class SalesReportData(
     val biayaGaransi: Long = 0L,
     val products: List<ProductSalesRow> = emptyList(),
 )
+
 class ReportRepository(
     private val reportDao: ReportDao,
 ) {
@@ -36,6 +38,7 @@ class ReportRepository(
         val products = if (includeProducts) reportDao.getTopSellingProducts(start, end, activeOnly = false) else emptyList()
         return SalesReportData(summary, profitItems, payments, returns, diskon, pendapatanBersih, labaBersih, biayaGaransi, products)
     }
+
     fun observeProductsByTopSales(
         start: Long,
         end: Long,
