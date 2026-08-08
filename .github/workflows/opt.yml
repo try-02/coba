@@ -245,7 +245,7 @@ jobs:
           echo "✅ Ktlint format & reporting done!"
 
       # ============================================
-      #  STEP 4: DETEKT AUTO-CORRECT & REPORT
+      #  STEP 4: DETEKT AUTO-CORRECT
       # ============================================
       - name: "🔍 Step 4/6: Detekt Static Analysis"
         if: ${{ inputs.run_detekt }}
@@ -254,28 +254,23 @@ jobs:
           echo "📥 Downloading detekt ${DETEKT_VERSION}..."
           curl -sSLO "https://github.com/detekt/detekt/releases/download/v${DETEKT_VERSION}/detekt-cli-${DETEKT_VERSION}-all.jar"
 
-          # Config YAML Anda (Sama seperti source 6)
+          # Config fokus pada optimasi & cleanup (Telah diperbaiki)
           cat > /tmp/detekt.yml << 'YAML'
           style:
             active: true
-            UnusedImports:
-              active: true
-              autoCorrect: true
             WildcardImport:
               active: true
               autoCorrect: true
             OptionalUnit:
               active: true
               autoCorrect: true
-            UnusedPrivateMember:
-              active: true
             UnusedPrivateClass:
               active: true
             UnnecessaryLet:
               active: true
             UnnecessaryApply:
               active: true
-            RedundantVisibilityModifierRule:
+            RedundantVisibilityModifier:
               active: true
 
           empty-blocks:
