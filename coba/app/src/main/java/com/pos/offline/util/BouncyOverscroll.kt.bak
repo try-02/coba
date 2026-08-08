@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -32,7 +33,6 @@ fun Modifier.bouncyOverscroll(orientation: Orientation = Orientation.Vertical): 
             remember(orientation) {
                 var animJob: Job? = null
 
-                // Fungsi ini HANYA dipanggil saat interaksi scroll (jari/momentum) benar-benar selesai
                 fun springBackToZero(initialVelocity: Float = 0f) {
                     animJob?.cancel()
                     animJob =
@@ -87,17 +87,12 @@ fun Modifier.bouncyOverscroll(orientation: Orientation = Orientation.Vertical): 
                     ): Offset {
                         val availableDelta = if (orientation == Orientation.Vertical) available.y else available.x
 
-                        // HAPUS syarat source == UserInput agar lemparan (fling) 
-                        // yang menabrak mentok juga memicu peregangan karet
-                        if (availableDelta != 0f) {
+                        if (availableDelta != 0f && source == NestedScrollSource.UserInput) {
                             animJob?.cancel()
 
                             val currentAbs = abs(translation.value)
-                            
-                            // Turunkan sedikit elastisitas jika sumbernya dari momentum fling
-                            // agar UI tidak terlempar keluar batas secara ekstrim
-                            val baseElasticity = if (source == NestedScrollSource.UserInput) 0.45f else 0.25f
-                            val elasticity = baseElasticity * (1f - (currentAbs / 350f).coerceIn(0f, 0.85f))
+
+                            val elasticity = 0.45f * (1f - (currentAbs / 350f).coerceIn(0f, 0.85f))
                             val resistance = availableDelta * elasticity
 
                             scope.launch {
@@ -109,7 +104,6 @@ fun Modifier.bouncyOverscroll(orientation: Orientation = Orientation.Vertical): 
                         return Offset.Zero
                     }
 
-                    // onPreFling dipanggil tepat setelah jari diangkat (lepas layar)
                     override suspend fun onPreFling(available: Velocity): Velocity {
                         val current = translation.value
                         if (abs(current) > 0.5f) {
@@ -119,26 +113,36 @@ fun Modifier.bouncyOverscroll(orientation: Orientation = Orientation.Vertical): 
                         return Velocity.Zero
                     }
 
-                    // onPostFling dipanggil setelah momentum sisa (lemparan) berhenti sepenuhnya
                     override suspend fun onPostFling(
                         consumed: Velocity,
                         available: Velocity,
                     ): Velocity {
                         val availableVelocity = if (orientation == Orientation.Vertical) available.y else available.x
-                        
-                        // Selalu pastikan kembali ke 0 karena list mungkin telah diregangkan
-                        // pada saat onPostScroll momentum (Fling) menabrak batas
-                        val initialVel = (availableVelocity * 0.35f).coerceIn(-3500f, 3500f)
-                        springBackToZero(initialVelocity = initialVel)
-                        
-                        return available
+
+                        if (availableVelocity != 0f) {
+                            val initialVel = (availableVelocity * 0.35f).coerceIn(-3500f, 3500f)
+                            springBackToZero(initialVelocity = initialVel)
+                            return available
+                        }
+                        return Velocity.Zero
                     }
                 }
             }
 
-        // CATATAN: LaunchedEffect yang sebelumnya otomatis menarik kembali (animateTo 0f) 
-        // telah DIHAPUS. Itulah sumber utama mengapa efek bouncy hilang karena
-        // ia "berkelahi" dengan pergerakan jari Anda saat menggeser.
+        LaunchedEffect(translation.value) {
+            if (abs(translation.value) > 0.5f && !translation.isRunning) {
+                translation.animateTo(
+                    targetValue = 0f,
+                    animationSpec =
+                        spring(
+                            dampingRatio = 0.5f,
+                            stiffness = Spring.StiffnessLow,
+                        ),
+                )
+            } else if (abs(translation.value) <= 0.5f && translation.value != 0f && !translation.isRunning) {
+                translation.snapTo(0f)
+            }
+        }
 
         this
             .nestedScroll(connection)
