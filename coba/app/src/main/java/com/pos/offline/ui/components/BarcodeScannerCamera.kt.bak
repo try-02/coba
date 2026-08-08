@@ -298,13 +298,11 @@ fun BarcodeScannerCamera(
                 else {
                     val requestCount = objectScanRequestCountState.value
                     
-                    // JIKA tidak ada request jepret dari tombol, abaikan dan buang frame
                     if (requestCount <= processedObjectCount.get()) {
                         proxy.close()
                         return@setAnalyzer
                     }
                     
-                    // JIKA ada request, catat bahwa request ini sudah diproses
                     processedObjectCount.set(requestCount)
 
                     coroutineScope.launch(Dispatchers.Main) {
@@ -312,21 +310,47 @@ fun BarcodeScannerCamera(
                     }
 
                     try {
+                        // 1. Ambil Bitmap dari Kamera
                         val bitmap = proxy.toBitmap()
                         val rotationDegrees = proxy.imageInfo.rotationDegrees
 
+                        // 2. Putar Gambar (jika perlu)
                         val rotatedBitmap = if (rotationDegrees != 0) {
                             val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
-                            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                            // Hapus bitmap asli dari memori untuk mencegah kebocoran RAM
+                            bitmap.recycle()
+                            rotated
                         } else {
                             bitmap
                         }
 
+                        // 3. AUTO-CROP STATIS (Sesuai rasio ScannerViewfinder 75% x 35%)
+                        val cropWidth = (rotatedBitmap.width * 0.75f).toInt()
+                        val cropHeight = (rotatedBitmap.height * 0.35f).toInt()
+                        val cropLeft = (rotatedBitmap.width - cropWidth) / 2
+                        val cropTop = (rotatedBitmap.height - cropHeight) / 2
+
+                        val croppedBitmap = Bitmap.createBitmap(
+                            rotatedBitmap,
+                            cropLeft,
+                            cropTop,
+                            cropWidth,
+                            cropHeight
+                        )
+
+                        // Hapus rotatedBitmap dari memori jika objeknya berbeda dengan croppedBitmap
+                        if (rotatedBitmap != croppedBitmap) {
+                            rotatedBitmap.recycle()
+                        }
+
+                        // 4. Ekstrak Fitur AI menggunakan gambar yang sudah di-crop
                         val extractor = featureExtractor
                         val onObjectCallback = onObjectScannedState.value
 
                         if (extractor != null && onObjectCallback != null) {
-                            val features = extractor.extractFeatures(rotatedBitmap)
+                            // Lempar croppedBitmap ke ekstraktor AI
+                            val features = extractor.extractFeatures(croppedBitmap)
 
                             coroutineScope.launch(Dispatchers.Main) {
                                 onObjectScanCompleteState.value()

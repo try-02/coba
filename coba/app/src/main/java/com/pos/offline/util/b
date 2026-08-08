@@ -1,0 +1,36 @@
+fun extractFeatures(bitmap: Bitmap): FloatArray {
+        // --- TAMBAHKAN PENGECEKAN INI ---
+        // Konversi paksa ke ARGB_8888 (Software) jika bitmap berupa Hardware
+        val softwareBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        } else {
+            bitmap
+        }
+
+        // Gunakan softwareBitmap untuk proses resize
+        val resizedBitmap = if (softwareBitmap.width != IMAGE_SIZE || softwareBitmap.height != IMAGE_SIZE) {
+            Bitmap.createScaledBitmap(softwareBitmap, IMAGE_SIZE, IMAGE_SIZE, true)
+        } else {
+            softwareBitmap
+        }
+        
+        convertBitmapToByteBuffer(resizedBitmap)
+        interpreter?.run(byteBuffer, outputArray)
+        
+        val rawVector = outputArray[0]
+        
+        // --- L2 NORMALIZATION ---
+        var sum = 0.0f
+        for (v in rawVector) {
+            sum += v * v
+        }
+        val magnitude = kotlin.math.sqrt(sum.toDouble()).toFloat()
+        
+        if (magnitude > 0) {
+            for (i in rawVector.indices) {
+                rawVector[i] = rawVector[i] / magnitude
+            }
+        }
+        
+        return rawVector.clone()
+    }

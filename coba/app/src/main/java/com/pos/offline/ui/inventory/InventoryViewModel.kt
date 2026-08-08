@@ -189,14 +189,18 @@ class InventoryViewModel(
         }
     }
 
-suspend fun onObjectScanned(scannedVector: FloatArray): String? {
-    if (scannedVector.isEmpty()) return null
+suspend fun onObjectScanned(scannedVector: FloatArray): String? = withContext(Dispatchers.Default) {
+    if (scannedVector.isEmpty()) return@withContext null
     
-    return try { // JANGAN LUPA DIBUKA DENGAN TRY
-        // Di Inventory, kita ambil semua produk termasuk yang non-aktif untuk dicek
+    try {
         val allProducts = productRepository.getAllProductsOnce()
         var bestMatch: ProductEntity? = null
-        var maxSimilarity = 0.99f
+        
+        // --- PERBAIKAN KRITIS ---
+        // Gunakan threshold realistis (misal 0.70f = 70% kemiripan). 
+        // 0.99f terlalu ekstrem dan membuat scan selalu gagal.
+        val SIMILARITY_THRESHOLD = 0.80f 
+        var maxSimilarity = SIMILARITY_THRESHOLD
 
         for (product in allProducts) {
             val vectorStr = product.imageVector
@@ -207,29 +211,35 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? {
                 vectorStr.toVectorFloatArray()
             }
 
-            val similarity = VectorUtils.calculateCosineSimilarity(scannedVector, dbVector)
+            // Gunakan Fast-Path Dot Product (karena vektor sudah L2-Normalized)
+            val similarity = VectorUtils.calculateNormalizedDotProduct(scannedVector, dbVector)
             if (similarity > maxSimilarity) {
                 maxSimilarity = similarity
                 bestMatch = product
             }
         }
 
-        when {
-            bestMatch == null -> {
-                notify("Objek AI tidak dikenali.")
-                null
-            }
-            bestMatch.active -> {
-                startEdit(bestMatch) // Aksi khusus Inventory: Buka Form Edit
-                bestMatch.name
-            }
-            else -> {
-                _deletedProductFound.value = DeletedProductFoundState(bestMatch) // Aksi khusus Inventory
-                bestMatch.name
+        // Kembalikan hasil ke Main Thread untuk UI
+        withContext(Dispatchers.Main) {
+            when {
+                bestMatch == null -> {
+                    notify("Objek AI tidak dikenali.")
+                    null
+                }
+                bestMatch.active -> {
+                    startEdit(bestMatch) // Form Edit
+                    bestMatch.name
+                }
+                else -> {
+                    _deletedProductFound.value = DeletedProductFoundState(bestMatch)
+                    bestMatch.name
+                }
             }
         }
     } catch (e: Exception) {
-        notify("Gagal memproses AI scan: ${e.message}")
+        withContext(Dispatchers.Main) {
+            notify("Gagal memproses AI scan: ${e.message}")
+        }
         null
     }
 }

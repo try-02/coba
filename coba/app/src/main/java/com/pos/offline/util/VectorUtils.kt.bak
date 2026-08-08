@@ -3,32 +3,25 @@ package com.pos.offline.util
 import kotlin.math.sqrt
 
 object VectorUtils {
+    /**
+     * Mengubah FloatArray (hasil dari AI) menjadi String (untuk disimpan di Room DB).
+     * Contoh hasil: "0.123,-0.456,0.789..."
+     */
     fun FloatArray.toVectorString(): String {
         return this.joinToString(",")
     }
 
+    /**
+     * Mengubah String dari Room DB kembali menjadi FloatArray untuk dikomparasi.
+     */
     fun String.toVectorFloatArray(): FloatArray {
         if (this.isBlank()) return FloatArray(0)
         return this.split(",").mapNotNull { it.toFloatOrNull() }.toFloatArray()
     }
 
     /**
-     * OPTIMASI FAST-PATH: Dot Product Langsung.
-     * Khusus untuk vektor yang SUDAH di-L2 Normalize oleh ImageFeatureExtractor.
-     * Sangat cepat karena tanpa Math.sqrt() & pembagian.
-     */
-    fun calculateNormalizedDotProduct(vectorA: FloatArray, vectorB: FloatArray): Float {
-        if (vectorA.isEmpty() || vectorB.isEmpty() || vectorA.size != vectorB.size) return 0f
-
-        var dotProduct = 0f
-        for (i in vectorA.indices) {
-            dotProduct += vectorA[i] * vectorB[i]
-        }
-        return dotProduct
-    }
-
-    /**
-     * Cosine Similarity Standar (Digunakan jika vektor belum di-normalize).
+     * Menghitung tingkat kemiripan (Cosine Similarity) antara 2 objek visual.
+     * Hasil: 1.0 (Identik/Sama Persis) hingga -1.0 (Sangat Berbeda).
      */
     fun calculateCosineSimilarity(vectorA: FloatArray, vectorB: FloatArray): Float {
         if (vectorA.isEmpty() || vectorB.isEmpty() || vectorA.size != vectorB.size) return 0f

@@ -41,17 +41,20 @@ class ImageFeatureExtractor(context: Context) {
         }
     }
 
-    fun extractFeatures(bitmap: Bitmap): FloatArray {
-        // --- TAMBAHKAN PENGECEKAN INI ---
-        // Konversi paksa ke ARGB_8888 (Software) jika bitmap berupa Hardware
-        val softwareBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) {
+fun extractFeatures(bitmap: Bitmap): FloatArray {
+    var softwareBitmap: Bitmap? = null
+    var resizedBitmap: Bitmap? = null
+
+    try {
+        // 1. Konversi paksa ke ARGB_8888 jika bitmap berupa Hardware
+        softwareBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) {
             bitmap.copy(Bitmap.Config.ARGB_8888, true)
         } else {
             bitmap
         }
 
-        // Gunakan softwareBitmap untuk proses resize
-        val resizedBitmap = if (softwareBitmap.width != IMAGE_SIZE || softwareBitmap.height != IMAGE_SIZE) {
+        // 2. Resize ke 224x224
+        resizedBitmap = if (softwareBitmap.width != IMAGE_SIZE || softwareBitmap.height != IMAGE_SIZE) {
             Bitmap.createScaledBitmap(softwareBitmap, IMAGE_SIZE, IMAGE_SIZE, true)
         } else {
             softwareBitmap
@@ -62,7 +65,7 @@ class ImageFeatureExtractor(context: Context) {
         
         val rawVector = outputArray[0]
         
-        // --- L2 NORMALIZATION ---
+        // 3. L2 NORMALIZATION
         var sum = 0.0f
         for (v in rawVector) {
             sum += v * v
@@ -76,7 +79,17 @@ class ImageFeatureExtractor(context: Context) {
         }
         
         return rawVector.clone()
+    } finally {
+        // --- MENCEGAH MEMORY LEAK ---
+        // Hapus bitmap sementara dari memori jika dibuat secara baru
+        if (softwareBitmap != null && softwareBitmap != bitmap) {
+            softwareBitmap.recycle()
+        }
+        if (resizedBitmap != null && resizedBitmap != softwareBitmap && resizedBitmap != bitmap) {
+            resizedBitmap.recycle()
+        }
     }
+}
 
     private fun convertBitmapToByteBuffer(bitmap: Bitmap) {
         byteBuffer.rewind() // Wajib! Kembalikan kursor buffer ke index 0

@@ -343,7 +343,7 @@ fun BarcodeScannerCamera(
                         if (rotatedBitmap != croppedBitmap) {
                             rotatedBitmap.recycle()
                         }
-
+                    try {
                         // 4. Ekstrak Fitur AI menggunakan gambar yang sudah di-crop
                         val extractor = featureExtractor
                         val onObjectCallback = onObjectScannedState.value
@@ -372,7 +372,9 @@ fun BarcodeScannerCamera(
                             scanVisualState = ScanVisualState.IDLE
                         }
                     } finally {
+                        croppedBitmap.recycle()
                         proxy.close()
+                        }
                     }
                 }
             }

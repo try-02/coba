@@ -1,0 +1,49 @@
+fun extractFeatures(bitmap: Bitmap): FloatArray {
+    var softwareBitmap: Bitmap? = null
+    var resizedBitmap: Bitmap? = null
+
+    try {
+        // 1. Konversi paksa ke ARGB_8888 jika bitmap berupa Hardware
+        softwareBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        } else {
+            bitmap
+        }
+
+        // 2. Resize ke 224x224
+        resizedBitmap = if (softwareBitmap.width != IMAGE_SIZE || softwareBitmap.height != IMAGE_SIZE) {
+            Bitmap.createScaledBitmap(softwareBitmap, IMAGE_SIZE, IMAGE_SIZE, true)
+        } else {
+            softwareBitmap
+        }
+        
+        convertBitmapToByteBuffer(resizedBitmap)
+        interpreter?.run(byteBuffer, outputArray)
+        
+        val rawVector = outputArray[0]
+        
+        // 3. L2 NORMALIZATION
+        var sum = 0.0f
+        for (v in rawVector) {
+            sum += v * v
+        }
+        val magnitude = kotlin.math.sqrt(sum.toDouble()).toFloat()
+        
+        if (magnitude > 0) {
+            for (i in rawVector.indices) {
+                rawVector[i] = rawVector[i] / magnitude
+            }
+        }
+        
+        return rawVector.clone()
+    } finally {
+        // --- MENCEGAH MEMORY LEAK ---
+        // Hapus bitmap sementara dari memori jika dibuat secara baru
+        if (softwareBitmap != null && softwareBitmap != bitmap) {
+            softwareBitmap.recycle()
+        }
+        if (resizedBitmap != null && resizedBitmap != softwareBitmap && resizedBitmap != bitmap) {
+            resizedBitmap.recycle()
+        }
+    }
+}
