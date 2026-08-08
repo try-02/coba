@@ -30,8 +30,6 @@ import com.pos.offline.ui.receipt.ReceiptManager
 import com.pos.offline.util.PrintCoordinator
 import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.toRupiah
-import com.pos.offline.util.VectorUtils
-import com.pos.offline.util.VectorUtils.toVectorFloatArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -160,8 +158,6 @@ class ReportViewModel(
     private val productRepository: ProductRepository,
     private val reportDao: ReportDao,
 ) : ViewModel() {
-    // Deklarasikan di level kelas ReportViewModel
-    private val vectorCache = mutableMapOf<Long, FloatArray>()
     private val zone: ZoneId = ZoneId.systemDefault()
     private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
@@ -801,45 +797,4 @@ fun printReceipt(result: CheckoutResult) {
                 .withZone(ZoneId.systemDefault())
         private const val REPORT_DEBOUNCE_MS = 300L
     }
-suspend fun onObjectScanned(scannedVector: FloatArray): String? {
-    if (scannedVector.isEmpty()) return null
-    
-    return try {
-        // Jalankan komparasi vektor di Background Thread
-        val bestMatch = withContext(Dispatchers.Default) {
-            val allProducts = productRepository.getAllProductsOnce()
-            var currentBest: ProductEntity? = null
-            
-            val SIMILARITY_THRESHOLD = 0.65f
-            var maxSimilarity = SIMILARITY_THRESHOLD
-
-            for (product in allProducts) {
-                val vectorStr = product.imageVector
-                if (vectorStr.isNullOrBlank()) continue
-
-                val dbVector = vectorCache.getOrPut(product.id) {
-                    vectorStr.toVectorFloatArray()
-                }
-
-                val similarity = VectorUtils.calculateNormalizedDotProduct(scannedVector, dbVector)
-                if (similarity > maxSimilarity) {
-                    maxSimilarity = similarity
-                    currentBest = product
-                }
-            }
-            currentBest
-        }
-
-        if (bestMatch != null) {
-            val queryKey = bestMatch.barcode ?: bestMatch.name
-            // Aksi khusus Laporan: Cari transaksi yang berhubungan dengan produk ini
-            searchTransactionsByScannedProduct(queryKey)
-            bestMatch.name
-        } else {
-            null
-        }
-    } catch (e: Exception) {
-        null
-    }
-}
 }

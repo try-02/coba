@@ -2,7 +2,6 @@ package com.pos.offline.ui.inventory
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
 import android.net.Uri
-import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.offline.data.local.entity.ProductEntity
@@ -11,11 +10,7 @@ import com.pos.offline.data.repository.ReportRepository
 import com.pos.offline.util.ExcelImportResult
 import com.pos.offline.util.ExcelManager
 import com.pos.offline.util.ExcelOutcome
-import com.pos.offline.util.ImageFeatureExtractor
 import com.pos.offline.util.ImportedProductRow
-import com.pos.offline.util.VectorUtils
-import com.pos.offline.util.VectorUtils.toVectorFloatArray
-import com.pos.offline.util.VectorUtils.toVectorString
 import com.pos.offline.util.sanitizeScannedCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -55,7 +50,6 @@ data class ProductFormState(
     val cost: Long = 0L,
     val stock: Double = 0.0,
     val damagedStock: Double = 0.0,
-    val imageVector: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 ) {
     val isNew: Boolean get() = id == 0L
@@ -94,8 +88,6 @@ class InventoryViewModel(
     private val reportRepository: ReportRepository,
 ) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
-    // Deklarasikan di level kelas (paling atas di dalam kelas InventoryViewModel)
-    private val vectorCache = mutableMapOf<Long, FloatArray>()
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
     private val _sortOption = MutableStateFlow(ProductSortOption.NAME_ASC)
     val sortOption: StateFlow<ProductSortOption> = _sortOption.asStateFlow()
@@ -136,8 +128,6 @@ class InventoryViewModel(
     private var editingProductSnapshot: ProductEntity? = null
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
-    private val _isProcessingAiImage = MutableStateFlow(false)
-    val isProcessingAiImage: StateFlow<Boolean> = _isProcessingAiImage.asStateFlow()
     private val _messages = Channel<String>(capacity = Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
     data class ScanNotFoundState(
@@ -166,84 +156,6 @@ class InventoryViewModel(
     )
     private val _excelState = MutableStateFlow(ExcelUiState())
     val excelState: StateFlow<ExcelUiState> = _excelState.asStateFlow()
-    fun extractImageVectorFromBitmap(bitmap: Bitmap, onVectorGenerated: (String) -> Unit) {
-        viewModelScope.launch(Dispatchers.Default) {
-            _isProcessingAiImage.value = true
-            try {
-                val extractor = ImageFeatureExtractor(appContext)
-                val features = extractor.extractFeatures(bitmap)
-                val vectorString = features.toVectorString()
-                extractor.close()
-
-                withContext(Dispatchers.Main) {
-                    onVectorGenerated(vectorString)
-                    notify("Berhasil mengekstrak sidik jari AI objek!")
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    notify("Gagal mengekstrak fitur AI: ${e.message ?: "Kesalahan tak dikenal"}")
-                }
-            } finally {
-                _isProcessingAiImage.value = false
-            }
-        }
-    }
-
-suspend fun onObjectScanned(scannedVector: FloatArray): String? = withContext(Dispatchers.Default) {
-    if (scannedVector.isEmpty()) return@withContext null
-    
-    try {
-        val allProducts = productRepository.getAllProductsOnce()
-        var bestMatch: ProductEntity? = null
-        
-        // --- PERBAIKAN KRITIS ---
-        // Gunakan threshold realistis (misal 0.70f = 70% kemiripan). 
-        // 0.99f terlalu ekstrem dan membuat scan selalu gagal.
-        val SIMILARITY_THRESHOLD = 0.65f 
-        var maxSimilarity = SIMILARITY_THRESHOLD
-
-        for (product in allProducts) {
-            val vectorStr = product.imageVector
-            if (vectorStr.isNullOrBlank()) continue
-
-            // Ambil dari RAM jika sudah pernah diparse
-            val dbVector = vectorCache.getOrPut(product.id) {
-                vectorStr.toVectorFloatArray()
-            }
-
-            // Gunakan Fast-Path Dot Product (karena vektor sudah L2-Normalized)
-            val similarity = VectorUtils.calculateNormalizedDotProduct(scannedVector, dbVector)
-            if (similarity > maxSimilarity) {
-                maxSimilarity = similarity
-                bestMatch = product
-            }
-        }
-
-        // Kembalikan hasil ke Main Thread untuk UI
-        withContext(Dispatchers.Main) {
-            when {
-                bestMatch == null -> {
-                    notify("Objek AI tidak dikenali.")
-                    null
-                }
-                bestMatch.active -> {
-                    startEdit(bestMatch) // Form Edit
-                    bestMatch.name
-                }
-                else -> {
-                    _deletedProductFound.value = DeletedProductFoundState(bestMatch)
-                    bestMatch.name
-                }
-            }
-        }
-    } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-            notify("Gagal memproses AI scan: ${e.message}")
-        }
-        null
-    }
-}
-    
     private fun getRangeMillis(range: TopSalesRange): Pair<Long, Long> {
         val zone = ZoneId.systemDefault()
         val now = LocalDate.now(zone)
@@ -469,7 +381,6 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? = withContext(Di
                 cost = product.cost,
                 stock = product.stock,
                 damagedStock = product.damagedStock,
-                imageVector = product.imageVector,
                 createdAt = product.createdAt,
             )
     }
@@ -509,13 +420,11 @@ suspend fun onObjectScanned(scannedVector: FloatArray): String? = withContext(Di
                         cost = state.cost,
                         stock = state.stock,
                         damagedStock = state.damagedStock,
-                        imageVector = state.imageVector,
                         active = true,
                         createdAt = if (state.isNew) now else state.createdAt,
                         updatedAt = now,
                     )
                 productRepository.save(entity)
-                vectorCache.remove(state.id)
                 notify(if (state.isNew) "Produk ditambahkan." else "Produk diperbarui.")
                 _form.value = null
             } catch (e: SQLiteConstraintException) {

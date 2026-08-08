@@ -179,22 +179,16 @@ fun ReportScreen(
     var showDirectWarrantyScreen by remember { mutableStateOf(false) }
     var warrantySearchQuery by remember { mutableStateOf("") }
     val warrantyScanner =
-        rememberBarcodeScanner(
-            onScanned = { scannedCode ->
-                warrantySearchQuery = scannedCode
-                scannedCode
-            }
-        )
-        
+        rememberBarcodeScanner { scannedCode ->
+            warrantySearchQuery = scannedCode
+            scannedCode
+        }
     val openScanner =
-        rememberBarcodeScanner(
-            onScanned = { scannedCode ->
-                viewModel.searchProductHistory(scannedCode)
-                viewModel.searchInvoice(scannedCode)
-                scannedCode
-            },
-            onObjectScanned = viewModel::onObjectScanned // <- Opsional jika mau sekalian ditambah AI Scan
-        )
+        rememberBarcodeScanner { scannedCode ->
+            viewModel.searchProductHistory(scannedCode)
+            viewModel.searchInvoice(scannedCode)
+            scannedCode
+        }
     LaunchedEffect(Unit) {
         viewModel.messages.collect { msg ->
             if (selectedTransaction != null) {

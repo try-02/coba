@@ -22,8 +22,6 @@ import com.pos.offline.util.CashDrawerResult
 import com.pos.offline.util.PrintCoordinator
 import com.pos.offline.util.PrinterConnectionFactory
 import com.pos.offline.util.roundToRupiah
-import com.pos.offline.util.VectorUtils
-import com.pos.offline.util.VectorUtils.toVectorFloatArray
 import com.pos.offline.util.sanitizeScannedCode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -38,8 +36,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 @OptIn(kotlinx.coroutines.FlowPreview::class, ExperimentalCoroutinesApi::class)
 class PosViewModel(
     private val productRepository: ProductRepository,
@@ -53,8 +49,6 @@ class PosViewModel(
     private val printerConnectionFactory: PrinterConnectionFactory,
 ) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
-    // Deklarasikan di level kelas PosViewModel
-    private val vectorCache = mutableMapOf<Long, FloatArray>()
     private val _selectedCategory = MutableStateFlow<String?>(null)
     private val _discountType = MutableStateFlow(DiscountType.NOMINAL)
     private val _discountValue = MutableStateFlow(0.0)
@@ -385,52 +379,6 @@ class PosViewModel(
         }
         return null
     }
-suspend fun onObjectScanned(scannedVector: FloatArray): String? {
-    if (scannedVector.isEmpty()) return null
-    
-    return try {
-        // Tipe data bestMatch ditegaskan sebagai ProductEntity?
-        val bestMatch: ProductEntity? = withContext(Dispatchers.Default) {
-            val activeProducts = productRepository.getAllProductsOnce().filter { it.active }
-            var currentBest: ProductEntity? = null
-            
-            val SIMILARITY_THRESHOLD = 0.65f
-            var maxSimilarity = SIMILARITY_THRESHOLD
-
-            for (product in activeProducts) {
-                val vectorStr = product.imageVector
-                if (vectorStr.isNullOrBlank()) continue
-
-                val dbVector = vectorCache.getOrPut(product.id) {
-                    vectorStr.toVectorFloatArray()
-                }
-
-                val similarity = VectorUtils.calculateNormalizedDotProduct(scannedVector, dbVector)
-                if (similarity > maxSimilarity) {
-                    maxSimilarity = similarity
-                    currentBest = product
-                }
-            }
-            currentBest
-        }
-
-        if (bestMatch == null) {
-            _uiEvents.emit(PosUiEvent.ShowMessage("Objek AI tidak dikenali!"))
-            return null
-        }
-
-        // Aksi Khusus POS: Masukkan ke keranjang
-        val success = tryAddToCart(bestMatch)
-        if (success) {
-            _uiEvents.emit(PosUiEvent.ShowMessage("${bestMatch.name} ditambahkan ke keranjang"))
-            return bestMatch.name
-        }
-        null
-    } catch (e: Exception) {
-        _uiEvents.emit(PosUiEvent.ShowMessage("Gagal memproses AI: ${e.message}"))
-        null
-    }
-}
     private suspend fun tryAddToCart(product: ProductEntity): Boolean {
         val result =
             cartRepository.changeQuantity(

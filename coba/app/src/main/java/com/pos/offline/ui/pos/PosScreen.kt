@@ -84,7 +84,7 @@ fun PosScreen(
             }
         }
     }
-    val launchScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned, onObjectScanned = viewModel::onObjectScanned)
+    val launchScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned)
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {

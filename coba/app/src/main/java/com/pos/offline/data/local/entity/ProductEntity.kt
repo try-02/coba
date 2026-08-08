@@ -29,7 +29,4 @@ data class ProductEntity(
     val updatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "category", defaultValue = "''")
     val category: String = "",
-    // Tambahkan baris di bawah ini untuk menyimpan Vektor AI
-    @ColumnInfo(name = "imageVector", defaultValue = "NULL")
-    val imageVector: String? = null,
 )

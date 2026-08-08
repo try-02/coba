@@ -387,14 +387,6 @@ db.execSQL(
                 )
             }
         }
-    val MIGRATION_18_19 =
-    object : Migration(18, 19) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL(
-                "ALTER TABLE products ADD COLUMN imageVector TEXT DEFAULT NULL"
-            )
-        }
-    }
     val ALL: Array<Migration> =
         arrayOf(
             MIGRATION_1_2,
@@ -414,6 +406,5 @@ db.execSQL(
             MIGRATION_15_16,
             MIGRATION_16_17,
             MIGRATION_17_18,
-            MIGRATION_18_19,
         )
 }
