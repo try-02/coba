@@ -17,10 +17,10 @@ jobs:
           python-version: '3.10'
 
       - name: Install Dependencies
-        # PERBAIKAN: Menambahkan onnxscript ke dalam daftar instalasi
+        # PERBAIKAN 1: Menambahkan tf-keras agar onnx2tf bisa berjalan
         run: |
           python -m pip install --upgrade pip
-          pip install torch torchvision timm onnx onnxscript onnx2tf tensorflow
+          pip install torch torchvision timm onnx onnxscript onnx2tf tensorflow tf-keras
 
       - name: Create and Run Conversion Script
         run: |
@@ -50,7 +50,8 @@ jobs:
               torch.onnx.export(
                   model, dummy_input, str(onnx_path),
                   input_names=['input'], output_names=['embedding'],
-                  opset_version=13, do_constant_folding=True
+                  # PERBAIKAN 2: Menggunakan opset 18 agar PyTorch terbaru tidak error
+                  opset_version=18, do_constant_folding=True
               )
 
           print("\n[3/3] Converting ONNX to TFLite using onnx2tf...")
