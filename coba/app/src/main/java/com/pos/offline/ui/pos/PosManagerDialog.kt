@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pos.offline.data.local.entity.CartItemEntity
@@ -462,125 +463,178 @@ internal fun EndShiftDialog(
 ) {
     var actualCash by remember { mutableStateOf(0L) }
     var hasBeenEdited by remember { mutableStateOf(false) }
+    
     val expected = summary.expectedCashInDrawer
     val difference = actualCash - expected
     val isCleanZeroAllowed = actualCash == 0L && expected == 0L
     val hasInput = hasBeenEdited || isCleanZeroAllowed
-    AlertDialog(
+
+    Dialog(
         onDismissRequest = { if (!isProcessing) onDismiss() },
-        title = { Text("Tutup Shift") },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f) // Responsif
+                .padding(vertical = 24.dp),
+            shape = RoundedCornerShape(24.dp), // Radius modern Material 3[span_9](start_span)[span_9](end_span)
+            color = MaterialTheme.colorScheme.surface
+        ) {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .padding(24.dp) // Section spacing 24.dp[span_10](start_span)[span_10](end_span)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp) // Component spacing[span_11](start_span)[span_11](end_span)
             ) {
+                // Header
                 Text(
-                    "📋 Ringkasan Shift",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "Tutup Shift",
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                HorizontalDivider(Modifier.padding(vertical = 2.dp))
-                SummaryLine("Penjualan Tunai", summary.cashRevenue.toRupiah())
-                SummaryLine("Penjualan QRIS", summary.qrisRevenue.toRupiah())
-                HorizontalDivider(Modifier.padding(vertical = 2.dp))
-                SummaryLine("Total Pendapatan", summary.totalRevenue.toRupiah(), emphasize = true)
-                if (summary.qrisRefunds > 0L) {
-                    SummaryLine(
-                        "Refund via QRIS",
-                        "- ${summary.qrisRefunds.toRupiah()}",
-                        color = MaterialTheme.colorScheme.error,
-                    )
+
+                // Block 1: Estimasi Sistem
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Estimasi Uang di Laci (Sistem)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = expected.toRupiah(),
+                            fontFamily = FontFamily.Monospace, // Aturan Emas Finansial[span_12](start_span)[span_12](end_span)
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
-                SummaryLine(
-                    "Laba Kotor",
-                    summary.grossProfit.toRupiah(),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                if (summary.warrantyExchangeCost > 0L) {
-                    SummaryLine(
-                        "Biaya Klaim Garansi",
-                        "- ${summary.warrantyExchangeCost.toRupiah()}",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    "💵 Rekonsiliasi Laci",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                HorizontalDivider(Modifier.padding(vertical = 2.dp))
-                SummaryLine("Kas Awal (Modal)", summary.startingCash.toRupiah())
-                SummaryLine("Penjualan Tunai", summary.cashRevenue.toRupiah())
-                if (summary.cashRefunds > 0L) {
-                    SummaryLine(
-                        "Refund Tunai",
-                        "- ${summary.cashRefunds.toRupiah()}",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-                if (summary.qrisCashChangeOut > 0L) {
-                    SummaryLine(
-                        "Kembalian Tunai (dari QRIS)",
-                        "- ${summary.qrisCashChangeOut.toRupiah()}",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-                HorizontalDivider(Modifier.padding(vertical = 2.dp))
-                SummaryLine("Estimasi di Laci", expected.toRupiah(), emphasize = true)
-                Spacer(Modifier.height(10.dp))
-                MoneyField(
-                    label = "Uang Fisik",
-                    value = actualCash,
-                    onValueChange = {
-                        actualCash = it
-                        hasBeenEdited = true
-                    },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(44.dp),
-                )
-                if (hasInput) {
-                    Spacer(Modifier.height(10.dp))
-                    val diffAbs = kotlin.math.abs(difference)
-                    val diffColor =
-                        if (difference < 0L) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        }
-                    val diffLabel =
-                        when {
-                            difference == 0L -> "Pas ✓"
-                            difference < 0L -> "-${diffAbs.toRupiah()} (Uang Kurang)"
-                            else -> "+${diffAbs.toRupiah()} (Uang Lebih)"
-                        }
+
+                // Block 2: Input Kasir (Uang Fisik)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "💡 Hasil",
+                        text = "Hitung Uang Fisik Laci",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    SummaryLine("Selisih", diffLabel, emphasize = true, color = diffColor)
+                    MoneyField(
+                        label = "Total Fisik",
+                        value = actualCash,
+                        onValueChange = {
+                            actualCash = it
+                            hasBeenEdited = true
+                        },
+                        // Naikkan ke 48.dp minimum ketukan sesuai panduan[span_13](start_span)[span_13](end_span)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    )
+                }
+
+                // Block 3: Hasil Rekonsiliasi (Emotional Design)[span_14](start_span)[span_14](end_span)
+                if (hasInput) {
+                    val diffAbs = kotlin.math.abs(difference)
+                    val (diffColor, diffBgColor, diffIcon, diffLabel) = when {
+                        difference == 0L -> listOf(
+                            Color(0xFF2E7D32), // Hijau Sukses[span_15](start_span)[span_15](end_span)
+                            Color(0xFF2E7D32).copy(alpha = 0.1f),
+                            Icons.Rounded.CheckCircle,
+                            "Uang Pas (Sesuai Sistem)"
+                        )
+                        difference < 0L -> listOf(
+                            MaterialTheme.colorScheme.error, // Merah Danger[span_16](start_span)[span_16](end_span)
+                            MaterialTheme.colorScheme.errorContainer,
+                            Icons.Rounded.Warning,
+                            "Minus: -${diffAbs.toRupiah()}"
+                        )
+                        else -> listOf(
+                            Color(0xFF2E7D32),
+                            Color(0xFF2E7D32).copy(alpha = 0.1f),
+                            Icons.Rounded.CheckCircle,
+                            "Lebih: +${diffAbs.toRupiah()}"
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = diffBgColor as Color,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = diffIcon as androidx.compose.ui.graphics.vector.ImageVector,
+                                contentDescription = null,
+                                tint = diffColor as Color,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = diffLabel.toString(),
+                                fontFamily = FontFamily.Monospace, // Monospace agar jelas[span_17](start_span)[span_17](end_span)
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = diffColor
+                            )
+                        }
+                    }
+                }
+
+                // Block 4: Thumb-Zone Actions[span_18](start_span)[span_18](end_span)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        enabled = !isProcessing,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp), // Minimum Tap Target[span_19](start_span)[span_19](end_span)
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text("Batal")
+                    }
+
+                    Button(
+                        onClick = { onConfirm(actualCash) },
+                        enabled = hasInput && !isProcessing,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp), // Minimum Tap Target[span_20](start_span)[span_20](end_span)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary // 10% Aksen Action[span_21](start_span)[span_21](end_span)
+                        )
+                    ) {
+                        if (isProcessing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text("Tutup Shift")
+                        }
+                    }
                 }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(actualCash) },
-                enabled = hasInput && !isProcessing,
-            ) {
-                if (isProcessing) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Text("Tutup Shift")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isProcessing) { Text("Batal") }
-        },
-    )
+        }
+    }
 }
 
 @Composable
