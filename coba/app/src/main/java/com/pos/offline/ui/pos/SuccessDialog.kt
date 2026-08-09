@@ -12,14 +12,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Print
@@ -71,6 +68,8 @@ internal fun SuccessDialog(
     onDismiss: () -> Unit,
 ) {
     val successColor = Color(0xFF2E7D32)
+
+    // Memastikan jika auto-print aktif di background, dialog merespons state printing secara instan
     val isPrinting = printUiState is PrintUiState.Printing
 
     Dialog(
@@ -87,16 +86,14 @@ internal fun SuccessDialog(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxWidth()
-                    .heightIn(max = 560.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .padding(24.dp)
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 1. Checkmark Animation Header
+                // 1. Peak Moment Micro-Animation
                 AnimatedCheckmark(successColor = successColor)
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = "Transaksi Berhasil!",
@@ -106,32 +103,35 @@ internal fun SuccessDialog(
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // 2. Details Card (Struk No, Payment Method, Amounts, Tip, Discount)
+                // 2. Transaction Summary Details (Monospace for Finance)
                 TransactionSummaryBlock(result = result)
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // 3. Drawer Toggle Row
+                // 3. Drawer & Printer Status Banner
                 DrawerToggleRow(
                     checked = openDrawerOnPrint,
                     onCheckedChange = onToggleOpenDrawer
                 )
 
-                // 4. Print Outcome Status Banner
                 PrintResultBanner(
                     printUiState = printUiState,
                     onSharePdfFile = onSharePdfFile,
                     onNavigateToSettings = onNavigateToSettings
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // 5. Action Buttons (Height 48.dp)
+                // 4. Thumb-Zone Actions (Minimum 48.dp Height)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
@@ -139,19 +139,20 @@ internal fun SuccessDialog(
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("Selesai")
+                        Text("Tutup")
                     }
 
+                    // Tombol Cetak dengan Progress State aktif
                     PrintActionButton(
                         printUiState = printUiState,
                         onClick = onPrint,
-                        modifier = Modifier.weight(1.2f)
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 TextButton(
                     onClick = onExport,
@@ -166,181 +167,139 @@ internal fun SuccessDialog(
 
 @Composable
 private fun TransactionSummaryBlock(result: CheckoutResult) {
-    val tx = result.transaction
-    val txChange = tx.change
-    val txChangeGiven = tx.changeGiven
-    val isQrisCashOut = tx.paymentMethod == PaymentMethod.QRIS.name && tx.changeGivenInCash
-    val tip = (txChange - txChangeGiven).coerceAtLeast(0L)
-    val discountLabel = tx.discountInlineLabel()
+    val txChange = result.transaction.change
+    val txChangeGiven = result.transaction.changeGiven
+    
+    // Validasi metode pembayaran
+    val paymentMethodRaw = result.transaction.paymentMethod
+    val isQris = paymentMethodRaw == PaymentMethod.QRIS.name
+    val isQrisCashOut = isQris && result.transaction.changeGivenInCash
 
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp), // 8-Point Grid System[span_2](start_span)[span_2](end_span)
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        // 1. Badge Metode Pembayaran (Tunai / QRIS)[span_3](start_span)[span_3](end_span)
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = if (isQris) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer,
         ) {
-            // Row 1: No Struk & Badge Metode Bayar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "No. #${tx.id}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = paymentMethodLabel(tx.paymentMethod),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
+            Text(
+                text = paymentMethodLabel(paymentMethodRaw).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isQris) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
 
-            // Diskon jika ada
-            if (discountLabel != null) {
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 2. Teks Total Pembayaran
+        Text(
+            text = "Total Pembayaran",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) // Secondary text[span_4](start_span)[span_4](end_span)
+        )
+
+        // 3. Angka Finansial Wajib Monospace[span_5](start_span)[span_5](end_span)
+        Text(
+            text = result.transaction.total.toRupiah(),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        // 4. Informasi Diskon (Persen / Nominal)[span_6](start_span)[span_6](end_span)
+        result.transaction.discountInlineLabel()?.let { discountLabel ->
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            ) {
                 Text(
                     text = discountLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
+        }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider(
+            modifier = Modifier.width(120.dp), 
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
 
-            // Total Pembayaran
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        // 5. Logika Kembalian & Kurang Bayar
+        when {
+            txChange < 0L -> {
                 Text(
-                    text = "Total",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = tx.total.toRupiah(),
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 18.sp,
+                    text = "Kurang Bayar: ${kotlin.math.abs(txChange).toRupiah()}",
+                    fontFamily = FontFamily.Monospace, // Monospace untuk angka[span_7](start_span)[span_7](end_span)
+                    color = MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontSize = 16.sp
                 )
             }
-
-            // Jumlah Bayar Diterima
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            txChange == 0L -> {
                 Text(
-                    text = "Bayar",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = tx.paidAmount.toRupiah(),
-                    fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Uang Pas",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
                 )
             }
+            else -> {
+                Text(
+                    text = "Kembalian",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = txChangeGiven.toRupiah(),
+                    fontFamily = FontFamily.Monospace, // Monospace untuk kembalian[span_8](start_span)[span_8](end_span)
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isQrisCashOut) MaterialTheme.colorScheme.tertiary else Color(0xFF2E7D32)
+                )
 
-            // Detail Kembalian / Tip / Kurang Bayar
-            when {
-                txChange < 0L -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                val tip = (txChange - txChangeGiven).coerceAtLeast(0L)
+                if (tip > 0L) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                     ) {
-                        Text(
-                            text = "Kurang Bayar",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = kotlin.math.abs(txChange).toRupiah(),
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-
-                txChange == 0L -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Kembali",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Rp0 (Pas)",
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                else -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (isQrisCashOut) "Kembali (Tunai dari Laci)" else "Kembali",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isQrisCashOut) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (isQrisCashOut) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                        Text(
-                            text = txChangeGiven.toRupiah(),
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = if (isQrisCashOut) MaterialTheme.colorScheme.tertiary else Color(0xFF2E7D32)
-                        )
-                    }
-
-                    if (tip > 0L) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "Tip",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary
+                                text = "Tip/Donasi: ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = tip.toRupiah(),
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = FontFamily.Monospace, // Wajib Monospace[span_1](start_span)[span_1](end_span)
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.tertiary
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
+                }
+
+                if (isQrisCashOut) {
+                    Text(
+                        text = "(Tunai dari Laci)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
                 }
             }
         }
@@ -359,7 +318,7 @@ private fun PrintActionButton(
         onClick = onClick,
         enabled = !isPrinting,
         modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary
         )
@@ -406,7 +365,7 @@ private fun AnimatedCheckmark(successColor: Color) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(64.dp)
+            .size(72.dp)
             .scale(scaleA.value)
             .background(
                 color = successColor.copy(alpha = 0.12f),
@@ -417,7 +376,7 @@ private fun AnimatedCheckmark(successColor: Color) {
             imageVector = Icons.Rounded.Check,
             contentDescription = "Sukses",
             tint = successColor,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(40.dp)
         )
     }
 }
@@ -427,18 +386,18 @@ private fun DrawerToggleRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
             checked = checked,
             onCheckedChange = onCheckedChange
         )
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
-            text = "Buka laci saat mencetak",
+            text = "Buka laci otomatis saat mencetak",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -454,62 +413,43 @@ private fun PrintResultBanner(
     val state = printUiState as? PrintUiState.Result ?: return
     val outcome = state.outcome
     val (message, isError) = when (outcome) {
-        is ReceiptPrintOutcome.Success -> {
-            "Struk terkirim ke \"${outcome.printer.label}\"." to false
-        }
-        is ReceiptPrintOutcome.SuccessWithNotice -> {
-            "Struk terkirim ke \"${outcome.printer.label}\".\n⚠ ${outcome.notice}" to false
-        }
+        is ReceiptPrintOutcome.Success -> "Struk berhasil dicetak di \"${outcome.printer.label}\"." to false
+        is ReceiptPrintOutcome.SuccessWithNotice -> "Dicetak di \"${outcome.printer.label}\".\n⚠ ${outcome.notice}" to false
         is ReceiptPrintOutcome.Failed -> {
             val printerCount = outcome.attempts.size
             val reason = outcome.attempts.firstOrNull()?.message ?: ""
             if (reason.contains("terhubung", ignoreCase = true)) {
-                if (printerCount > 1) {
-                    "Gagal mencetak ke semua printer. Mohon hubungkan ke perangkat." to true
-                } else {
-                    "Gagal mencetak ke printer. Mohon hubungkan ke perangkat." to true
-                }
+                "Gagal mencetak. Mohon periksa koneksi perangkat." to true
             } else {
-                val title = if (printerCount > 1) "Gagal mencetak ke semua printer." else "Gagal mencetak ke printer."
-                "$title\nAlasan: $reason" to true
+                "Gagal mencetak.\nAlasan: $reason" to true
             }
         }
-        ReceiptPrintOutcome.NoPrinterConfigured -> {
-            "Printer belum diatur." to true
-        }
-        ReceiptPrintOutcome.AlreadyInProgress -> {
-            "Sedang mencetak, mohon tunggu..." to false
-        }
+        ReceiptPrintOutcome.NoPrinterConfigured -> "Printer belum diatur." to true
+        ReceiptPrintOutcome.AlreadyInProgress -> "Sedang mencetak, mohon tunggu..." to false
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
             color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
         ) {
             Text(
                 text = message,
-                modifier = Modifier.padding(10.dp),
-                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.labelMedium,
                 color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Start
+                textAlign = TextAlign.Center
             )
         }
 
         if (outcome is ReceiptPrintOutcome.Failed && outcome.fallbackPdf != null) {
-            TextButton(
-                onClick = { onSharePdfFile(outcome.fallbackPdf) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Bagikan PDF Cadangan")
+            TextButton(onClick = { onSharePdfFile(outcome.fallbackPdf) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Bagikan PDF Cadangan (WhatsApp/Email)")
             }
         }
         if (outcome is ReceiptPrintOutcome.NoPrinterConfigured) {
-            TextButton(
-                onClick = onNavigateToSettings,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            TextButton(onClick = onNavigateToSettings, modifier = Modifier.fillMaxWidth()) {
                 Text("Buka Pengaturan Printer")
             }
         }
