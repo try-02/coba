@@ -33,7 +33,9 @@ import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +71,8 @@ import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.components.GlassCard
 import com.pos.offline.ui.components.ThousandsSeparatorTransformation
+import com.pos.offline.ui.components.discountInlineLabel
+import com.pos.offline.ui.components.paymentMethodLabel
 import com.pos.offline.ui.receipt.PrintUiState
 import com.pos.offline.ui.receipt.forTransaction
 import com.pos.offline.util.ReceiptPrintOutcome
@@ -580,6 +584,224 @@ internal fun EndShiftDialog(
             TextButton(onClick = onDismiss, enabled = !isProcessing) { Text("Batal") }
         },
     )
+}
+
+@Composable
+internal fun SuccessDialog(
+    result: CheckoutResult,
+    printUiState: PrintUiState,
+    openDrawerOnPrint: Boolean,
+    onToggleOpenDrawer: (Boolean) -> Unit,
+    onPrint: () -> Unit,
+    onExport: () -> Unit,
+    onSharePdfFile: (File) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Selesai") }
+        },
+        title = { Text("Transaksi Berhasil ✓") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("No. Struk: ${result.transaction.id}")
+                    Text(
+                        "Metode Bayar: ${paymentMethodLabel(result.transaction.paymentMethod)}",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                    result.transaction.discountInlineLabel()?.let { label ->
+                        Text(label, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    }
+                    Text(
+                        "Total: ${result.transaction.total.toRupiah()}",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text("Bayar: ${result.transaction.paidAmount.toRupiah()}")
+                    val txChange = result.transaction.change
+                    val txChangeGiven = result.transaction.changeGiven
+                    val isQrisCashOut =
+                        result.transaction.paymentMethod == PaymentMethod.QRIS.name &&
+                            result.transaction.changeGivenInCash
+                    when {
+                        txChange < 0L -> {
+                            Text(
+                                "Kurang Bayar: ${kotlin.math.abs(txChange).toRupiah()}",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+
+                        txChange == 0L -> {
+                            Text(
+                                "Kembali: ${txChange.toRupiah()}",
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        else -> {
+                            Text(
+                                if (isQrisCashOut) {
+                                    "Kembali Diberikan (Tunai dari Laci): ${txChangeGiven.toRupiah()}"
+                                } else {
+                                    "Kembali Diberikan: ${txChangeGiven.toRupiah()}"
+                                },
+                                color =
+                                    if (isQrisCashOut) {
+                                        MaterialTheme.colorScheme.tertiary
+                                    } else {
+                                        MaterialTheme.colorScheme.primary
+                                    },
+                                fontWeight = if (isQrisCashOut) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                            val tip = (txChange - txChangeGiven).coerceAtLeast(0L)
+                            if (tip > 0L) {
+                                Text(
+                                    "Tip: ${tip.toRupiah()}",
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onToggleOpenDrawer(!openDrawerOnPrint) }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = openDrawerOnPrint,
+                            onCheckedChange = onToggleOpenDrawer,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Buka laci saat mencetak", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    FilledTonalButton(
+                        onClick = onPrint,
+                        enabled = printUiState !is PrintUiState.Printing,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (printUiState is PrintUiState.Printing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Mencetak...")
+                        } else {
+                            Icon(
+                                Icons.Rounded.Print,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Cetak Struk")
+                        }
+                    }
+                    OutlinedButton(onClick = onExport, modifier = Modifier.fillMaxWidth()) {
+                        Text("Ekspor PDF")
+                    }
+                    PrintResultBanner(
+                        printUiState = printUiState,
+                        onSharePdfFile = onSharePdfFile,
+                        onNavigateToSettings = onNavigateToSettings,
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun PrintResultBanner(
+    printUiState: PrintUiState,
+    onSharePdfFile: (File) -> Unit,
+    onNavigateToSettings: () -> Unit,
+) {
+    val state = printUiState as? PrintUiState.Result ?: return
+    val outcome = state.outcome
+    val (message, isError) =
+        when (outcome) {
+            is ReceiptPrintOutcome.Success -> {
+                "Struk terkirim ke \"${outcome.printer.label}\"." to false
+            }
+
+            is ReceiptPrintOutcome.SuccessWithNotice -> {
+                "Struk terkirim ke \"${outcome.printer.label}\".\n⚠ ${outcome.notice}" to false
+            }
+
+            is ReceiptPrintOutcome.Failed -> {
+                val printerCount = outcome.attempts.size
+                val reason = outcome.attempts.firstOrNull()?.message ?: ""
+                if (reason.contains("terhubung", ignoreCase = true)) {
+                    if (printerCount > 1) {
+                        "Gagal mencetak ke semua printer. Mohon hubungkan ke perangkat" to true
+                    } else {
+                        "Gagal mencetak ke printer. Mohon hubungkan ke perangkat" to true
+                    }
+                } else {
+                    val title =
+                        if (printerCount > 1) {
+                            "Gagal mencetak ke semua printer."
+                        } else {
+                            "Gagal mencetak ke printer."
+                        }
+                    "$title\nAlasan: $reason" to true
+                }
+            }
+
+            ReceiptPrintOutcome.NoPrinterConfigured -> {
+                "Printer belum diatur." to true
+            }
+
+            ReceiptPrintOutcome.AlreadyInProgress -> {
+                "Sedang mencetak, mohon tunggu..." to false
+            }
+        }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            color =
+                if (isError) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.primaryContainer
+                },
+        ) {
+            Text(
+                message,
+                modifier = Modifier.padding(10.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color =
+                    if (isError) {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    },
+            )
+        }
+        if (outcome is ReceiptPrintOutcome.Failed && outcome.fallbackPdf != null) {
+            TextButton(onClick = { onSharePdfFile(outcome.fallbackPdf) }) {
+                Text("Bagikan PDF Cadangan")
+            }
+        }
+        if (outcome is ReceiptPrintOutcome.NoPrinterConfigured) {
+            TextButton(onClick = onNavigateToSettings) {
+                Text("Buka Pengaturan Printer")
+            }
+        }
+    }
 }
 
 @Composable

@@ -1,0 +1,393 @@
+package com.pos.offline.ui.pos
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Print
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.pos.offline.data.local.entity.PaymentMethod
+import com.pos.offline.data.repository.CheckoutResult
+import com.pos.offline.ui.components.discountInlineLabel
+import com.pos.offline.ui.components.paymentMethodLabel
+import com.pos.offline.ui.receipt.PrintUiState
+import com.pos.offline.util.ReceiptPrintOutcome
+import com.pos.offline.util.toRupiah
+import java.io.File
+
+@Composable
+internal fun SuccessDialog(
+    result: CheckoutResult,
+    printUiState: PrintUiState,
+    openDrawerOnPrint: Boolean,
+    onToggleOpenDrawer: (Boolean) -> Unit,
+    onPrint: () -> Unit,
+    onExport: () -> Unit,
+    onSharePdfFile: (File) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    // Semantic Color: Hijau Sukses (Standard POS UX)
+    val successColor = Color(0xFF2E7D32) 
+    
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false // Mengunci fokus pada Peak Moment
+        )
+    ) {
+        // 60% Base Neutral Color
+        Surface(
+            shape = RoundedCornerShape(24.dp), 
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp) // Section Spacing
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 1. Micro-animation: Peak Moment
+                AnimatedCheckmark(successColor = successColor)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Transaksi Berhasil!",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 2. Transaction Summary Details
+                TransactionSummaryBlock(result = result)
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 3. Opsi Tambahan & Status Printer Banner
+                DrawerToggleRow(
+                    checked = openDrawerOnPrint,
+                    onCheckedChange = onToggleOpenDrawer
+                )
+                
+                PrintResultBanner(
+                    printUiState = printUiState,
+                    onSharePdfFile = onSharePdfFile,
+                    onNavigateToSettings = onNavigateToSettings
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 4. Thumb-Zone Actions (Minimum 48.dp Height)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text("Tutup")
+                    }
+
+                    // Progress State Animated Button
+                    PrintActionButton(
+                        printUiState = printUiState,
+                        onClick = onPrint,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Secondary Action
+                TextButton(onClick = onExport) {
+                    Text("Ekspor Struk ke PDF", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransactionSummaryBlock(result: CheckoutResult) {
+    val txChange = result.transaction.change
+    val txChangeGiven = result.transaction.changeGiven
+    val isQrisCashOut = result.transaction.paymentMethod == PaymentMethod.QRIS.name && result.transaction.changeGivenInCash
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Total Pembayaran",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        
+        // PENTING: Monospace untuk nominal finansial agar mudah dibaca cepat
+        Text(
+            text = result.transaction.total.toRupiah(),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        when {
+            txChange < 0L -> {
+                Text(
+                    text = "Kurang Bayar: ${kotlin.math.abs(txChange).toRupiah()}",
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
+            txChange == 0L -> {
+                Text(
+                    text = "Uang Pas",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            else -> {
+                Text(
+                    text = "Kembalian",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = txChangeGiven.toRupiah(),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isQrisCashOut) MaterialTheme.colorScheme.tertiary else Color(0xFF2E7D32)
+                )
+                
+                if (isQrisCashOut) {
+                    Text(
+                        text = "(Tunai dari Laci)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrintActionButton(
+    printUiState: PrintUiState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isPrinting = printUiState is PrintUiState.Printing
+    
+    // Animasi Progress State (Berkedip halus/Pulsing)
+    val infiniteTransition = rememberInfiniteTransition(label = "print_pulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isPrinting) 0.4f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha_anim"
+    )
+
+    Button(
+        onClick = onClick,
+        enabled = !isPrinting,
+        modifier = modifier.height(48.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.alpha(alpha) // Efek pulse saat proses cetak
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Print,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (isPrinting) "Mencetak..." else "Cetak")
+        }
+    }
+}
+
+@Composable
+private fun AnimatedCheckmark(successColor: Color) {
+    // Animasi Bouncy Scale menggunakan Spring Physics
+    val scaleA = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        scaleA.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(72.dp)
+            .scale(scaleA.value)
+            .background(
+                color = successColor.copy(alpha = 0.12f), // 10% Aksen
+                shape = CircleShape
+            )
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Check,
+            contentDescription = "Sukses",
+            tint = successColor,
+            modifier = Modifier.size(40.dp)
+        )
+    }
+}
+
+@Composable
+private fun DrawerToggleRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "Buka laci otomatis saat mencetak", 
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun PrintResultBanner(
+    printUiState: PrintUiState,
+    onSharePdfFile: (File) -> Unit,
+    onNavigateToSettings: () -> Unit,
+) {
+    val state = printUiState as? PrintUiState.Result ?: return
+    val outcome = state.outcome
+    val (message, isError) = when (outcome) {
+        is ReceiptPrintOutcome.Success -> "Struk berhasil dicetak di \"${outcome.printer.label}\"." to false
+        is ReceiptPrintOutcome.SuccessWithNotice -> "Dicetak di \"${outcome.printer.label}\".\n⚠ ${outcome.notice}" to false
+        is ReceiptPrintOutcome.Failed -> {
+            val printerCount = outcome.attempts.size
+            val reason = outcome.attempts.firstOrNull()?.message ?: ""
+            if (reason.contains("terhubung", ignoreCase = true)) {
+                "Gagal mencetak. Mohon periksa koneksi perangkat." to true
+            } else {
+                "Gagal mencetak.\nAlasan: $reason" to true
+            }
+        }
+        ReceiptPrintOutcome.NoPrinterConfigured -> "Printer belum diatur." to true
+        ReceiptPrintOutcome.AlreadyInProgress -> "Sedang mencetak, mohon tunggu..." to false
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp), // Radius lebih lembut
+            color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+        ) {
+            Text(
+                text = message,
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center
+            )
+        }
+        
+        // Smart Actions based on Error State
+        if (outcome is ReceiptPrintOutcome.Failed && outcome.fallbackPdf != null) {
+            TextButton(onClick = { onSharePdfFile(outcome.fallbackPdf) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Bagikan PDF Cadangan (WhatsApp/Email)")
+            }
+        }
+        if (outcome is ReceiptPrintOutcome.NoPrinterConfigured) {
+            TextButton(onClick = onNavigateToSettings, modifier = Modifier.fillMaxWidth()) {
+                Text("Buka Pengaturan Printer")
+            }
+        }
+    }
+}
