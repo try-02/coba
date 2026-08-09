@@ -44,7 +44,7 @@ jobs:
           ./gradlew assembleRelease \
             -PBUILD_VERSION_CODE=${{ github.run_number }} \
             -x test \
-            -x androidTest \
+            -x connectedAndroidTest \
             --parallel \
             --build-cache \
             --configuration-cache \
