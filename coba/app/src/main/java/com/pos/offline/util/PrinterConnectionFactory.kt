@@ -311,6 +311,7 @@ class PrinterConnectionFactory(
                 when (attemptResult) {
                     is JobOutcome.Success -> return@withPrinterLock attemptResult
                     is JobOutcome.Failure -> lastFailureMessage = attemptResult.message
+                }
             }
             JobOutcome.Failure(lastFailureMessage, statusQueryFailed = statusQueryFailed)
         }
