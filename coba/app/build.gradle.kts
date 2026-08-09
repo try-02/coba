@@ -112,14 +112,14 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
 
-    // ===== OPTIMALISASI BUNDLE (Jauh lebih rapi & cepat di-parsing Gradle) =====
+    // ===== OPTIMALISASI BUNDLE (Menggunakan format tanda titik) =====
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose.ui)
+    implementation(libs.bundles.compose.ui) // "compose-ui" otomatis jadi "compose.ui"
     implementation(libs.androidx.core.ktx)
-    implementation(libs.bundles.lifecycle-runtime)
+    implementation(libs.bundles.lifecycle.runtime) // "lifecycle-runtime" otomatis jadi "lifecycle.runtime"
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.bundles.camera)
-    implementation(libs.bundles.excel-parser)
+    implementation(libs.bundles.excel.parser) // "excel-parser" otomatis jadi "excel.parser"
 
     // ===== PRINTER & BARCODE =====
     implementation(libs.escpos.thermalprinter)
