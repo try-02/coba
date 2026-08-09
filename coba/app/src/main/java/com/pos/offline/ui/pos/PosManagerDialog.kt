@@ -1,5 +1,5 @@
 package com.pos.offline.ui.pos
-import androidx.compose.foundation.background
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -23,25 +22,22 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AttachMoney
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Print
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,15 +60,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pos.offline.data.local.entity.CartItemEntity
 import com.pos.offline.data.local.entity.CashierEntity
-import com.pos.offline.data.local.entity.PaymentMethod
 import com.pos.offline.data.local.entity.ShiftEntity
 import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.components.GlassCard
-import com.pos.offline.ui.components.ThousandsSeparatorTransformation
-import com.pos.offline.ui.receipt.PrintUiState
 import com.pos.offline.ui.receipt.forTransaction
-import com.pos.offline.util.ReceiptPrintOutcome
 import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.toRupiah
 import java.io.File
@@ -92,6 +84,7 @@ fun PosDialogManager(
     val shift = uiState.shift
     val checkout = uiState.checkout
     val stockWarning = shift.stockWarning
+
     if (stockWarning != null &&
         checkout.flow !is CheckoutFlow.Success &&
         checkout.flow !is CheckoutFlow.Error
@@ -122,6 +115,7 @@ fun PosDialogManager(
             },
         )
     }
+
     when (val flow = checkout.flow) {
         is CheckoutFlow.Success -> {
             SuccessDialog(
@@ -150,6 +144,7 @@ fun PosDialogManager(
 
         else -> {}
     }
+
     if (localState.showClearConfirm) {
         AlertDialog(
             onDismissRequest = localState::dismissClearDialog,
@@ -173,6 +168,7 @@ fun PosDialogManager(
             },
         )
     }
+
     localState.qtyEditItem?.let { item ->
         QuantityEditDialog(
             item = item,
@@ -184,6 +180,7 @@ fun PosDialogManager(
             onDismiss = localState::dismissQtyEdit,
         )
     }
+
     if (localState.showInsufficientPaymentDialog) {
         InsufficientPaymentDialog(
             paid = uiState.payment.paid,
@@ -195,6 +192,7 @@ fun PosDialogManager(
             },
         )
     }
+
     if (shift.showStartShiftDialog) {
         StartShiftDialog(
             cashiers = shift.activeCashiers,
@@ -205,6 +203,7 @@ fun PosDialogManager(
             },
         )
     }
+
     shift.shiftSummary?.let { summary ->
         if (shift.showEndShiftDialog) {
             EndShiftDialog(
@@ -215,6 +214,7 @@ fun PosDialogManager(
             )
         }
     }
+
     if (shift.showShiftListDialog) {
         ManageShiftsDialog(
             shifts = shift.openShifts,
@@ -716,7 +716,7 @@ internal fun QuantityEditDialog(
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                             .padding(vertical = 14.dp),
                     decorationBox = { innerTextField ->
-                        androidx.compose.foundation.layout.Box(
+                        layout.Box(
                             Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center,
                         ) { innerTextField() }
@@ -766,7 +766,7 @@ internal fun CashierDropdownField(
     onSelect: (CashierEntity) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth()) {
+    layout.Box(Modifier.fillMaxWidth()) {
         Row(
             modifier =
                 Modifier
