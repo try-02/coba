@@ -3,6 +3,7 @@ package com.pos.offline.ui.pos
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -317,32 +319,43 @@ private fun PrintActionButton(
     Button(
         onClick = onClick,
         enabled = !isPrinting,
-        modifier = modifier.height(48.dp),
+        modifier = modifier.height(48.dp), // Minimum Tap Target 48.dp (Thumb-Zone)[span_4](start_span)[span_4](end_span)
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary
+            containerColor = MaterialTheme.colorScheme.primary, // 10% Aksen (Action Color)[span_5](start_span)[span_5](end_span)
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            // OVERRIDE DISABLED COLOR: Mencegah tombol jadi abu-abu mati saat proses cetak
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary
         )
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            if (isPrinting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Mencetak...")
-            } else {
-                Icon(
-                    imageVector = Icons.Rounded.Print,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Cetak Struk")
+        // Menggunakan AnimatedContent untuk Micro-animation transisi yang mulus[span_6](start_span)[span_6](end_span)
+        AnimatedContent(
+            targetState = isPrinting,
+            label = "print_button_animation"
+        ) { printing ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (printing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        // Warna indikator mengambil dari disabledContentColor (onPrimary)
+                        color = LocalContentColor.current 
+                    )
+                    Spacer(Modifier.width(8.dp)) // Micro spacing (8-Point Grid)[span_7](start_span)[span_7](end_span)
+                    Text("Cetak...") // Teks dipersingkat agar tidak sesak
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.Print,
+                        contentDescription = "Cetak",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp)) // Micro spacing (8-Point Grid)[span_8](start_span)[span_8](end_span)
+                    Text("Cetak") // Teks dipersingkat (Frictionless & Speed First)[span_9](start_span)[span_9](end_span)
+                }
             }
         }
     }
