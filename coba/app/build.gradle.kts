@@ -112,37 +112,19 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
 
-    // ===== COMPOSE & UI =====
+    // ===== OPTIMALISASI BUNDLE (Jauh lebih rapi & cepat di-parsing Gradle) =====
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.activity.compose)
+    implementation(libs.bundles.compose.ui)
     implementation(libs.androidx.core.ktx)
-
-    // ===== LIFECYCLE =====
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.bundles.lifecycle-runtime)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.bundles.camera)
+    implementation(libs.bundles.excel-parser)
 
     // ===== PRINTER & BARCODE =====
     implementation(libs.escpos.thermalprinter)
     implementation(libs.flinger)
-
-    // ===== CAMERA & ML KIT =====
-    implementation(libs.androidx.camera.core)
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle)
-    implementation(libs.androidx.camera.view)
     implementation(libs.google.mlkit.barcode)
-
-    // ===== EXCEL & XML =====
-    implementation(libs.dhatim.fastexcel)
-    implementation(libs.dhatim.fastexcel.reader)
-    implementation(libs.fasterxml.aalto.xml)
-    implementation(libs.javax.stax.api)
 
     // ===== TESTING =====
     testImplementation(libs.junit)

@@ -2,8 +2,7 @@
 # ===== Project Plugins =====
 agp = "9.3.1"
 kotlin = "2.4.10"
-# KOREKSI BALIK: Menggunakan versi 2.3.10 karena ini adalah rilis resmi yang kompatibel dengan Kotlin 2.4.x
-ksp = "2.3.10" 
+ksp = "2.3.10"
 
 # ===== Libraries =====
 room = "2.8.4"
@@ -71,33 +70,6 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
-
-# OPTIMALISASI: Kelompokkan pustaka serumpun menjadi bundle agar Gradle mengevaluasinya lebih cepat
-[bundles]
-compose-ui = [
-    "androidx-compose-ui",
-    "androidx-compose-ui-graphics",
-    "androidx-compose-material3",
-    "androidx-compose-material-icons-extended",
-    "androidx-activity-compose"
-]
-lifecycle-runtime = [
-    "androidx-lifecycle-runtime-ktx",
-    "androidx-lifecycle-runtime-compose",
-    "androidx-lifecycle-viewmodel-compose"
-]
-camera = [
-    "androidx-camera-core",
-    "androidx-camera-camera2",
-    "androidx-camera-lifecycle",
-    "androidx-camera-view"
-]
-excel-parser = [
-    "dhatim-fastexcel",
-    "dhatim-fastexcel-reader",
-    "fasterxml-aalto-xml",
-    "javax-stax-api"
-]
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
