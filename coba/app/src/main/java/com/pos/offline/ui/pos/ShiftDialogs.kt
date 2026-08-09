@@ -34,6 +34,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.min
 import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.components.ThousandsSeparatorTransformation
@@ -59,8 +64,9 @@ import com.pos.offline.util.toRupiah
 // ==========================================
 // 1. START SHIFT DIALOG (Mulai Hari Kerja)
 // ==========================================
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun StartShiftDialog(
+internal fun StartShiftBottomSheet(
     cashiers: List<CashierEntity>,
     isProcessing: Boolean,
     onDismiss: () -> Unit,
@@ -68,6 +74,9 @@ internal fun StartShiftDialog(
 ) {
     var selectedCashier by remember { mutableStateOf(cashiers.firstOrNull()) }
     var startingCash by remember { mutableStateOf(0L) }
+    
+    // Konfigurasi BottomSheet
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(cashiers) {
         if (selectedCashier == null || cashiers.none { it.id == selectedCashier?.id }) {
@@ -75,105 +84,103 @@ internal fun StartShiftDialog(
         }
     }
 
-    Dialog(
+    // ModalBottomSheet memindahkan aksi ke Thumb Zone (1/3 bawah layar)[span_3](start_span)[span_3](end_span)
+    ModalBottomSheet(
         onDismissRequest = { if (!isProcessing) onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        // Radius 24.dp untuk estetika modern & emotional design[span_4](start_span)[span_4](end_span)
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), 
     ) {
-        Surface(
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(vertical = 24.dp),
-            shape = RoundedCornerShape(24.dp), // Comfort Trap Radius[span_6](start_span)[span_6](end_span)
-            color = MaterialTheme.colorScheme.surface
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp), // Extra padding untuk Navigation Bar
+            verticalArrangement = Arrangement.spacedBy(24.dp) // Spacing kelipatan 8[span_5](start_span)[span_5](end_span)
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp), // Section spacing 24.dp[span_7](start_span)[span_7](end_span)
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                Text(
-                    text = "Mulai Shift Baru",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            Text(
+                text = "Mulai Shift Baru",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
 
-                if (cashiers.isEmpty()) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+            if (cashiers.isEmpty()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Belum ada kasir terdaftar. Tambahkan kasir dulu di menu Pengaturan.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Belum ada kasir terdaftar. Tambahkan kasir dulu di menu Pengaturan.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(16.dp)
+                            text = "Pilih Kasir",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) // TextSecondary 70% opacity[span_6](start_span)[span_6](end_span)
+                        )
+                        CashierDropdownField(
+                            cashiers = cashiers,
+                            selected = selectedCashier,
+                            onSelect = { selectedCashier = it }
                         )
                     }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = "Pilih Kasir",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) // Secondary Text[span_8](start_span)[span_8](end_span)
-                            )
-                            CashierDropdownField(
-                                cashiers = cashiers,
-                                selected = selectedCashier,
-                                onSelect = { selectedCashier = it }
-                            )
-                        }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = "Modal Awal (Kas Laci)",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                            MoneyField(
-                                label = "Modal",
-                                value = startingCash,
-                                onValueChange = { startingCash = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp) // Thumb Zone Minimum[span_9](start_span)[span_9](end_span)
-                            )
-                        }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Modal Awal (Kas Laci)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        MoneyField(
+                            label = "Modal",
+                            value = startingCash,
+                            onValueChange = { startingCash = it },
+                            // Minimum tap target 48.dp[span_7](start_span)[span_7](end_span)
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        )
                     }
                 }
+            }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+            // Tombol Aksi (Thumb Zone CTA)[span_8](start_span)[span_8](end_span)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    enabled = !isProcessing,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        enabled = !isProcessing,
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text("Batal")
-                    }
+                    Text("Batal")
+                }
 
-                    Button(
-                        onClick = { selectedCashier?.let { onConfirm(it.id, startingCash) } },
-                        enabled = selectedCashier != null && !isProcessing,
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary // 10% Action Color[span_10](start_span)[span_10](end_span)
+                Button(
+                    onClick = { selectedCashier?.let { onConfirm(it.id, startingCash) } },
+                    enabled = selectedCashier != null && !isProcessing,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    // 10% Accent Color untuk CTA utama[span_9](start_span)[span_9](end_span)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary) 
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
-                    ) {
-                        if (isProcessing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Text("Buka Shift")
-                        }
+                    } else {
+                        Text("Buka Shift")
                     }
                 }
             }
@@ -196,16 +203,23 @@ internal fun EndShiftDialog(
     val isCleanZeroAllowed = actualCash == 0L && expected == 0L
     val hasInput = hasBeenEdited || isCleanZeroAllowed
 
+    // --- KUNCI PERBAIKAN SIZING COLLAPSE ---
+    // Mengambil ukuran layar absolut untuk menghindari perhitungan modifier Infinity pada Dialog
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    // Menggunakan 95% dari layar, tetapi dibatasi maksimal 500.dp (cocok untuk HP & Tablet)
+    val dialogWidth = min(screenWidth * 0.95f, 500.dp)
+
     Dialog(
         onDismissRequest = { if (!isProcessing) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f) // Agak dilebarkan sedikit untuk akomodasi data rincian
-                .fillMaxHeight(0.9f) // Membatasi tinggi agar bisa scroll di layar kecil
+                .width(dialogWidth) // Menggunakan width absolut, BUKAN fillMaxWidth
+                .fillMaxHeight(0.9f)
                 .padding(vertical = 16.dp),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(24.dp), // Radius 24.dp untuk Peak-End Rule[span_10](start_span)[span_10](end_span)
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
@@ -213,7 +227,7 @@ internal fun EndShiftDialog(
                     .padding(horizontal = 24.dp, vertical = 16.dp)
                     .fillMaxSize()
             ) {
-                // Header Tetap (Sticky)
+                // Header Tetap
                 Text(
                     text = "Tutup Shift",
                     style = MaterialTheme.typography.titleLarge,
@@ -227,7 +241,7 @@ internal fun EndShiftDialog(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(24.dp) // 8-point grid[span_16](start_span)[span_16](end_span)
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     // --- BLOK 1: RINGKASAN PENJUALAN ---
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -252,7 +266,7 @@ internal fun EndShiftDialog(
                                 HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
                                 DetailRow("Total Pendapatan", summary.totalRevenue.toRupiah(), isBold = true)
                                 
-                                // Restorasi Data Integrity Trust: Refund, Laba, dan Garansi
+                                // Restorasi Data Integrity Trust[span_11](start_span)[span_11](end_span)
                                 if (summary.qrisRefunds > 0L) {
                                     DetailRow(
                                         label = "Refund via QRIS",
@@ -279,7 +293,7 @@ internal fun EndShiftDialog(
                         }
                     }
 
-                    // --- BLOK 2: REKONSILIASI LACI (DATA INTEGRITY)[span_17](start_span)[span_17](end_span) ---
+                    // --- BLOK 2: REKONSILIASI LACI ---
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = "Rekonsiliasi Fisik Laci",
@@ -312,7 +326,6 @@ internal fun EndShiftDialog(
                             }
                         }
                     }
-
                     // --- BLOK 3: INPUT KASIR ---
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
@@ -394,7 +407,8 @@ internal fun EndShiftDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         enabled = !isProcessing,
-                        modifier = Modifier.weight(1f).height(48.dp), // Tap Target[span_23](start_span)[span_23](end_span)
+                        // Tap target minim 48.dp[span_12](start_span)[span_12](end_span)
+                        modifier = Modifier.weight(1f).height(48.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text("Batal")
@@ -405,7 +419,7 @@ internal fun EndShiftDialog(
                         enabled = hasInput && !isProcessing,
                         modifier = Modifier.weight(1f).height(48.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary) // 10% Aksen[span_24](start_span)[span_24](end_span)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         if (isProcessing) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)

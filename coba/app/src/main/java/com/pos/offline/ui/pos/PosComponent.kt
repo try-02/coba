@@ -104,6 +104,8 @@ import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.toRupiah
 
+// Ganti komponen ShiftIndicatorBar di PosComponent.kt dengan ini:
+
 @Composable
 internal fun ShiftIndicatorBar(
     openShift: ShiftEntity?,
@@ -117,12 +119,14 @@ internal fun ShiftIndicatorBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Area Utama Status Shift (Ramping 1 Baris & Responsif)
+        // Area Utama (Status Shift) - Tetap Ramping tapi 100% Responsif Sentuhan
         Surface(
             onClick = onClick,
             shape = RoundedCornerShape(8.dp),
-            color = Color.Transparent, // Tetap transparan/bersih
-            modifier = Modifier.weight(1f)
+            color = Color.Transparent,
+            modifier = Modifier
+                .weight(1f)
+                .minimumInteractiveComponentSize() // Menjamin area sentuhan minimum 48.dp
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
@@ -151,7 +155,7 @@ internal fun ShiftIndicatorBar(
             }
         }
 
-        // Tombol Laci Kasir (Kompak 28.dp)
+        // Tombol Laci (Kompak 28.dp)
         Surface(
             onClick = onOpenDrawerClick,
             enabled = !isOpeningDrawer,
@@ -177,7 +181,7 @@ internal fun ShiftIndicatorBar(
             }
         }
 
-        // Tombol Kelola Shift (Kompak 28.dp)
+        // Tombol Kelola Multi-Shift (Kompak 28.dp)
         Surface(
             onClick = onManageClick,
             shape = CircleShape,
