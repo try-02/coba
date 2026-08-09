@@ -716,7 +716,7 @@ internal fun QuantityEditDialog(
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                             .padding(vertical = 14.dp),
                     decorationBox = { innerTextField ->
-                        layout.Box(
+                        Box(
                             Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center,
                         ) { innerTextField() }
@@ -766,7 +766,7 @@ internal fun CashierDropdownField(
     onSelect: (CashierEntity) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    layout.Box(Modifier.fillMaxWidth()) {
+    Box(Modifier.fillMaxWidth()) {
         Row(
             modifier =
                 Modifier
