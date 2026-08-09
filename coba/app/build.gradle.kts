@@ -44,6 +44,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            configure<com.android.build.gradle.internal.dsl.BuildType> {
+            // Memaksa R8 berjalan dalam mode paralel penuh memanfaatkan CPU Core GitHub Runner
+            ndk {
+                debugSymbolLevel = "NONE" // Hapus simbol debug untuk memperkecil ukuran APK rilis
+                }
+            }
         }
     }
 

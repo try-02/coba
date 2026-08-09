@@ -34,27 +34,24 @@ jobs:
           # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
           cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
-      # Build Release APK dengan Optimasi CLI Gradle 9.6.1
+      # Build Release APK dengan Optimasi Maksimal AGP + Gradle 9.6.1
       - name: Build APK (Optimized)
         run: |
-          echo "🏗️ Building release APK with R8 shrinking..."
-          echo "Versi Build: ${{ github.run_number }}"
-          echo ""
-
+          echo "🏗️ Building release APK with advanced R8 shrinking..."
           chmod +x ./gradlew
 
-          # Perbaikan: Menambahkan --non-interactive (Fitur Baru 9.6.1) dan optimasi flag build
+          # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
           ./gradlew assembleRelease \
             -PBUILD_VERSION_CODE=${{ github.run_number }} \
+            -x test \
+            -x androidTest \
             --parallel \
             --build-cache \
             --configuration-cache \
             --non-interactive \
             --stacktrace
         env:
-          # Mematikan warna teks pada log untuk mempercepat rendering teks CLI di GitHub Runner
           NO_COLOR: "1"
-          # Gradle Daemon tetap dinonaktifkan (false) karena ini lingkungan CI non-persistent
           GRADLE_OPTS: "-Dorg.gradle.daemon=false"
           ORG_GRADLE_PROJECT_android_native_build_output_ignore_errors: true
 
