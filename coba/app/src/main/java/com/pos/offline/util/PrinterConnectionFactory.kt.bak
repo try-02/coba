@@ -241,7 +241,6 @@ class PrinterConnectionFactory(
             val genericErrorMessage = connectionErrorMessage(printer, ready.targetLabel)
             var statusQueryFailed = false
             var nearEndWarning = false
-            var lastFailureMessage = genericErrorMessage
             repeat(RETRY_ATTEMPTS_TOTAL) { attempt ->
                 if (attempt > 0) delay(RETRY_DELAY_MS)
                 if (attempt == 0 && printer.supportsStatusQuery) {
@@ -267,7 +266,7 @@ class PrinterConnectionFactory(
                 if (!connected) {
                     return@repeat
                 }
-                val attemptResult = try {
+                return@withPrinterLock try {
                     val escPosPrinter =
                         withContext(Dispatchers.IO) {
                             if (openCashDrawer) {
@@ -285,7 +284,7 @@ class PrinterConnectionFactory(
                                 printer.charPerLine,
                             ).useEscAsteriskCommand(true)
                         }
-                    val markups = markupBuilder(escPosPrinter)
+                    val markups = withContext(Dispatchers.Default) { markupBuilder(escPosPrinter) }
                     withContext(Dispatchers.IO) {
                         markups.forEachIndexed { index, markup ->
                             if (index == markups.lastIndex) {
@@ -308,11 +307,8 @@ class PrinterConnectionFactory(
                         statusQueryFailed = statusQueryFailed,
                     )
                 }
-                when (attemptResult) {
-                    is JobOutcome.Success -> return@withPrinterLock attemptResult
-                    is JobOutcome.Failure -> lastFailureMessage = attemptResult.message
             }
-            JobOutcome.Failure(lastFailureMessage, statusQueryFailed = statusQueryFailed)
+            JobOutcome.Failure(genericErrorMessage)
         }
 
     @SuppressLint("MissingPermission")
