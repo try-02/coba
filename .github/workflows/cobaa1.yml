@@ -21,9 +21,9 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+          # Perbaikan: Hapus 'cache: gradle' di sini agar tidak konflik dengan action resmi Gradle
 
-      # Setup Gradle dengan caching otomatis
+      # Setup Gradle dengan caching otomatis & Enkripsi untuk Configuration Cache 9.6.1
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
@@ -31,8 +31,10 @@ jobs:
           gradle-version: wrapper
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           add-job-summary: on-failure
+          # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
-      # Build Release APK dengan optimasi
+      # Build Release APK dengan Optimasi CLI Gradle 9.6.1
       - name: Build APK (Optimized)
         run: |
           echo "🏗️ Building release APK with R8 shrinking..."
@@ -41,14 +43,18 @@ jobs:
 
           chmod +x ./gradlew
 
-          # Menyelipkan github.run_number sebagai versionCode
+          # Perbaikan: Menambahkan --non-interactive (Fitur Baru 9.6.1) dan optimasi flag build
           ./gradlew assembleRelease \
             -PBUILD_VERSION_CODE=${{ github.run_number }} \
             --parallel \
             --build-cache \
             --configuration-cache \
+            --non-interactive \
             --stacktrace
         env:
+          # Mematikan warna teks pada log untuk mempercepat rendering teks CLI di GitHub Runner
+          NO_COLOR: "1"
+          # Gradle Daemon tetap dinonaktifkan (false) karena ini lingkungan CI non-persistent
           GRADLE_OPTS: "-Dorg.gradle.daemon=false"
           ORG_GRADLE_PROJECT_android_native_build_output_ignore_errors: true
 
@@ -76,21 +82,25 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Cleanup Runner Environment & Build Artifacts
-        if: always() # Memastikan step ini SELALU berjalan (Sukses, Gagal, atau Dibatalkan)
-        run: |
-          echo "--- Memulai Pembersihan Runner & Bekas Build ---"
-          
-          # 1. Menghentikan Gradle Daemon agar RAM & CPU lega
-          ./gradlew --stop || true
-          
-          # 3. Menjalankan task clean dari Gradle
-          ./gradlew clean || true
-          
-          # 4. Hapus folder build dan .gradle secara paksa
-          rm -rf build app/build .gradle || true
-          
-          # 5. Hapus semua file/folder yang tidak di-track oleh Git (bekas kompilasi, test report, APK temporer, dll)
-          git clean -ffdx || true
-          
-          echo "--- Pembersihan Total Selesai ---"
+      # Perbaikan: SEGERA HAPUS STEP "Cleanup Runner Environment" versi lama Anda di sini.
+      # Menjalankan `./gradlew clean` atau `rm -rf .gradle` di akhir step sebelum upload cache selesai 
+      # akan menghapus seluruh data kompilasi yang seharusnya di-cache untuk build berikutnya!
+#
+#      - name: Cleanup Runner Environment & Build Artifacts
+#        if: always() # Memastikan step ini SELALU berjalan (Sukses, Gagal, atau Dibatalkan)
+#        run: |
+#          echo "--- Memulai Pembersihan Runner & Bekas Build ---"
+#          
+#          # 1. Menghentikan Gradle Daemon agar RAM & CPU lega
+#          ./gradlew --stop || true
+#          
+#          # 3. Menjalankan task clean dari Gradle
+#          ./gradlew clean || true
+#          
+#          # 4. Hapus folder build dan .gradle secara paksa
+#          rm -rf build app/build .gradle || true
+#          
+#          # 5. Hapus semua file/folder yang tidak di-track oleh Git (bekas kompilasi, test report, APK temporer, dll)
+#          git clean -ffdx || true
+#          
+ #         echo "--- Pembersihan Total Selesai ---"

@@ -6,8 +6,7 @@ plugins {
 }
 
 room {
-    // Perbaikan 1: Gunakan layout.projectDirectory agar pelacakan input/output cache 9.6.1 lebih presisi
-    schemaDirectory(layout.projectDirectory.dir("schemas").toString())
+    schemaDirectory("$projectDir/schemas")
 }
 
 android {
@@ -19,12 +18,12 @@ android {
         minSdk = 26
         targetSdk = 36
         
-        // Perbaikan 2: Menggunakan providers.gradleProperty untuk memaksimalkan Configuration Cache Hit Rate Gradle 9.6.1
-        val buildVersionProvider = providers.gradleProperty("BUILD_VERSION_CODE")
-        val autoVersionCode = buildVersionProvider.orNull?.toIntOrNull() ?: 2
-        
+        // Ambil versionCode dari perintah Gradle (dari GitHub Actions), 
+        // jika dijalankan lokal/tanpa parameter, default ke 2.
+        val autoVersionCode = (project.findProperty("BUILD_VERSION_CODE") as? String)?.toIntOrNull() ?: 2
         versionCode = autoVersionCode
-        versionName = "1.0.0.$autoVersionCode"
+        
+        versionName = "1.0.0.$autoVersionCode" // Version name juga akan otomatis mengikuti
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         ndk {
@@ -46,14 +45,6 @@ android {
             )
         }
     }
-
-    // Perbaikan 3: Menggunakan Java Toolchain (Sinkron dengan target kompilasi Kotlin & Java)
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -65,10 +56,10 @@ android {
 
     sourceSets {
         named("androidTest") {
-            assets.directories.add(layout.projectDirectory.dir("schemas").toString())
+            assets.directories.add("$projectDir/schemas")
         }
         named("debug") {
-            assets.directories.add(layout.projectDirectory.dir("schemas").toString())
+            assets.directories.add("$projectDir/schemas")
         }
     }
 
