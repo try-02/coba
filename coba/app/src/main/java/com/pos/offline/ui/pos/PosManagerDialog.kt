@@ -1,7 +1,6 @@
 package com.pos.offline.ui.pos
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,14 +24,12 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -46,7 +43,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextRange
@@ -56,14 +52,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pos.offline.data.local.entity.CartItemEntity
-import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.data.local.entity.ShiftEntity
 import com.pos.offline.data.repository.CheckoutResult
-import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.components.GlassCard
 import com.pos.offline.ui.receipt.forTransaction
 import com.pos.offline.util.formatQuantity
@@ -205,13 +198,30 @@ fun PosDialogManager(
         )
     }
 
-    shift.shiftSummary?.let { summary ->
-        if (shift.showEndShiftDialog) {
+    if (shift.showEndShiftDialog) {
+        val summary = shift.shiftSummary
+        if (summary != null) {
             EndShiftDialog(
                 summary = summary,
                 isProcessing = shift.isEndingShift,
                 onDismiss = { onAction(PosAction.DismissEndShiftDialog) },
                 onConfirm = { actualCash -> onAction(PosAction.EndShift(actualCash)) },
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { onAction(PosAction.DismissEndShiftDialog) },
+                title = { Text("Memuat Ringkasan Shift...") },
+                text = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                },
+                confirmButton = {}
             )
         }
     }
