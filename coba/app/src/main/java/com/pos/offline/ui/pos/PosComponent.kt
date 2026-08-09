@@ -1247,65 +1247,6 @@ internal fun SummaryLine(
 }
 
 @Composable
-internal fun MoneyField(
-    label: String,
-    value: Long,
-    onValueChange: (Long) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var text by remember(value) {
-        mutableStateOf(if (value <= 0) "" else value.toString())
-    }
-    BasicTextField(
-        value = text,
-        onValueChange = { input ->
-            val digits = input.filter { it.isDigit() }
-            text = digits
-            onValueChange(digits.toLongOrNull() ?: 0L)
-        },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        singleLine = true,
-        visualTransformation = ThousandsSeparatorTransformation,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace // Monospace input[span_22](start_span)[span_22](end_span)
-        ),
-        modifier = modifier,
-        decorationBox = { innerTextField ->
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp)) // Radius ditingkatkan ke 12.dp
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 16.dp), // Spacing grid kelipatan 8[span_23](start_span)[span_23](end_span)
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Rp ", // Prefix Rupiah
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Box(Modifier.weight(1f).padding(start = 8.dp)) {
-                    if (text.isEmpty()) {
-                        Text(
-                            text = "0",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        },
-    )
-}
-
-@Composable
 internal fun DiscountField(
     type: DiscountType,
     rawValue: Double,
