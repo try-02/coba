@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -27,16 +28,17 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,13 +55,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.components.ThousandsSeparatorTransformation
 import com.pos.offline.util.toRupiah
 
+// ==========================================
+// 1. START SHIFT DIALOG (Mulai Hari Kerja)
+// ==========================================
 @Composable
 internal fun StartShiftDialog(
     cashiers: List<CashierEntity>,
@@ -159,7 +162,10 @@ internal fun StartShiftDialog(
     )
 }
 
-// ShiftDialogs.kt
+// ==========================================
+// 2. END SHIFT DIALOG (Tutup Shift)
+// ==========================================
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EndShiftDialog(
     summary: ShiftSummary,
@@ -182,13 +188,13 @@ internal fun EndShiftDialog(
         sheetState = sheetState,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.32f)
+        scrimColor = Color.Black.copy(alpha = 0.32f)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp, bottom = 24.dp)
+                .padding(top = 16.dp, bottom = 32.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -394,7 +400,10 @@ internal fun EndShiftDialog(
     }
 }
 
-// Tambahan Komponen DetailRow untuk kerapian
+// ==========================================
+// KOMPONEN PENDUKUNG
+// ==========================================
+
 @Composable
 private fun DetailRow(
     label: String,
@@ -416,7 +425,7 @@ private fun DetailRow(
         )
         Text(
             text = value,
-            fontFamily = FontFamily.Monospace, // Monospace Finansial wajib[span_25](start_span)[span_25](end_span)
+            fontFamily = FontFamily.Monospace,
             fontSize = valueSize,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium,
             color = color
@@ -424,9 +433,6 @@ private fun DetailRow(
     }
 }
 
-// ==========================================
-// 3. KOMPONEN PENDUKUNG (Thumb Zone Optimized)
-// ==========================================
 @Composable
 internal fun MoneyField(
     label: String,
@@ -450,7 +456,7 @@ internal fun MoneyField(
         textStyle = MaterialTheme.typography.titleMedium.copy(
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace // Wajib Monospace[span_18](start_span)[span_18](end_span)
+            fontFamily = FontFamily.Monospace
         ),
         modifier = modifier,
         decorationBox = { innerTextField ->
@@ -460,7 +466,7 @@ internal fun MoneyField(
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 16.dp), // 8-point grid[span_19](start_span)[span_19](end_span)
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -498,7 +504,7 @@ internal fun CashierDropdownField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp) // Minimum Thumb Zone[span_20](start_span)[span_20](end_span)
+                .height(48.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                 .clickable { expanded = true }
