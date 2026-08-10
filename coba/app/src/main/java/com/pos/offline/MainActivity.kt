@@ -93,7 +93,6 @@ import com.pos.offline.ui.settings.SettingsViewModel
 import com.pos.offline.ui.settings.StoreProfileViewModel
 import com.pos.offline.ui.theme.PosTheme
 import com.pos.offline.util.HardwareScannerInterceptor
-import com.pos.offline.util.bouncyOverscroll
 import io.iamjosephmj.flinger.behaviours.FlingPresets
 import kotlinx.coroutines.launch
 
@@ -281,7 +280,6 @@ private fun AppRoot() {
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .bouncyOverscroll()
                         .graphicsLayer { alpha = pageAlpha.value },
                 userScrollEnabled = !menuExpanded && !imeVisible && !isJumping && !isRestoringDatabase,
                 flingBehavior = PagerDefaults.flingBehavior(state = pagerState),

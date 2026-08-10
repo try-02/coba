@@ -1,5 +1,4 @@
 package com.pos.offline.ui.pos
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -192,27 +191,23 @@ private fun PosTopBar(
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(horizontal = 12.dp)
-                .padding(top = 4.dp, bottom = 6.dp),
+                .padding(top = 2.dp, bottom = 2.dp),
     ) {
         ShiftIndicatorBar(
             openShift = shift.activeShift,
             isOpeningDrawer = shift.isOpeningDrawer,
             onClick = {
-                android.util.Log.e("DEBUG_POS", "1. UI: Indikator Shift fisik diketuk!")
                 val currentActiveShift = shift.activeShift
                 when {
                     currentActiveShift != null -> {
-                        android.util.Log.e("DEBUG_POS", "1a. Mengirim OpenEndShiftDialog")
                         onAction(PosAction.OpenEndShiftDialog(currentActiveShift))
                     }
 
                     shift.openShifts.isEmpty() -> {
-                        android.util.Log.e("DEBUG_POS", "1b. Mengirim OpenStartShiftDialog")
                         onAction(PosAction.OpenStartShiftDialog)
                     }
 
                     else -> {
-                        android.util.Log.e("DEBUG_POS", "1c. Mengirim OpenShiftListDialog") //baris 215
                         onAction(PosAction.OpenShiftListDialog)
                     }
                 }
@@ -220,7 +215,7 @@ private fun PosTopBar(
             onManageClick = { onAction(PosAction.OpenShiftListDialog) },
             onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

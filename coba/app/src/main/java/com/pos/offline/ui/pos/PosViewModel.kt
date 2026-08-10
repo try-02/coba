@@ -1,5 +1,4 @@
 package com.pos.offline.ui.pos
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.offline.data.local.entity.CartItemEntity
@@ -252,7 +251,6 @@ class PosViewModel(
     }
 
     fun onAction(action: PosAction) {
-        android.util.Log.e("DEBUG_POS", "2. ViewModel: Menerima aksi -> $action")
         when (action) {
             is PosAction.Search -> {
                 _searchQuery.value = action.query
@@ -347,7 +345,6 @@ class PosViewModel(
             }
 
             PosAction.OpenStartShiftDialog -> {
-                android.util.Log.e("DEBUG_POS", "3. ViewModel: Mengubah _showStartShiftDialog = true")
                 _showStartShiftDialog.value = true
             }
 
@@ -356,7 +353,6 @@ class PosViewModel(
             }
 
             PosAction.OpenShiftListDialog -> {
-                android.util.Log.e("DEBUG_POS", "3. ViewModel: Mengubah _showShiftListDialog = true")
                 _showShiftListDialog.value = true
             }
 
@@ -366,7 +362,6 @@ class PosViewModel(
 
             is PosAction.OpenEndShiftDialog -> {
                 viewModelScope.launch {
-                    android.util.Log.e("DEBUG_POS", "3. ViewModel: Mengubah _showEndShiftDialog = true")
                     _endShiftTarget.value = action.shift
                     _showEndShiftDialog.value = true // Set true dulu agar UI merespons instan! menampilkan indikator memuat ringkasan shift
                     _shiftSummary.value = shiftRepository.getShiftSummary(action.shift.id)

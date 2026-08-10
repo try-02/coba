@@ -579,8 +579,7 @@ internal fun CartPaneContent(
                         LocalOverscrollConfiguration provides null,
                     ) {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize()
-                            .bouncyOverscroll(),
+                            modifier = Modifier.fillMaxSize(),
                             state = listState,
                             flingBehavior = iosGlideFlingBehavior(),
                         ) {
