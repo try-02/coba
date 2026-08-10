@@ -88,6 +88,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -120,19 +121,21 @@ internal fun ShiftIndicatorBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // ✅ Perbaikan: Gunakan Surface bukan Box + clickable
-        Surface(
+        // 1. KARTU INDIKATOR SHIFT UTAMA (Bebas dari Bug Material3 Minimum Touch Target)
+        Box(
             modifier = Modifier
                 .weight(1f)
-                .height(32.dp),
-            shape = RoundedCornerShape(8.dp),
-            color = if (openShift != null) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            },
-            onClick = onClick, // ✅ Surface memiliki onClick built-in
-            enabled = true
+                .height(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(
+                    if (openShift != null) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    }
+                )
+                .clickable(onClick = onClick), // 👈 Klik langsung terikat 100% presisi pada seluruh area Box
+            contentAlignment = Alignment.CenterStart
         ) {
             Row(
                 modifier = Modifier
@@ -163,8 +166,8 @@ internal fun ShiftIndicatorBar(
             }
         }
 
-        // ✅ Tombol kecil - gunakan CompositionLocalProvider tapi dengan proper bounds
-        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
+        // 2. TOMBOL IKON KECIL (32.dp) - Khusus area ini yang dimatikan minimum touch target 48dp-nya
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically

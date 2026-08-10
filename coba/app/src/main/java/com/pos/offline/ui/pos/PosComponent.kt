@@ -88,6 +88,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -115,60 +116,63 @@ internal fun ShiftIndicatorBar(
     onManageClick: () -> Unit,
     onOpenDrawerClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        // ✅ PERBAIKAN: Ganti Box + clickable dengan Surface(onClick)
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(32.dp),
-            shape = RoundedCornerShape(8.dp),
-            color = if (openShift != null) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            },
-            onClick = onClick, // ✅ Built-in onClick handler
-            enabled = true
+    // 💡 PERBAIKAN: Bungkus seluruh Row agar SEMUA komponen di baris ini
+    // terbebas dari auto-expand 48dp yang bertabrakan dengan SearchBar di bawahnya.
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Row(
+            
+            // 1. KARTU INDIKATOR SHIFT UTAMA (Menggunakan Surface M3 agar lebih aman)
+            Surface(
+                onClick = onClick,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .weight(1f)
+                    .height(32.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = if (openShift != null) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                }
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (openShift != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = if (openShift != null) "${openShift.cashierName} · Shift Aktif"
-                           else "Tanpa Shift · Ketuk untuk mulai",
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (openShift != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (openShift != null) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (openShift != null) "${openShift.cashierName} · Shift Aktif"
+                               else "Tanpa Shift · Ketuk untuk mulai",
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (openShift != null) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-        }
 
-        // ✅ Tombol kecil tetap bagus
-        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
+            // 2. TOMBOL IKON KECIL (32.dp)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Tombol Laci Kasir
                 Surface(
                     onClick = onOpenDrawerClick,
                     enabled = !isOpeningDrawer,
@@ -194,6 +198,7 @@ internal fun ShiftIndicatorBar(
                     }
                 }
 
+                // Tombol Kelola Multi-Shift
                 Surface(
                     onClick = onManageClick,
                     shape = RoundedCornerShape(8.dp),
