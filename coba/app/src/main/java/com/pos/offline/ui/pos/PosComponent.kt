@@ -64,9 +64,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -262,6 +262,7 @@ internal fun CategoryChipsRow(
 ) {
     CompositionLocalProvider(
         LocalOverscrollConfiguration provides null,
+        LocalMinimumInteractiveComponentSize provides Dp.Unspecified
     ) {
         LazyRow(
             modifier = Modifier.bouncyOverscroll(Orientation.Horizontal),
@@ -722,48 +723,50 @@ internal fun CartRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp), // Celah atas-bawah baris dipersempit dari 6.dp ke 3.dp
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                item.name,
-                style = MaterialTheme.typography.bodyLarge,
+                text = item.name,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp), // Nama produk diperkecil ke 12.sp
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "${item.unitPrice.toRupiah()} × ${item.quantity.formatQuantity()}",
-                style = MaterialTheme.typography.bodySmall,
+                text = "${item.unitPrice.toRupiah()} × ${item.quantity.formatQuantity()}",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), // Harga satuan diperkecil ke 10.sp
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             )
         }
         Text(
-            item.lineTotal.toRupiah(),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
+            text = item.lineTotal.toRupiah(),
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp), // Total harga baris diperkecil ke 12.sp
+            fontWeight = FontWeight.Bold,
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(6.dp)) // Jarak antar elemen dipersempit dari 12.dp ke 6.dp
         QuantityStepper(
             qty = item.quantity,
             onDecrease = onDecrease,
             onIncrease = onIncrease,
             onQuantityClick = onQuantityClick,
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(6.dp)) // Jarak ke tombol hapus dipersempit dari 8.dp ke 6.dp
         Box(
-            modifier =
-                Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
-                    .clickable(onClick = onRemove),
+            modifier = Modifier
+                .size(24.dp) // Ukuran tombol hapus diperkecil dari 28.dp ke 24.dp
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
+                .clickable(onClick = onRemove),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Rounded.Close,
                 contentDescription = "Hapus",
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(14.dp), // Ukuran ikon x diperkecil ke 14.dp
                 tint = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
@@ -780,16 +783,16 @@ private fun QuantityStepper(
     Row(verticalAlignment = Alignment.CenterVertically) {
         CompactActionBox(icon = Icons.Rounded.Remove, contentDescription = "Kurangi", onClick = onDecrease)
         Box(
-            modifier =
-                Modifier
-                    .width(36.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .clickable(onClick = onQuantityClick),
+            modifier = Modifier
+                .width(28.dp) // Area klik angka dipersempit dari 36.dp ke 28.dp
+                .clip(RoundedCornerShape(6.dp))
+                .clickable(onClick = onQuantityClick),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = qty.formatQuantity(),
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), // Angka kuantitas diperkecil ke 11.sp
+                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 textDecoration = TextDecoration.Underline,
             )
@@ -805,27 +808,27 @@ internal fun CompactActionBox(
     dimmed: Boolean = false,
     onClick: () -> Unit,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .minimumInteractiveComponentSize()
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(
-                    if (dimmed) {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
-                ).clickable(enabled = !dimmed, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = contentDescription,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (dimmed) 0.4f else 1f),
-        )
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Surface(
+            onClick = onClick,
+            enabled = !dimmed,
+            shape = RoundedCornerShape(6.dp),
+            color = if (dimmed) {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+            modifier = Modifier.size(26.dp) // Ukuran tombol -/+ diperkecil dari 32.dp ke 26.dp
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = contentDescription,
+                    modifier = Modifier.size(14.dp), // Ukuran ikon -/+ diperkecil ke 14.dp
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (dimmed) 0.4f else 1f),
+                )
+            }
+        }
     }
 }
 
@@ -1072,21 +1075,24 @@ private fun InlinePresetChip(
     label: String,
     onClick: () -> Unit,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 7.dp, vertical = 3.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontFamily = FontFamily.Monospace),
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(6.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        ) {
+            Box(
+                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontFamily = FontFamily.Monospace),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
     }
 }
 

@@ -182,6 +182,7 @@ fun PosScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PosTopBar(
     uiState: PosUiState,
@@ -191,8 +192,6 @@ private fun PosTopBar(
     val shift = uiState.shift
     val catalog = uiState.catalog
 
-    // 💡 PERBAIKAN UTAMA: Matikan pembesaran touch target 48dp untuk SELURUH PosTopBar
-    // (termasuk tombol Scan di bawahnya) agar area sentuhnya tidak meluber ke atas.
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
         Column(
             modifier = Modifier
@@ -200,9 +199,8 @@ private fun PosTopBar(
                 .statusBarsPadding()
                 .padding(horizontal = 12.dp)
                 .padding(top = 4.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp) // Celah antar baris kembali ke 4.dp
         ) {
-            // Berikan zIndex(10f) agar baris shift diprioritaskan di lapisan paling atas
             Box(modifier = Modifier.zIndex(10f)) {
                 ShiftIndicatorBar(
                     openShift = shift.activeShift,
@@ -229,27 +227,27 @@ private fun PosTopBar(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 CompactSearchBar(
                     query = catalog.searchQuery,
                     onQueryChange = { onAction(PosAction.Search(it)) },
                     modifier = Modifier
                         .weight(1f)
-                        .height(36.dp),
+                        .height(34.dp),
                 )
                 OutlinedButton(
                     onClick = launchScanner,
-                    modifier = Modifier.height(36.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp),
                 ) {
                     Icon(
                         Icons.Rounded.QrCodeScanner,
                         contentDescription = "Scan Barcode",
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text("Scan")
+                    Text("Scan", fontSize = 12.sp)
                 }
             }
 
