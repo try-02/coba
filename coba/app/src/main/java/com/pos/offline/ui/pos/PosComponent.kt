@@ -116,25 +116,28 @@ internal fun ShiftIndicatorBar(
     onManageClick: () -> Unit,
     onOpenDrawerClick: () -> Unit,
 ) {
-    // Menghilangkan touch target bawaan M3 (48dp) agar area sentuh PRESISI 100% pas dengan visual 32dp
+    // Mematikan minimum touch target 48dp agar sentuhan presisi pada ukuran 32dp
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Area Utama Status Shift (Tinggi sejajar 32dp & Area Sentuh Presisi)
-            Surface(
-                onClick = onClick,
-                shape = RoundedCornerShape(8.dp),
-                color = if (openShift != null) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                },
+            // Area Utama Status Shift (Diperbaiki: Menggunakan Box + clickable langsung)
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(32.dp) // Dibuat persis 32.dp agar sejajar sempurna dengan tombol samping
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (openShift != null) {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        }
+                    )
+                    .clickable(onClick = onClick), // 👈 Klik langsung terikat pada seluruh area Box
+                contentAlignment = Alignment.CenterStart
             ) {
                 Row(
                     modifier = Modifier
