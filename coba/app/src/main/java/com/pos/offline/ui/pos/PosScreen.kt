@@ -212,7 +212,7 @@ private fun PosTopBar(
                     }
 
                     else -> {
-                        android.util.Log.e"DEBUG_POS", "1c. Mengirim OpenShiftListDialog")
+                        android.util.Log.e("DEBUG_POS", "1c. Mengirim OpenShiftListDialog") //baris 215
                         onAction(PosAction.OpenShiftListDialog)
                     }
                 }
