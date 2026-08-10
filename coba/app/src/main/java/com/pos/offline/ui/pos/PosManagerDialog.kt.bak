@@ -1,5 +1,5 @@
 package com.pos.offline.ui.pos
-import android.util.Log
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -186,11 +186,8 @@ fun PosDialogManager(
             },
         )
     }
-    androidx.compose.runtime.SideEffect {
-        android.util.Log.e("DEBUG_POS", "4. DialogManager: Recompose. showStart=${shift.showStartShiftDialog}, showEnd=${shift.showEndShiftDialog}, showList=${shift.showShiftListDialog}")
-    }
+
     if (shift.showStartShiftDialog) {
-        android.util.Log.e("DEBUG_POS", "5. RENDER: StartShiftBottomSheet dipanggil!")
         StartShiftBottomSheet(
             cashiers = shift.activeCashiers,
             isProcessing = shift.isStartingShift,
@@ -202,7 +199,6 @@ fun PosDialogManager(
     }
 
     if (shift.showEndShiftDialog) {
-        android.util.Log.e("DEBUG_POS", "5. RENDER: EndShiftDialog dipanggil!")
         val summary = shift.shiftSummary
         if (summary != null) {
             EndShiftDialog(
@@ -231,7 +227,6 @@ fun PosDialogManager(
     }
 
     if (shift.showShiftListDialog) {
-        android.util.Log.e("DEBUG_POS", "5. RENDER: ManageShiftsDialog dipanggil!")
         ManageShiftsDialog(
             shifts = shift.openShifts,
             activeShiftId = shift.activeShift?.id,
