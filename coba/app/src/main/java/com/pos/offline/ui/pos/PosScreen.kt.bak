@@ -187,64 +187,75 @@ private fun PosTopBar(
     val shift = uiState.shift
     val catalog = uiState.catalog
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 12.dp)
-            .padding(top = 4.dp, bottom = 4.dp), // Celah kecil dan seimbang di atas & bawah
-        verticalArrangement = Arrangement.spacedBy(4.dp) // Celah otomatis & rapi antar baris
-    ) {
-ShiftIndicatorBar(
-    openShift = shift.activeShift,
-    isOpeningDrawer = shift.isOpeningDrawer,
-    onClick = {
-        val active = shift.activeShift
-        if (active != null) {
-            onAction(PosAction.OpenEndShiftDialog(active))
-        } else if (shift.openShifts.isNotEmpty()) {
-            onAction(PosAction.OpenShiftListDialog)
-        } else {
-            onAction(PosAction.OpenStartShiftDialog)
-        }
-    },
-    onManageClick = { onAction(PosAction.OpenShiftListDialog) },
-    onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
-)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    // 💡 PERBAIKAN UTAMA: Matikan pembesaran touch target 48dp untuk SELURUH PosTopBar
+    // (termasuk tombol Scan di bawahnya) agar area sentuhnya tidak meluber ke atas.
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp)
+                .padding(top = 4.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            CompactSearchBar(
-                query = catalog.searchQuery,
-                onQueryChange = { onAction(PosAction.Search(it)) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(36.dp),
-            )
-            OutlinedButton(
-                onClick = launchScanner,
-                modifier = Modifier.height(36.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp),
-            ) {
-                Icon(
-                    Icons.Rounded.QrCodeScanner,
-                    contentDescription = "Scan Barcode",
-                    modifier = Modifier.size(18.dp),
+            // Berikan zIndex(10f) agar baris shift diprioritaskan di lapisan paling atas
+            Box(modifier = Modifier.zIndex(10f)) {
+                ShiftIndicatorBar(
+                    openShift = shift.activeShift,
+                    isOpeningDrawer = shift.isOpeningDrawer,
+                    onClick = {
+                        val currentActiveShift = shift.activeShift
+                        when {
+                            currentActiveShift != null -> {
+                                onAction(PosAction.OpenEndShiftDialog(currentActiveShift))
+                            }
+                            shift.openShifts.isEmpty() -> {
+                                onAction(PosAction.OpenStartShiftDialog)
+                            }
+                            else -> {
+                                onAction(PosAction.OpenShiftListDialog)
+                            }
+                        }
+                    },
+                    onManageClick = { onAction(PosAction.OpenShiftListDialog) },
+                    onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
                 )
-                Spacer(Modifier.width(4.dp))
-                Text("Scan")
             }
-        }
 
-        if (catalog.categories.isNotEmpty()) {
-            CategoryChipsRow(
-                categories = catalog.categories,
-                selected = catalog.selectedCategory,
-                onSelect = { onAction(PosAction.SelectCategory(it)) },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CompactSearchBar(
+                    query = catalog.searchQuery,
+                    onQueryChange = { onAction(PosAction.Search(it)) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(36.dp),
+                )
+                OutlinedButton(
+                    onClick = launchScanner,
+                    modifier = Modifier.height(36.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.QrCodeScanner,
+                        contentDescription = "Scan Barcode",
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("Scan")
+                }
+            }
+
+            if (catalog.categories.isNotEmpty()) {
+                CategoryChipsRow(
+                    categories = catalog.categories,
+                    selected = catalog.selectedCategory,
+                    onSelect = { onAction(PosAction.SelectCategory(it)) },
+                )
+            }
         }
     }
 }
