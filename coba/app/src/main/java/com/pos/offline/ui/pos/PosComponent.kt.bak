@@ -104,6 +104,7 @@ import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.toRupiah
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ShiftIndicatorBar(
     openShift: ShiftEntity?,
@@ -112,89 +113,96 @@ internal fun ShiftIndicatorBar(
     onManageClick: () -> Unit,
     onOpenDrawerClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        // Area Utama Status Shift - Ramping, Ringkas, & Sentuhan Presisi Pas pada Kartu
-        Surface(
-            onClick = onClick,
-            shape = RoundedCornerShape(8.dp),
-            color = if (openShift != null) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            },
-            modifier = Modifier.weight(1f)
+    // Menghilangkan touch target bawaan M3 (48dp) agar area sentuh PRESISI 100% pas dengan visual 32dp
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), // 👈 Padding rapat & ringkas
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (openShift != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = if (openShift != null) "${openShift.cashierName} · Shift Aktif"
-                           else "Tanpa Shift · Ketuk untuk mulai",
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (openShift != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-
-        // Tombol Laci Kasir (Sangat Kompak 32.dp)
-        Surface(
-            onClick = onOpenDrawerClick,
-            enabled = !isOpeningDrawer,
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.size(32.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (isOpeningDrawer) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(14.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            // Area Utama Status Shift (Tinggi sejajar 32dp & Area Sentuh Presisi)
+            Surface(
+                onClick = onClick,
+                shape = RoundedCornerShape(8.dp),
+                color = if (openShift != null) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                 } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(32.dp) // Dibuat persis 32.dp agar sejajar sempurna dengan tombol samping
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (openShift != null) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (openShift != null) "${openShift.cashierName} · Shift Aktif"
+                               else "Tanpa Shift · Ketuk untuk mulai",
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (openShift != null) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Tombol Laci Kasir
+            Surface(
+                onClick = onOpenDrawerClick,
+                enabled = !isOpeningDrawer,
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (isOpeningDrawer) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.PointOfSale,
+                            contentDescription = "Buka laci kasir",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Tombol Kelola Multi-Shift
+            Surface(
+                onClick = onManageClick,
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Rounded.PointOfSale,
-                        contentDescription = "Buka laci kasir",
+                        imageVector = Icons.Rounded.MoreHoriz,
+                        contentDescription = "Kelola semua shift",
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        }
-
-        // Tombol Kelola Multi-Shift (Sangat Kompak 32.dp)
-        Surface(
-            onClick = onManageClick,
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.size(32.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreHoriz,
-                    contentDescription = "Kelola semua shift",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
@@ -579,7 +587,8 @@ internal fun CartPaneContent(
                         LocalOverscrollConfiguration provides null,
                     ) {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize()
+                            .bouncyOverscroll(),
                             state = listState,
                             flingBehavior = iosGlideFlingBehavior(),
                         ) {

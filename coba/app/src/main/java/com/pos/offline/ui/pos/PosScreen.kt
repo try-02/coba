@@ -1,4 +1,5 @@
 package com.pos.offline.ui.pos
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -185,13 +186,14 @@ private fun PosTopBar(
 ) {
     val shift = uiState.shift
     val catalog = uiState.catalog
+
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 12.dp)
-                .padding(top = 2.dp, bottom = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 12.dp)
+            .padding(top = 4.dp, bottom = 4.dp), // Celah kecil dan seimbang di atas & bawah
+        verticalArrangement = Arrangement.spacedBy(4.dp) // Celah otomatis & rapi antar baris
     ) {
         ShiftIndicatorBar(
             openShift = shift.activeShift,
@@ -202,11 +204,9 @@ private fun PosTopBar(
                     currentActiveShift != null -> {
                         onAction(PosAction.OpenEndShiftDialog(currentActiveShift))
                     }
-
                     shift.openShifts.isEmpty() -> {
                         onAction(PosAction.OpenStartShiftDialog)
                     }
-
                     else -> {
                         onAction(PosAction.OpenShiftListDialog)
                     }
@@ -215,20 +215,19 @@ private fun PosTopBar(
             onManageClick = { onAction(PosAction.OpenShiftListDialog) },
             onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
         )
-        Spacer(Modifier.height(2.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             CompactSearchBar(
                 query = catalog.searchQuery,
                 onQueryChange = { onAction(PosAction.Search(it)) },
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .height(36.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(36.dp),
             )
-            Spacer(Modifier.width(8.dp))
             OutlinedButton(
                 onClick = launchScanner,
                 modifier = Modifier.height(36.dp),
@@ -243,8 +242,8 @@ private fun PosTopBar(
                 Text("Scan")
             }
         }
+
         if (catalog.categories.isNotEmpty()) {
-            Spacer(Modifier.height(6.dp))
             CategoryChipsRow(
                 categories = catalog.categories,
                 selected = catalog.selectedCategory,
