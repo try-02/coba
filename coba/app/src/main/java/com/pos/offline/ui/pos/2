@@ -1,0 +1,113 @@
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ShiftIndicatorBar(
+    openShift: ShiftEntity?,
+    isOpeningDrawer: Boolean,
+    onClick: () -> Unit,
+    onManageClick: () -> Unit,
+    onOpenDrawerClick: () -> Unit,
+) {
+    // 💡 PERBAIKAN 1: Pindahkan provider ini ke tingkat paling atas (membungkus seluruh Row).
+    // Ini akan melindungi KARTU UTAMA maupun TOMBOL KECIL dari kebocoran area sentuh 48.dp
+    // yang sebelumnya bertabrakan dengan Search Bar di bawahnya.
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            
+            // 💡 PERBAIKAN 2: Gunakan Surface M3 murni, bukan Box + clickable. 
+            // Surface menangani ukuran weight(1f) dan klik dengan jauh lebih presisi.
+            Surface(
+                onClick = onClick, 
+                modifier = Modifier
+                    .weight(1f)
+                    .height(32.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = if (openShift != null) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (openShift != null) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (openShift != null) "${openShift.cashierName} · Shift Aktif"
+                               else "Tanpa Shift · Ketuk untuk mulai",
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (openShift != null) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // 3. TOMBOL IKON KECIL (Sudah otomatis terlindungi oleh provider di atas)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Tombol Laci Kasir
+                Surface(
+                    onClick = onOpenDrawerClick,
+                    enabled = !isOpeningDrawer,
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isOpeningDrawer) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Rounded.PointOfSale,
+                                contentDescription = "Buka laci kasir",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Tombol Kelola Multi-Shift
+                Surface(
+                    onClick = onManageClick,
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreHoriz,
+                            contentDescription = "Kelola semua shift",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

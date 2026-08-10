@@ -195,26 +195,22 @@ private fun PosTopBar(
             .padding(top = 4.dp, bottom = 4.dp), // Celah kecil dan seimbang di atas & bawah
         verticalArrangement = Arrangement.spacedBy(4.dp) // Celah otomatis & rapi antar baris
     ) {
-        ShiftIndicatorBar(
-            openShift = shift.activeShift,
-            isOpeningDrawer = shift.isOpeningDrawer,
-            onClick = {
-                val currentActiveShift = shift.activeShift
-                when {
-                    currentActiveShift != null -> {
-                        onAction(PosAction.OpenEndShiftDialog(currentActiveShift))
-                    }
-                    shift.openShifts.isEmpty() -> {
-                        onAction(PosAction.OpenStartShiftDialog)
-                    }
-                    else -> {
-                        onAction(PosAction.OpenShiftListDialog)
-                    }
-                }
-            },
-            onManageClick = { onAction(PosAction.OpenShiftListDialog) },
-            onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
-        )
+ShiftIndicatorBar(
+    openShift = shift.activeShift,
+    isOpeningDrawer = shift.isOpeningDrawer,
+    onClick = {
+        val active = shift.activeShift
+        if (active != null) {
+            onAction(PosAction.OpenEndShiftDialog(active))
+        } else if (shift.openShifts.isNotEmpty()) {
+            onAction(PosAction.OpenShiftListDialog)
+        } else {
+            onAction(PosAction.OpenStartShiftDialog)
+        }
+    },
+    onManageClick = { onAction(PosAction.OpenShiftListDialog) },
+    onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
+)
 
         Row(
             modifier = Modifier.fillMaxWidth(),

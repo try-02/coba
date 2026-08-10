@@ -360,20 +360,14 @@ class PosViewModel(
                 _showShiftListDialog.value = false
             }
 
-is PosAction.OpenEndShiftDialog -> {
-    viewModelScope.launch {
-        try {
-            _endShiftTarget.value = action.shift
-            _showEndShiftDialog.value = true // Picu dialog muncul segera
-            val summary = shiftRepository.getShiftSummary(action.shift.id)
-            _shiftSummary.value = summary
-        } catch (e: Exception) {
-            // Jika query summary gagal, batalkan dialog dan tampilkan pesan error
-            _showEndShiftDialog.value = false
-            _uiEvents.emit(PosUiEvent.ShowMessage("Gagal memuat ringkasan shift: ${e.message}"))
-        }
-    }
-}
+            is PosAction.OpenEndShiftDialog -> {
+                viewModelScope.launch {
+                    _endShiftTarget.value = action.shift
+                    _showEndShiftDialog.value = true // Set true dulu agar UI merespons instan! menampilkan indikator memuat ringkasan shift
+                    _shiftSummary.value = shiftRepository.getShiftSummary(action.shift.id)
+                    // _showEndShiftDialog.value = true
+                }
+            }
 
             PosAction.DismissEndShiftDialog -> {
                 _showEndShiftDialog.value = false
