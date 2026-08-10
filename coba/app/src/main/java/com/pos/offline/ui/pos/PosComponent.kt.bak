@@ -80,6 +80,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -116,18 +117,20 @@ internal fun ShiftIndicatorBar(
     onManageClick: () -> Unit,
     onOpenDrawerClick: () -> Unit,
 ) {
+    // 1. Mematikan pembesaran otomatis 48dp untuk SELURUH komponen di baris ini
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Indikator Utama menggunakan Surface dengan onClick bawaan Material 3
+            // 2. KARTU INDIKATOR SHIFT UTAMA (Menggunakan Surface & zIndex)
             Surface(
                 onClick = onClick,
                 modifier = Modifier
                     .weight(1f)
-                    .height(32.dp),
+                    .height(32.dp)
+                    .zIndex(1f), // 👈 PAKSA Z-INDEX: Memastikan kartu ini berada di layer sentuhan teratas
                 shape = RoundedCornerShape(8.dp),
                 color = if (openShift != null) {
                     MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
@@ -164,46 +167,52 @@ internal fun ShiftIndicatorBar(
                 }
             }
 
-            // Tombol Laci Kasir
-            Surface(
-                onClick = onOpenDrawerClick,
-                enabled = !isOpeningDrawer,
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(32.dp)
+            // 3. TOMBOL IKON KECIL
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isOpeningDrawer) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
+                // Tombol Laci Kasir
+                Surface(
+                    onClick = onOpenDrawerClick,
+                    enabled = !isOpeningDrawer,
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isOpeningDrawer) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Rounded.PointOfSale,
+                                contentDescription = "Buka laci kasir",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Tombol Kelola Multi-Shift
+                Surface(
+                    onClick = onManageClick,
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Rounded.PointOfSale,
-                            contentDescription = "Buka laci kasir",
+                            imageVector = Icons.Rounded.MoreHoriz,
+                            contentDescription = "Kelola semua shift",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-            }
-
-            // Tombol Kelola Multi-Shift
-            Surface(
-                onClick = onManageClick,
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(32.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Rounded.MoreHoriz,
-                        contentDescription = "Kelola semua shift",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
         }
