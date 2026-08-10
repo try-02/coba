@@ -192,25 +192,29 @@ private fun PosTopBar(
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = 12.dp)
-            .padding(top = 4.dp, bottom = 4.dp), // Celah kecil dan seimbang di atas & bawah
-        verticalArrangement = Arrangement.spacedBy(4.dp) // Celah otomatis & rapi antar baris
+            .padding(top = 4.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp) // 👈 Diubah dari 4.dp ke 8.dp agar ada jarak fisik antar komponen
     ) {
-ShiftIndicatorBar(
-    openShift = shift.activeShift,
-    isOpeningDrawer = shift.isOpeningDrawer,
-    onClick = {
-        val active = shift.activeShift
-        if (active != null) {
-            onAction(PosAction.OpenEndShiftDialog(active))
-        } else if (shift.openShifts.isNotEmpty()) {
-            onAction(PosAction.OpenShiftListDialog)
-        } else {
-            onAction(PosAction.OpenStartShiftDialog)
-        }
-    },
-    onManageClick = { onAction(PosAction.OpenShiftListDialog) },
-    onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
-)
+        ShiftIndicatorBar(
+            openShift = shift.activeShift,
+            isOpeningDrawer = shift.isOpeningDrawer,
+            onClick = {
+                val currentActiveShift = shift.activeShift
+                when {
+                    currentActiveShift != null -> {
+                        onAction(PosAction.OpenEndShiftDialog(currentActiveShift))
+                    }
+                    shift.openShifts.isEmpty() -> {
+                        onAction(PosAction.OpenStartShiftDialog)
+                    }
+                    else -> {
+                        onAction(PosAction.OpenShiftListDialog)
+                    }
+                }
+            },
+            onManageClick = { onAction(PosAction.OpenShiftListDialog) },
+            onOpenDrawerClick = { onAction(PosAction.OpenCashDrawer) },
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
