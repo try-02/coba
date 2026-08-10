@@ -120,7 +120,7 @@ internal fun ShiftIndicatorBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // ✅ Perbaikan: Gunakan Surface bukan Box + clickable
+        // ✅ PERBAIKAN: Ganti Box + clickable dengan Surface(onClick)
         Surface(
             modifier = Modifier
                 .weight(1f)
@@ -131,7 +131,7 @@ internal fun ShiftIndicatorBar(
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             },
-            onClick = onClick, // ✅ Surface memiliki onClick built-in
+            onClick = onClick, // ✅ Built-in onClick handler
             enabled = true
         ) {
             Row(
@@ -163,13 +163,12 @@ internal fun ShiftIndicatorBar(
             }
         }
 
-        // ✅ Tombol kecil - gunakan CompositionLocalProvider tapi dengan proper bounds
+        // ✅ Tombol kecil tetap bagus
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Tombol Laci Kasir
                 Surface(
                     onClick = onOpenDrawerClick,
                     enabled = !isOpeningDrawer,
@@ -195,7 +194,6 @@ internal fun ShiftIndicatorBar(
                     }
                 }
 
-                // Tombol Kelola Multi-Shift
                 Surface(
                     onClick = onManageClick,
                     shape = RoundedCornerShape(8.dp),

@@ -79,8 +79,7 @@ internal fun StartShiftDialog(
         onDismissRequest = { if (!isProcessing) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        // 👈 PERBAIKAN: Bungkus dengan Box fillMaxSize agar fillMaxWidth(0.9f) terbaca sempurna
-        Box(
+        androidx.compose.foundation.layout.BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
@@ -209,8 +208,7 @@ internal fun EndShiftDialog(
         onDismissRequest = { if (!isProcessing) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        // 👈 PERBAIKAN: Bungkus dengan Box fillMaxSize agar fillMaxWidth(0.95f) terbaca sempurna
-        Box(
+        androidx.compose.foundation.layout.BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
