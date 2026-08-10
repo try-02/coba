@@ -19,9 +19,8 @@ android {
         minSdk = 26
         targetSdk = 36
         
-        // Perbaikan 2: Menggunakan providers.gradleProperty untuk memaksimalkan Configuration Cache Hit Rate Gradle 9.6.1
-        val buildVersionProvider = providers.gradleProperty("BUILD_VERSION_CODE")
-        val autoVersionCode = buildVersionProvider.orNull?.toIntOrNull() ?: 2
+        val buildNumberProvider = providers.environmentVariable("ANDROID_BUILD_NUMBER")
+        val autoVersionCode = buildNumberProvider.orNull?.toIntOrNull() ?: 2
         
         versionCode = autoVersionCode
         versionName = "1.0.0.$autoVersionCode"

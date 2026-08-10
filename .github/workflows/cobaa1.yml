@@ -42,7 +42,6 @@ jobs:
 
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
           ./gradlew assembleRelease \
-            -PBUILD_VERSION_CODE=${{ github.run_number }} \
             -x test \
             -x connectedAndroidTest \
             --parallel \
@@ -51,6 +50,7 @@ jobs:
             --non-interactive \
             --stacktrace
         env:
+          ANDROID_BUILD_NUMBER: ${{ github.run_number }}
           NO_COLOR: "1"
           GRADLE_OPTS: "-Dorg.gradle.daemon=false"
           ORG_GRADLE_PROJECT_android_native_build_output_ignore_errors: true
