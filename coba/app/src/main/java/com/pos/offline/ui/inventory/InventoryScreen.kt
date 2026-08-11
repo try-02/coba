@@ -1,7 +1,9 @@
 package com.pos.offline.ui.inventory
+
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,13 +58,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -83,6 +86,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,6 +104,7 @@ import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.sanitizeScannedCode
 import com.pos.offline.util.toRupiah
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,9 +140,11 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
         ) { uri -> if (uri != null) viewModel.importFromExcel(uri) }
+
     LaunchedEffect(Unit) {
         viewModel.messages.collect { msg -> snackbarHostState.showSnackbar(msg) }
     }
+
     Box(Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -147,45 +155,63 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                             .statusBarsPadding()
                             .padding(horizontal = 12.dp),
                 ) {
+                    // Header Title Row
                     Row(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .padding(top = 4.dp, bottom = 4.dp),
+                                .padding(top = 8.dp, bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            Icons.Rounded.Inventory2,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.Inventory2,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(10.dp))
                         Text(
                             "Inventaris",
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f),
                         )
                         if (products.isNotEmpty()) {
-                            Text(
-                                "${products.size} produk",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            ) {
+                                Text(
+                                    "${products.size} produk",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                )
+                            }
                         }
                     }
+
+                    // Search & Action Controls Bar
                     Row(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 6.dp),
+                                .padding(bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CompactInventorySearchBar(
                             query = query,
                             onQueryChange = viewModel::search,
-                            modifier = Modifier.weight(1f).height(34.dp),
+                            modifier = Modifier.weight(1f).height(44.dp),
                         )
                         Spacer(Modifier.width(6.dp))
                         if (hasCamera) {
@@ -246,8 +272,8 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                         LocalOverscrollFactory provides null,
                     ) {
                         LazyColumn(
-                            contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.bouncyOverscroll(),
                             flingBehavior = iosGlideFlingBehavior(),
                         ) {
@@ -266,18 +292,23 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
                 }
             }
         }
-        SmallFloatingActionButton(
+
+        // Thumb Zone FAB
+        FloatingActionButton(
             onClick = viewModel::startAdd,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier =
                 Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 8.dp)
+                    .padding(end = 16.dp, bottom = 16.dp)
                     .navigationBarsPadding()
                     .imePadding(),
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = "Tambah Produk", modifier = Modifier.size(20.dp))
+            Icon(Icons.Rounded.Add, contentDescription = "Tambah Produk", modifier = Modifier.size(24.dp))
         }
     }
+
     form?.let { state ->
         ProductFormDialog(
             state = state,
@@ -292,33 +323,42 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             onReturnDamaged = { qty -> viewModel.returnDamagedItemToSupplier(state.id, qty) },
         )
     }
+
     pendingDelete?.let { target ->
         AlertDialog(
             onDismissRequest = viewModel::cancelDelete,
             confirmButton = {
-                TextButton(onClick = viewModel::confirmDelete) {
-                    Text("Hapus", color = MaterialTheme.colorScheme.error)
+                Button(
+                    onClick = viewModel::confirmDelete,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text("Hapus", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = viewModel::cancelDelete) { Text("Batal") }
             },
-            title = { Text("Hapus Produk?") },
-            text = { Text("\"${target.name}\" akan dihapus dari katalog.") },
+            title = { Text("Hapus Produk?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
+            text = { Text("\"${target.name}\" akan dihapus dari katalog.", style = MaterialTheme.typography.bodyMedium) },
         )
     }
+
     scanNotFound?.let { state ->
         AlertDialog(
             onDismissRequest = viewModel::dismissScanNotFound,
-            title = { Text("Produk Tidak Ditemukan") },
+            title = { Text("Produk Tidak Ditemukan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
-                Text("Barcode \"${state.barcode}\" belum terdaftar di katalog produk.")
+                Text("Barcode \"${state.barcode}\" belum terdaftar di katalog produk.", style = MaterialTheme.typography.bodyMedium)
             },
             confirmButton = {
-                Button(onClick = viewModel::startAddFromScanned) {
-                    Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Button(
+                    onClick = viewModel::startAddFromScanned,
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Tambah Produk Baru")
+                    Text("Tambah Produk Baru", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -326,24 +366,28 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
             },
         )
     }
+
     deletedProductFound?.let { state ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDeletedProductFound,
-            title = { Text("Produk Pernah Dihapus") },
+            title = { Text("Produk Pernah Dihapus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "Barcode ini pernah digunakan oleh produk \"${state.product.name}\" yang sudah dihapus. " +
-                        "Apakah Anda ingin memulihkannya?",
+                    "Barcode ini pernah digunakan oleh produk \"${state.product.name}\" yang sudah dihapus. Apakah Anda ingin memulihkannya?",
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
-                Button(onClick = viewModel::restoreDeletedProduct) { Text("Pulihkan") }
+                Button(onClick = viewModel::restoreDeletedProduct, shape = RoundedCornerShape(8.dp)) {
+                    Text("Pulihkan", fontWeight = FontWeight.Bold)
+                }
             },
             dismissButton = {
                 TextButton(onClick = viewModel::dismissDeletedProductFound) { Text("Batal") }
             },
         )
     }
+
     if (excelState.showReviewDialog) {
         ImportReviewDialog(
             reviewItems = excelState.reviewItems,
@@ -365,19 +409,20 @@ private fun ExcelIconButton(
     Box(
         modifier =
             Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                .clickable(enabled = !loading, onClick = onClick),
+                .size(44.dp) // Touch Target Size Standard
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                .clickable(enabled = !loading, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
         } else {
             Icon(
                 icon,
                 contentDescription = desc,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
@@ -395,9 +440,10 @@ private fun ImportReviewDialog(
     val newCount = reviewItems.count { it.status == InventoryViewModel.ImportStatus.NEW }
     val conflictCount = reviewItems.count { it.status == InventoryViewModel.ImportStatus.CONFLICT }
     val dupCount = reviewItems.count { it.status == InventoryViewModel.ImportStatus.DUPLICATE_IN_FILE }
+
     AlertDialog(
         onDismissRequest = { if (!isCommitting) onDismiss() },
-        title = { Text("Tinjau Impor Produk", fontSize = 15.sp, fontWeight = FontWeight.Bold) },
+        title = { Text("Tinjau Impor Produk", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier =
@@ -405,7 +451,7 @@ private fun ImportReviewDialog(
                         .fillMaxWidth()
                         .heightIn(max = 400.dp)
                         .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     ImportStatBadge("Baru: $newCount", MaterialTheme.colorScheme.primary)
@@ -415,7 +461,7 @@ private fun ImportReviewDialog(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "Hanya produk berstatus \"Baru\" yang akan ditambahkan. Konflik & duplikat dilewati demi menjaga data lama.",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
@@ -429,7 +475,7 @@ private fun ImportReviewDialog(
                     parseErrors.take(10).forEach { err ->
                         Text(
                             err,
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -444,6 +490,7 @@ private fun ImportReviewDialog(
             Button(
                 onClick = onConfirm,
                 enabled = !isCommitting && newCount > 0,
+                shape = RoundedCornerShape(8.dp),
             ) {
                 if (isCommitting) {
                     CircularProgressIndicator(
@@ -452,13 +499,13 @@ private fun ImportReviewDialog(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
-                    Text("Impor $newCount Produk", fontSize = 13.sp)
+                    Text("Impor $newCount Produk", fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isCommitting) {
-                Text("Batal", fontSize = 13.sp)
+                Text("Batal")
             }
         },
     )
@@ -473,7 +520,8 @@ private fun ImportStatBadge(
         Text(
             text,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = FontFamily.Monospace,
             color = color,
             fontWeight = FontWeight.Bold,
         )
@@ -489,37 +537,38 @@ private fun ImportReviewRow(item: InventoryViewModel.ImportReviewItem) {
             InventoryViewModel.ImportStatus.DUPLICATE_IN_FILE -> "DOBEL" to MaterialTheme.colorScheme.error
         }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text(
                 item.row.name,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 "SKU: ${item.row.sku}${item.row.barcode?.let { " · $it" } ?: ""}",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (item.status == InventoryViewModel.ImportStatus.CONFLICT && item.conflictWith != null) {
                 Text(
                     "Bentrok dg: ${item.conflictWith.name}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    style = MaterialTheme.typography.labelSmall,
                     color = color,
                 )
             }
         }
-        Surface(color = color.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp)) {
+        Surface(color = color.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
             Text(
                 label,
-                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.labelSmall,
                 color = color,
                 fontWeight = FontWeight.Bold,
             )
@@ -535,28 +584,30 @@ private fun ProductRow(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 14.dp,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
         onClick = null,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
                     product.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     product.sku,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace, // Monospace Finansial/Teknis
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         product.price.toRupiah(),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace, // Monospace Finansial Wajib
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -566,20 +617,25 @@ private fun ProductRow(
                         Spacer(Modifier.width(6.dp))
                         DamagedStockBadge(stock = product.damagedStock)
                     }
-                    if (product.cost > 0) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Laba ${(product.price - product.cost).toRupiah()}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
-                if (product.category.isNotBlank()) {
-                    Spacer(Modifier.height(2.dp))
-                    CategoryBadge(category = product.category)
+                if (product.cost > 0 || product.category.isNotBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (product.category.isNotBlank()) {
+                            CategoryBadge(category = product.category)
+                        }
+                        if (product.cost > 0) {
+                            if (product.category.isNotBlank()) Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Laba ${(product.price - product.cost).toRupiah()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace, // Monospace Finansial
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
             Spacer(Modifier.width(8.dp))
@@ -600,7 +656,7 @@ private fun CategoryBadge(category: String) {
         Text(
             text = category,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.tertiary,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -620,13 +676,13 @@ private fun CompactIconAction(
     Box(
         modifier =
             Modifier
-                .size(32.dp)
+                .size(44.dp) // Minimum Touch Target 44dp-48dp
                 .clip(CircleShape)
                 .background(background)
-                .clickable(onClick = onClick),
+                .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(16.dp))
+        Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -642,9 +698,10 @@ private fun StockBadge(stock: Double) {
         Text(
             text = if (stock <= 0.0) "Habis" else "Stok ${stock.formatQuantity()}",
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = FontFamily.Monospace, // Monospace Finansial
             color = color,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
@@ -655,9 +712,10 @@ private fun DamagedStockBadge(stock: Double) {
         Text(
             text = "Rusak ${stock.formatQuantity()}",
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = FontFamily.Monospace,
             color = MaterialTheme.colorScheme.error,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
@@ -668,40 +726,56 @@ private fun EmptyInventory(
     isTopSalesEmpty: Boolean = false,
     topSalesRangeLabel: String = "",
 ) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Rounded.Inventory2,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                when {
-                    isTopSalesEmpty -> "Belum ada penjualan untuk ${topSalesRangeLabel.lowercase()}"
-                    hasQuery -> "Produk tidak ditemukan"
-                    else -> "Belum ada produk"
-                },
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            )
-            when {
-                isTopSalesEmpty -> {
-                    Text(
-                        "Katalog produk tetap ada — coba pilih rentang waktu lain",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.Inventory2,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
-
-                !hasQuery -> {
-                    Text(
-                        "Ketuk tombol + untuk mulai",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    )
-                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    when {
+                        isTopSalesEmpty -> "Belum ada penjualan untuk ${topSalesRangeLabel.lowercase()}"
+                        hasQuery -> "Produk tidak ditemukan"
+                        else -> "Belum ada produk"
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    when {
+                        isTopSalesEmpty -> "Katalog produk tetap ada — coba pilih rentang waktu lain."
+                        hasQuery -> "Coba gunakan kata kunci pencarian atau SKU lain."
+                        else -> "Ketuk tombol + di kanan bawah untuk menambah produk pertama Anda."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -720,7 +794,6 @@ private fun CompactInventorySearchBar(
         textStyle =
             MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 13.sp,
             ),
         modifier = modifier,
         decorationBox = { innerTextField ->
@@ -728,24 +801,27 @@ private fun CompactInventorySearchBar(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 10.dp),
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     Icons.Rounded.Search,
                     contentDescription = "Cari",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(20.dp),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
                 Box(Modifier.weight(1f)) {
                     if (query.isEmpty()) {
                         Text(
                             text = "Cari nama / SKU…",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     innerTextField()
@@ -754,7 +830,7 @@ private fun CompactInventorySearchBar(
                     Box(
                         modifier =
                             Modifier
-                                .size(18.dp)
+                                .size(24.dp)
                                 .clip(CircleShape)
                                 .clickable { onQueryChange("") },
                         contentAlignment = Alignment.Center,
@@ -762,7 +838,7 @@ private fun CompactInventorySearchBar(
                         Icon(
                             Icons.Rounded.Close,
                             contentDescription = "Hapus pencarian",
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -779,29 +855,37 @@ private fun SortMenuButton(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        Row(
-            modifier =
-                Modifier
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                    .clickable { expanded = true }
-                    .padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            modifier = Modifier
+                .height(44.dp)
+                .clickable(role = Role.Button) { expanded = true }
         ) {
-            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = "Urutkan", modifier = Modifier.size(15.dp))
-            Spacer(Modifier.width(4.dp))
-            Text(
-                current.label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                maxLines = 1,
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = "Urutkan", modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    current.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             ProductSortOption.entries.forEach { option ->
                 DropdownMenuItem(
                     text = {
-                        Text(option.label, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp))
+                        Text(
+                            option.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (option == current) FontWeight.Bold else FontWeight.Normal
+                        )
                     },
                     onClick = {
                         onSelect(option)
@@ -809,7 +893,7 @@ private fun SortMenuButton(
                     },
                     leadingIcon = {
                         if (option == current) {
-                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     },
                 )
@@ -823,16 +907,17 @@ private fun ScanIconButton(onClick: () -> Unit) {
     Box(
         modifier =
             Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                .clickable(onClick = onClick),
+                .size(44.dp) // Accessible Touch Target
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             Icons.Rounded.QrCodeScanner,
             contentDescription = "Scan barcode produk",
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
     }
@@ -869,6 +954,7 @@ private fun ProductFormDialog(
     var isCheckingBarcode by remember(state.id) { mutableStateOf(false) }
     var isCheckingSku by remember(state.id) { mutableStateOf(false) }
     var showReturnDamagedDialog by remember(state.id) { mutableStateOf(false) }
+
     val context = LocalContext.current
     val hasCamera =
         remember {
@@ -890,6 +976,7 @@ private fun ProductFormDialog(
     val configuration = LocalConfiguration.current
     val maxContentHeight = (configuration.screenHeightDp * 0.75f).dp
     val scrollState = rememberScrollState()
+
     LaunchedEffect(barcode) {
         val trimmed = barcode.trim()
         if (trimmed.isBlank()) {
@@ -898,10 +985,11 @@ private fun ProductFormDialog(
             return@LaunchedEffect
         }
         isCheckingBarcode = true
-        kotlinx.coroutines.delay(300)
+        delay(300)
         barcodeConflict = checkBarcodeConflict(trimmed, state.id)
         isCheckingBarcode = false
     }
+
     LaunchedEffect(sku) {
         val trimmed = sku.trim()
         if (trimmed.isBlank()) {
@@ -910,13 +998,20 @@ private fun ProductFormDialog(
             return@LaunchedEffect
         }
         isCheckingSku = true
-        kotlinx.coroutines.delay(300)
+        delay(300)
         skuConflict = checkSkuConflict(trimmed, state.id)
         isCheckingSku = false
     }
+
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
-        title = { Text(if (state.isNew) "Tambah Produk" else "Edit Produk", style = MaterialTheme.typography.titleMedium) },
+        title = {
+            Text(
+                if (state.isNew) "Tambah Produk" else "Edit Produk",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+        },
         text = {
             val priceLong = price.toLongOrNull() ?: 0L
             val costLong = cost.toLongOrNull() ?: 0L
@@ -925,22 +1020,22 @@ private fun ProductFormDialog(
                     Modifier
                         .heightIn(max = maxContentHeight)
                         .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nama Produk *", style = MaterialTheme.typography.bodySmall) },
+                    label = { Text("Nama Produk *") },
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                    shape = RoundedCornerShape(10.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = sku,
                         onValueChange = { sku = it },
-                        label = { Text("SKU", style = MaterialTheme.typography.bodySmall) },
+                        label = { Text("SKU") },
                         singleLine = true,
                         isError = skuConflict != null,
                         supportingText =
@@ -955,14 +1050,14 @@ private fun ProductFormDialog(
                             } else {
                                 null
                             },
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                        shape = RoundedCornerShape(10.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedTextField(
                         value = barcode,
                         onValueChange = { barcode = it },
-                        label = { Text("Barcode", style = MaterialTheme.typography.bodySmall) },
+                        label = { Text("Barcode") },
                         singleLine = true,
                         isError = barcodeConflict != null,
                         supportingText =
@@ -977,23 +1072,23 @@ private fun ProductFormDialog(
                             } else {
                                 null
                             },
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                        shape = RoundedCornerShape(10.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.2f),
                         trailingIcon = {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
                                 if (barcode.isNotEmpty()) {
-                                    IconButton(onClick = { barcode = "" }, modifier = Modifier.size(24.dp)) {
-                                        Icon(Icons.Rounded.Close, contentDescription = "Hapus", modifier = Modifier.size(14.dp))
+                                    IconButton(onClick = { barcode = "" }, modifier = Modifier.size(32.dp)) {
+                                        Icon(Icons.Rounded.Close, contentDescription = "Hapus", modifier = Modifier.size(18.dp))
                                     }
                                 }
                                 if (hasCamera) {
-                                    IconButton(onClick = launchScanner, modifier = Modifier.size(24.dp)) {
+                                    IconButton(onClick = launchScanner, modifier = Modifier.size(32.dp)) {
                                         Icon(
                                             Icons.Rounded.QrCodeScanner,
                                             contentDescription = "Scan",
                                             tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(14.dp),
+                                            modifier = Modifier.size(18.dp),
                                         )
                                     }
                                 }
@@ -1016,10 +1111,10 @@ private fun ProductFormDialog(
                         value = (priceLong - costLong).toRupiah(),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Laba/Unit", style = MaterialTheme.typography.bodySmall) },
+                        label = { Text("Laba/Unit") },
                         singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                        shape = RoundedCornerShape(10.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1027,7 +1122,8 @@ private fun ProductFormDialog(
                     Spacer(Modifier.height(4.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
@@ -1038,20 +1134,22 @@ private fun ProductFormDialog(
                                 Text(
                                     "Stok Rusak/Garansi",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
                                 )
                                 Text(
                                     "${state.damagedStock.formatQuantity()} item tidak layak jual",
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontFamily = FontFamily.Monospace,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
                                 )
                             }
                             Button(
                                 onClick = { showReturnDamagedDialog = true },
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                shape = RoundedCornerShape(8.dp),
                             ) {
-                                Text("Retur Pabrik", fontSize = 11.sp, color = MaterialTheme.colorScheme.onError)
+                                Text("Retur Pabrik", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onError)
                             }
                         }
                     }
@@ -1069,8 +1167,9 @@ private fun ProductFormDialog(
                             ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error,
                             ),
+                        shape = RoundedCornerShape(8.dp),
                     ) {
-                        Text("Hapus", color = MaterialTheme.colorScheme.onError)
+                        Text("Hapus", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onError)
                     }
                 }
             } else {
@@ -1099,6 +1198,7 @@ private fun ProductFormDialog(
                             ),
                         )
                     },
+                    shape = RoundedCornerShape(8.dp),
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(
@@ -1107,17 +1207,18 @@ private fun ProductFormDialog(
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
-                        Text("Simpan")
+                        Text("Simpan", fontWeight = FontWeight.Bold)
                     }
                 }
             }
         },
     )
+
     if (showReturnDamagedDialog) {
         var returnQtyStr by remember { mutableStateOf(state.damagedStock.formatQuantity()) }
         AlertDialog(
             onDismissRequest = { showReturnDamagedDialog = false },
-            title = { Text("Retur ke Pabrik/Supplier", style = MaterialTheme.typography.titleMedium) },
+            title = { Text("Retur ke Pabrik/Supplier", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -1144,8 +1245,9 @@ private fun ProductFormDialog(
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(8.dp),
                 ) {
-                    Text("Konfirmasi Retur")
+                    Text("Konfirmasi Retur", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1183,11 +1285,11 @@ private fun DecimalNumberField(
                 }.take(10)
             onValueChange(cleaned)
         },
-        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+        label = { Text(label) },
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = modifier,
     )
 }
@@ -1214,17 +1316,17 @@ private fun CategoryField(
                 onValueChange(it)
                 expanded = suggestions.isNotEmpty()
             },
-            label = { Text("Kategori (opsional)", style = MaterialTheme.typography.bodySmall) },
+            label = { Text("Kategori (opsional)") },
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-            shape = RoundedCornerShape(10.dp),
+            textStyle = MaterialTheme.typography.bodyMedium,
+            shape = RoundedCornerShape(12.dp),
             trailingIcon = {
                 if (suggestions.isNotEmpty()) {
-                    IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(32.dp)) {
                         Icon(
                             Icons.Rounded.KeyboardArrowDown,
                             contentDescription = "Pilih kategori",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -1240,7 +1342,7 @@ private fun CategoryField(
         ) {
             filtered.forEach { cat ->
                 DropdownMenuItem(
-                    text = { Text(cat, fontSize = 13.sp) },
+                    text = { Text(cat, style = MaterialTheme.typography.bodyMedium) },
                     onClick = {
                         onValueChange(cat)
                         expanded = false
@@ -1261,13 +1363,13 @@ private fun MoneyNumberField(
     OutlinedTextField(
         value = value,
         onValueChange = { input -> onValueChange(input.filter { it.isDigit() }) },
-        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
-        prefix = { Text("Rp", style = MaterialTheme.typography.bodySmall) },
+        label = { Text(label) },
+        prefix = { Text("Rp ", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold) },
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         visualTransformation = ThousandsSeparatorTransformation,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = modifier,
     )
 }
@@ -1277,22 +1379,24 @@ private fun TopSalesRangePicker(
     selected: TopSalesRange,
     onSelect: (TopSalesRange) -> Unit,
 ) {
-    Row(
-        modifier =
-            Modifier
-                .height(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                .padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.height(44.dp),
     ) {
-        TopSalesRange.entries.forEach { range ->
-            TopSalesChip(
-                label = range.label,
-                selected = selected == range,
-                onClick = { onSelect(range) },
-            )
+        Row(
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            TopSalesRange.entries.forEach { range ->
+                TopSalesChip(
+                    label = range.label,
+                    selected = selected == range,
+                    onClick = { onSelect(range) },
+                )
+            }
         }
     }
 }
@@ -1308,15 +1412,15 @@ private fun TopSalesChip(
             Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            style = MaterialTheme.typography.labelSmall,
             color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
         )
     }
 }
