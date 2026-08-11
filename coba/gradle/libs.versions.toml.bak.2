@@ -25,7 +25,6 @@ junit = "4.13.2"
 mockk = "1.14.11"
 androidxTestExt = "1.3.0"
 androidxTestRunner = "1.7.0"
-compose-screenshot = "0.0.1-alpha16"
 
 [libraries]
 # ===== ROOM =====
@@ -73,6 +72,7 @@ androidx-room-testing = { group = "androidx.room", name = "room-testing", versio
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 
+# OPTIMALISASI: Kelompokkan pustaka serumpun menjadi bundle agar Gradle mengevaluasinya lebih cepat
 [bundles]
 compose-ui = [
     "androidx-compose-ui",
@@ -104,5 +104,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
-# PERBAIKAN: Memindahkan deklarasi plugin screenshot ke blok [plugins] yang benar
-screenshot = { id = "com.android.compose.screenshot", version.ref = "compose-screenshot" }
