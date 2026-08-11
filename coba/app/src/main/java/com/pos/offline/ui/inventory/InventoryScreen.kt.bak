@@ -145,168 +145,169 @@ fun InventoryScreen(viewModel: InventoryViewModel) {
         viewModel.messages.collect { msg -> snackbarHostState.showSnackbar(msg) }
     }
 
-    // Gunakan Scaffold sebagai root terluar atau bungkus dengan Box TANPA modifier insets tambahan
-Scaffold(
-    topBar = {
-        // PERBAIKAN 1: Hapus statusBarsPadding() dari sini. 
-        // Biarkan Scaffold yang mengaturnya via contentWindowInsets bawaan.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp),
-        ) {
-            // Header Title Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(36.dp),
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 12.dp),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Rounded.Inventory2,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                    }
-                }
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    "Inventaris",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                )
-                if (products.isNotEmpty()) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    // Header Title Row
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.Inventory2,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(10.dp))
                         Text(
-                            "${products.size} produk",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            "Inventaris",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
                         )
+                        if (products.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            ) {
+                                Text(
+                                    "${products.size} produk",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    // Search & Action Controls Bar
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CompactInventorySearchBar(
+                            query = query,
+                            onQueryChange = viewModel::search,
+                            modifier = Modifier.weight(1f).height(44.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        if (hasCamera) {
+                            ScanIconButton(onClick = launchMainScanner)
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        ExcelIconButton(
+                            icon = Icons.Rounded.FileUpload,
+                            desc = "Import Excel",
+                            loading = excelState.isImporting,
+                            onClick = {
+                                excelImportLauncher.launch(
+                                    arrayOf(
+                                        "application/vnd.ms-excel",
+                                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    ),
+                                )
+                            },
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        ExcelIconButton(
+                            icon = Icons.Rounded.FileDownload,
+                            desc = "Export Excel",
+                            loading = excelState.isExporting,
+                            onClick = { excelExportLauncher.launch(ExcelManager.suggestedExportFileName()) },
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        SortMenuButton(current = sortOption, onSelect = viewModel::setSortOption)
+                        if (sortOption == ProductSortOption.TERLARIS) {
+                            Spacer(Modifier.width(6.dp))
+                            TopSalesRangePicker(
+                                selected = topSalesRange,
+                                onSelect = viewModel::setTopSalesRange,
+                            )
+                        }
                     }
                 }
-            }
-
-            // Search & Action Controls Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            contentWindowInsets = WindowInsets.statusBars.union(WindowInsets.navigationBars),
+        ) { inner ->
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(inner)
+                    .consumeWindowInsets(inner)
+                    .imePadding(),
             ) {
-                CompactInventorySearchBar(
-                    query = query,
-                    onQueryChange = viewModel::search,
-                    modifier = Modifier.weight(1f).height(44.dp),
-                )
-                Spacer(Modifier.width(6.6.dp)) // Disesuaikan dari 6.dp ke visual anchor terdekat jika perlu
-                if (hasCamera) {
-                    ScanIconButton(onClick = launchMainScanner)
-                    Spacer(Modifier.width(6.6.dp))
-                }
-                ExcelIconButton(
-                    icon = Icons.Rounded.FileUpload,
-                    desc = "Import Excel",
-                    loading = excelState.isImporting,
-                    onClick = {
-                        excelImportLauncher.launch(
-                            arrayOf(
-                                "application/vnd.ms-excel",
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            ),
-                        )
-                    },
-                )
-                Spacer(Modifier.width(6.6.dp))
-                ExcelIconButton(
-                    icon = Icons.Rounded.FileDownload,
-                    desc = "Export Excel",
-                    loading = excelState.isExporting,
-                    onClick = { excelExportLauncher.launch(ExcelManager.suggestedExportFileName()) },
-                )
-                Spacer(Modifier.width(6.6.dp))
-                SortMenuButton(current = sortOption, onSelect = viewModel::setSortOption)
-                if (sortOption == ProductSortOption.TERLARIS) {
-                    Spacer(Modifier.width(6.6.dp))
-                    TopSalesRangePicker(
-                        selected = topSalesRange,
-                        onSelect = viewModel::setTopSalesRange,
+                if (products.isEmpty()) {
+                    EmptyInventory(
+                        hasQuery = query.isNotEmpty(),
+                        isTopSalesEmpty = sortOption == ProductSortOption.TERLARIS,
+                        topSalesRangeLabel = topSalesRange.label,
                     )
+                } else {
+                    @OptIn(ExperimentalFoundationApi::class)
+                    CompositionLocalProvider(
+                        LocalOverscrollFactory provides null,
+                    ) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.bouncyOverscroll(),
+                            flingBehavior = iosGlideFlingBehavior(),
+                        ) {
+                            items(
+                                items = products,
+                                key = { it.id },
+                                contentType = { "product" },
+                            ) { product ->
+                                ProductRow(
+                                    product = product,
+                                    onEdit = { viewModel.startEdit(product) },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
-    },
-    snackbarHost = { SnackbarHost(snackbarHostState) },
-    // PERBAIKAN 2: Masukkan FAB ke slot resmi Scaffold agar pergerakan IME (keyboard) dihitung seragam
-    floatingActionButton = {
+
+        // Thumb Zone FAB
         FloatingActionButton(
             onClick = viewModel::startAdd,
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-            // Hapus navigationBarsPadding() dan imePadding() manual karena Scaffold otomatis mengaturnya
-            modifier = Modifier.padding(end = 4.dp, bottom = 4.dp) 
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 16.dp)
+                    .navigationBarsPadding()
+                    .imePadding(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = "Tambah Produk", modifier = Modifier.size(24.dp))
         }
-    },
-    // PERBAIKAN 3: Gunakan setelan default aman Scaffold (mengamankan semua System Bars)
-    contentWindowInsets = ScaffoldDefaults.contentWindowInsets
-) { innerPadding ->
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            // PERBAIKAN 4: Konsumsi padding dari Scaffold agar tidak dihitung ulang oleh modifier di bawahnya
-            .consumeWindowInsets(innerPadding)
-            // Amankan input keyboard hanya di area kontainer utama ini
-            .imePadding(),
-    ) {
-        if (products.isEmpty()) {
-            EmptyInventory(
-                hasQuery = query.isNotEmpty(),
-                isTopSalesEmpty = sortOption == ProductSortOption.TERLARIS,
-                topSalesRangeLabel = topSalesRange.label,
-            )
-        } else {
-            @OptIn(ExperimentalFoundationApi::class)
-            CompositionLocalProvider(
-                LocalOverscrollFactory provides null,
-            ) {
-                LazyColumn(
-                    // bottom padding disesuaikan karena FAB sudah dikelola Scaffold dengan aman
-                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.bouncyOverscroll(),
-                    flingBehavior = iosGlideFlingBehavior(),
-                ) {
-                    items(
-                        items = products,
-                        key = { it.id },
-                        contentType = { "product" },
-                    ) { product ->
-                        ProductRow(
-                            product = product,
-                            onEdit = { viewModel.startEdit(product) },
-                        )
-                    }
-                }
-            }
-        }
     }
-}
-
 
     form?.let { state ->
         ProductFormDialog(
