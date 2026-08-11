@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pos.offline.data.local.entity.PrinterConnectionType
@@ -44,16 +45,15 @@ fun PrinterPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Pilih Printer", fontWeight = FontWeight.Bold) },
+        title = { Text("Pilih Printer Struk", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Struk akan dicetak ulang ke printer yang dipilih. Jika gagal, sistem TIDAK " +
-                        "akan mencoba printer lain secara otomatis.",
+                    "Struk akan dicetak ulang ke printer yang dipilih. Jika gagal, sistem TIDAK akan mencoba printer lain secara otomatis.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                
+
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 280.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -82,12 +82,12 @@ fun PrinterPickerDialog(
                                     },
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = printer.label, 
+                                        text = printer.label,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -95,6 +95,7 @@ fun PrinterPickerDialog(
                                     Text(
                                         text = connectionSummary(printer),
                                         style = MaterialTheme.typography.labelSmall,
+                                        fontFamily = FontFamily.Monospace, // Monospace for technical connection summary
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
