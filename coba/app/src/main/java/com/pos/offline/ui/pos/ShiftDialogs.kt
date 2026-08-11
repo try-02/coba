@@ -720,8 +720,8 @@ private fun StartShiftDialogPreview() {
     MaterialTheme {
         StartShiftDialog(
             cashiers = listOf(
-                CashierEntity(id = 1, name = "Budi Santoso", pin = "1234"),
-                CashierEntity(id = 2, name = "Siti Rahma", pin = "5678")
+                CashierEntity(id = 1, name = "Budi Santoso"),
+                CashierEntity(id = 2, name = "Siti Rahma")
             ),
             isProcessing = false,
             onDismiss = {},
@@ -736,17 +736,15 @@ private fun EndShiftDialogPreview() {
     MaterialTheme {
         EndShiftDialog(
             summary = ShiftSummary(
-                cashierName = "Budi Santoso",
                 startingCash = 100000L,
                 cashRevenue = 450000L,
                 qrisRevenue = 200000L,
-                totalRevenue = 650000L,
                 qrisRefunds = 0L,
-                grossProfit = 250000L,
-                warrantyExchangeCost = 0L,
                 cashRefunds = 0L,
                 qrisCashChangeOut = 0L,
-                expectedCashInDrawer = 550000L
+                warrantyExchangeCost = 0L,
+                totalCost = 350000L,
+                restockedReturnsCost = 0L
             ),
             isProcessing = false,
             onDismiss = {},
