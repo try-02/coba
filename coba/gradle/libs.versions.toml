@@ -82,7 +82,7 @@ compose-ui = [
     "androidx-compose-ui-graphics",
     "androidx-compose-material3",
     "androidx-compose-material-icons-extended",
-    "androidx-activity-compose"
+    "androidx-activity-compose",
     "androidx-compose-ui-tooling-preview"
 ]
 lifecycle-runtime = [
