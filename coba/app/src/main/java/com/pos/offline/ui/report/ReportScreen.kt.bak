@@ -9,7 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollFactory
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -268,7 +268,7 @@ fun ReportScreen(
         ) { inner ->
             @OptIn(ExperimentalFoundationApi::class)
             CompositionLocalProvider(
-                LocalOverscrollFactory provides null,
+                LocalOverscrollConfiguration provides null,
             ) {
                 LazyColumn(
                     modifier =

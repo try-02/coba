@@ -5,7 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollFactory
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -201,7 +201,7 @@ fun SettingsScreen(
     ) { innerPadding ->
         @OptIn(ExperimentalFoundationApi::class)
         CompositionLocalProvider(
-            LocalOverscrollFactory provides null,
+            LocalOverscrollConfiguration provides null,
         ) {
             Column(
                 modifier =

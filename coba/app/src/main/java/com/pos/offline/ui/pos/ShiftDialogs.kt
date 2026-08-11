@@ -1,5 +1,6 @@
 package com.pos.offline.ui.pos
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,27 +9,30 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.PointOfSale
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -44,9 +48,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -79,7 +88,6 @@ internal fun StartShiftDialog(
         onDismissRequest = { if (!isProcessing) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        // 👈 PERBAIKAN: Bungkus dengan Box fillMaxSize agar fillMaxWidth(0.9f) terbaca sempurna
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -88,40 +96,75 @@ internal fun StartShiftDialog(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
                     .padding(vertical = 24.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surface
+                shape = RoundedCornerShape(24.dp), // Shape M3 standar dialog
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp) // 8-point grid
                 ) {
-                    Text(
-                        text = "Mulai Shift Baru",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    // Header Dialog dengan Ikon Kontekstual
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PointOfSale,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Mulai Shift Baru",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
                     if (cashiers.isEmpty()) {
                         Surface(
                             color = MaterialTheme.colorScheme.errorContainer,
                             shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "Belum ada kasir terdaftar. Tambahkan kasir dulu di menu Pengaturan.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Belum ada kasir terdaftar. Tambahkan kasir dulu di menu Pengaturan.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
                         }
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // Dropdown Pemilihan Kasir
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = "Pilih Kasir",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 CashierDropdownField(
                                     cashiers = cashiers,
@@ -130,11 +173,13 @@ internal fun StartShiftDialog(
                                 )
                             }
 
+                            // Input Modal Awal Kas
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = "Modal Awal (Kas Laci)",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 MoneyField(
                                     label = "Modal",
@@ -148,23 +193,33 @@ internal fun StartShiftDialog(
                         }
                     }
 
+                    // Aksi Utama (Thumb Zone)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
                             enabled = !isProcessing,
-                            modifier = Modifier.weight(1f).height(48.dp),
-                            shape = RoundedCornerShape(16.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         ) {
-                            Text("Batal")
+                            Text(
+                                text = "Batal",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
 
                         Button(
                             onClick = { selectedCashier?.let { onConfirm(it.id, startingCash) } },
                             enabled = selectedCashier != null && !isProcessing,
-                            modifier = Modifier.weight(1f).height(48.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary
@@ -177,7 +232,11 @@ internal fun StartShiftDialog(
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             } else {
-                                Text("Buka Shift")
+                                Text(
+                                    text = "Buka Shift",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -199,7 +258,7 @@ internal fun EndShiftDialog(
 ) {
     var actualCash by remember { mutableStateOf(0L) }
     var hasBeenEdited by remember { mutableStateOf(false) }
-    
+
     val expected = summary.expectedCashInDrawer
     val difference = actualCash - expected
     val isCleanZeroAllowed = actualCash == 0L && expected == 0L
@@ -209,7 +268,6 @@ internal fun EndShiftDialog(
         onDismissRequest = { if (!isProcessing) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        // 👈 PERBAIKAN: Bungkus dengan Box fillMaxSize agar fillMaxWidth(0.95f) terbaca sempurna
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -217,53 +275,62 @@ internal fun EndShiftDialog(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.95f)
-                    .fillMaxHeight(0.9f)
+                    .fillMaxHeight(0.92f)
                     .padding(vertical = 16.dp),
                 shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surface
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .padding(horizontal = 24.dp, vertical = 20.dp)
                         .fillMaxSize()
                 ) {
+                    // Header Dialog
                     Text(
                         text = "Tutup Shift",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+
                     Spacer(Modifier.height(16.dp))
 
+                    // Area Scrollable Konten Ringkasan
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         // BLOK 1: RINGKASAN PENJUALAN
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Ringkasan Penjualan",
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp), 
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     DetailRow("Penjualan Tunai", summary.cashRevenue.toRupiah())
                                     DetailRow("Penjualan QRIS", summary.qrisRevenue.toRupiah())
-                                    
-                                    HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    )
+
                                     DetailRow("Total Pendapatan", summary.totalRevenue.toRupiah(), isBold = true)
-                                    
+
                                     if (summary.qrisRefunds > 0L) {
                                         DetailRow(
                                             label = "Refund via QRIS",
@@ -271,14 +338,14 @@ internal fun EndShiftDialog(
                                             color = MaterialTheme.colorScheme.error
                                         )
                                     }
-                                    
+
                                     DetailRow(
                                         label = "Laba Kotor",
                                         value = summary.grossProfit.toRupiah(),
                                         isBold = true,
                                         color = MaterialTheme.colorScheme.primary
                                     )
-                                    
+
                                     if (summary.warrantyExchangeCost > 0L) {
                                         DetailRow(
                                             label = "Biaya Klaim Garansi",
@@ -294,30 +361,48 @@ internal fun EndShiftDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Rekonsiliasi Fisik Laci",
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     DetailRow("Modal Awal (Kas)", summary.startingCash.toRupiah())
                                     DetailRow("+ Penjualan Tunai Masuk", summary.cashRevenue.toRupiah())
+
                                     if (summary.cashRefunds > 0L) {
-                                        DetailRow("- Refund Tunai Keluar", "- ${summary.cashRefunds.toRupiah()}", color = MaterialTheme.colorScheme.error)
+                                        DetailRow(
+                                            label = "- Refund Tunai Keluar",
+                                            value = "- ${summary.cashRefunds.toRupiah()}",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
                                     }
                                     if (summary.qrisCashChangeOut > 0L) {
-                                        DetailRow("- Kembalian Laci via QRIS", "- ${summary.qrisCashChangeOut.toRupiah()}", color = MaterialTheme.colorScheme.error)
+                                        DetailRow(
+                                            label = "- Kembalian Laci via QRIS",
+                                            value = "- ${summary.qrisCashChangeOut.toRupiah()}",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
                                     }
-                                    HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    )
+
                                     DetailRow(
-                                        label = "Estimasi Laci (Sistem)", 
-                                        value = expected.toRupiah(), 
+                                        label = "Estimasi Laci (Sistem)",
+                                        value = expected.toRupiah(),
                                         isBold = true,
-                                        valueSize = 20.sp,
+                                        valueSize = 18.sp,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
@@ -328,7 +413,7 @@ internal fun EndShiftDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Hitung Uang Fisik Anda",
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -339,17 +424,21 @@ internal fun EndShiftDialog(
                                     actualCash = it
                                     hasBeenEdited = true
                                 },
-                                modifier = Modifier.fillMaxWidth().height(48.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
                             )
                         }
 
-                        // BLOK 4: SELISIH
+                        // BLOK 4: INDIKATOR SELISIH (Emotional Peak State)
                         if (hasInput) {
                             val diffAbs = kotlin.math.abs(difference)
+                            val successGreen = Color(0xFF2E7D32)
+
                             val (diffColor, diffBgColor, diffIcon, diffLabel) = when {
                                 difference == 0L -> listOf(
-                                    Color(0xFF2E7D32),
-                                    Color(0xFF2E7D32).copy(alpha = 0.1f),
+                                    successGreen,
+                                    successGreen.copy(alpha = 0.12f),
                                     Icons.Rounded.CheckCircle,
                                     "Uang Pas (Sesuai Sistem)"
                                 )
@@ -360,8 +449,8 @@ internal fun EndShiftDialog(
                                     "Selisih Minus: -${diffAbs.toRupiah()}"
                                 )
                                 else -> listOf(
-                                    Color(0xFF2E7D32),
-                                    Color(0xFF2E7D32).copy(alpha = 0.1f),
+                                    successGreen,
+                                    successGreen.copy(alpha = 0.12f),
                                     Icons.Rounded.CheckCircle,
                                     "Uang Lebih: +${diffAbs.toRupiah()}"
                                 )
@@ -370,6 +459,7 @@ internal fun EndShiftDialog(
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = diffBgColor as Color,
+                                border = BorderStroke(1.dp, (diffColor as Color).copy(alpha = 0.3f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
@@ -378,15 +468,15 @@ internal fun EndShiftDialog(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     Icon(
-                                        imageVector = diffIcon as androidx.compose.ui.graphics.vector.ImageVector,
+                                        imageVector = diffIcon as ImageVector,
                                         contentDescription = null,
-                                        tint = diffColor as Color,
+                                        tint = diffColor,
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Text(
                                         text = diffLabel.toString(),
                                         fontFamily = FontFamily.Monospace,
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = diffColor
                                     )
@@ -397,30 +487,50 @@ internal fun EndShiftDialog(
 
                     Spacer(Modifier.height(16.dp))
 
+                    // Action Buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
                             enabled = !isProcessing,
-                            modifier = Modifier.weight(1f).height(48.dp),
-                            shape = RoundedCornerShape(16.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         ) {
-                            Text("Batal")
+                            Text(
+                                text = "Batal",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
 
                         Button(
                             onClick = { onConfirm(actualCash) },
                             enabled = hasInput && !isProcessing,
-                            modifier = Modifier.weight(1f).height(48.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
                         ) {
                             if (isProcessing) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
                             } else {
-                                Text("Tutup Shift")
+                                Text(
+                                    text = "Tutup Shift",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -430,13 +540,15 @@ internal fun EndShiftDialog(
     }
 }
 
-// Tambahan Komponen DetailRow untuk kerapian
+// ==========================================
+// 3. KOMPONEN PENDUKUNG (Thumb Zone Optimized)
+// ==========================================
 @Composable
 private fun DetailRow(
     label: String,
     value: String,
     isBold: Boolean = false,
-    valueSize: androidx.compose.ui.unit.TextUnit = 14.sp,
+    valueSize: TextUnit = 14.sp,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Row(
@@ -452,7 +564,7 @@ private fun DetailRow(
         )
         Text(
             text = value,
-            fontFamily = FontFamily.Monospace, // Monospace Finansial wajib[span_25](start_span)[span_25](end_span)
+            fontFamily = FontFamily.Monospace, // Monospace Finansial Wajib
             fontSize = valueSize,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium,
             color = color
@@ -460,9 +572,6 @@ private fun DetailRow(
     }
 }
 
-// ==========================================
-// 3. KOMPONEN PENDUKUNG (Thumb Zone Optimized)
-// ==========================================
 @Composable
 internal fun MoneyField(
     label: String,
@@ -486,7 +595,7 @@ internal fun MoneyField(
         textStyle = MaterialTheme.typography.titleMedium.copy(
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace // Wajib Monospace[span_18](start_span)[span_18](end_span)
+            fontFamily = FontFamily.Monospace
         ),
         modifier = modifier,
         decorationBox = { innerTextField ->
@@ -494,9 +603,12 @@ internal fun MoneyField(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 16.dp), // 8-point grid[span_19](start_span)[span_19](end_span)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .border(
+                        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -506,13 +618,17 @@ internal fun MoneyField(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Box(Modifier.weight(1f).padding(start = 8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                ) {
                     if (text.isEmpty()) {
                         Text(
                             text = "0",
                             style = MaterialTheme.typography.titleMedium,
                             fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                         )
                     }
                     innerTextField()
@@ -529,32 +645,48 @@ internal fun CashierDropdownField(
     onSelect: (CashierEntity) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    
-    Box(Modifier.fillMaxWidth()) {
-        Row(
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp) // Minimum Thumb Zone[span_20](start_span)[span_20](end_span)
+                .height(48.dp) // Minimum Tap Target 48dp
                 .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                .clickable { expanded = true }
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .clickable(role = Role.DropdownList) { expanded = true }
         ) {
-            Text(
-                text = selected?.name ?: "Pilih Kasir",
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (selected != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                Icons.Rounded.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AccountCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = selected?.name ?: "Pilih Kasir",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (selected != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        
+
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
@@ -562,11 +694,12 @@ internal fun CashierDropdownField(
         ) {
             cashiers.forEach { cashier ->
                 DropdownMenuItem(
-                    text = { 
+                    text = {
                         Text(
                             text = cashier.name,
-                            style = MaterialTheme.typography.bodyLarge
-                        ) 
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (cashier.id == selected?.id) FontWeight.Bold else FontWeight.Normal
+                        )
                     },
                     onClick = {
                         onSelect(cashier)
@@ -575,5 +708,49 @@ internal fun CashierDropdownField(
                 )
             }
         }
+    }
+}
+
+// ==========================================
+// PREVIEW COMPOSABLES FOR ANDROID STUDIO
+// ==========================================
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun StartShiftDialogPreview() {
+    MaterialTheme {
+        StartShiftDialog(
+            cashiers = listOf(
+                CashierEntity(id = 1, name = "Budi Santoso", pin = "1234"),
+                CashierEntity(id = 2, name = "Siti Rahma", pin = "5678")
+            ),
+            isProcessing = false,
+            onDismiss = {},
+            onConfirm = { _, _ -> }
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun EndShiftDialogPreview() {
+    MaterialTheme {
+        EndShiftDialog(
+            summary = ShiftSummary(
+                cashierName = "Budi Santoso",
+                startingCash = 100000L,
+                cashRevenue = 450000L,
+                qrisRevenue = 200000L,
+                totalRevenue = 650000L,
+                qrisRefunds = 0L,
+                grossProfit = 250000L,
+                warrantyExchangeCost = 0L,
+                cashRefunds = 0L,
+                qrisCashChangeOut = 0L,
+                expectedCashInDrawer = 550000L
+            ),
+            isProcessing = false,
+            onDismiss = {},
+            onConfirm = {}
+        )
     }
 }
