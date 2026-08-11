@@ -1,12 +1,13 @@
 package com.pos.offline.ui.report
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollFactory
@@ -63,7 +64,6 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -102,8 +102,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -239,26 +241,31 @@ fun ReportScreen(
                         Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                 ) {
                     Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp, bottom = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ReceiptLong,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.ReceiptLong,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
                         Text(
                             "Laporan Harian",
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -278,8 +285,8 @@ fun ReportScreen(
                             .consumeWindowInsets(inner)
                             .bouncyOverscroll()
                             .imePadding(),
-                    contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     flingBehavior = iosGlideFlingBehavior(),
                 ) {
                     item(key = "unified_search_actions") {
@@ -293,15 +300,15 @@ fun ReportScreen(
                                     viewModel.searchProductHistory(query)
                                     viewModel.searchInvoice(query)
                                 },
-                                modifier = Modifier.weight(1f).height(34.dp),
+                                modifier = Modifier.weight(1f).height(44.dp),
                             )
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(8.dp))
                             CompactSquareIconButton(
                                 icon = Icons.Rounded.QrCodeScanner,
                                 contentDescription = "Scan Barcode",
                                 onClick = { openScanner() },
                             )
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(8.dp))
                             CompactSquareIconButton(
                                 icon = Icons.Rounded.Build,
                                 contentDescription = "Klaim Garansi Direct",
@@ -315,7 +322,7 @@ fun ReportScreen(
                             item(key = "product_history_header") {
                                 Text(
                                     "Hasil Pencarian Produk Lintas 1 Tahun",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                    style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -335,7 +342,7 @@ fun ReportScreen(
                             item(key = "invoice_search_header") {
                                 Text(
                                     "Hasil Pencarian Struk (${state.transactions.size})",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                    style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -356,7 +363,7 @@ fun ReportScreen(
                                 Text(
                                     "Data \"${state.query}\" tidak ditemukan dalam 365 hari terakhir.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     modifier = Modifier.padding(vertical = 12.dp),
                                 )
                             }
@@ -396,7 +403,6 @@ fun ReportScreen(
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 4.dp)
                                             .animateContentSize(
                                                 animationSpec =
                                                     spring(
@@ -404,9 +410,9 @@ fun ReportScreen(
                                                         stiffness = Spring.StiffnessLow,
                                                     ),
                                             ),
-                                    contentPadding = PaddingValues(12.dp),
+                                    contentPadding = PaddingValues(16.dp),
                                 ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Text(
                                             "Generator Laporan Penjualan",
                                             style = MaterialTheme.typography.titleSmall,
@@ -417,27 +423,36 @@ fun ReportScreen(
                                             enabled = true,
                                             onSelect = viewModel::toggleReportPeriod,
                                         )
-                                        Column {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.clickable { viewModel.toggleIncludeSalesSummary(!includeSalesSummary) }
+                                            ) {
                                                 Checkbox(
                                                     checked = includeSalesSummary,
                                                     onCheckedChange = viewModel::toggleIncludeSalesSummary,
                                                 )
-                                                Text("Ringkasan Penjualan & Keuangan", fontSize = 12.sp)
+                                                Text("Ringkasan Penjualan & Keuangan", style = MaterialTheme.typography.bodySmall)
                                             }
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.clickable { viewModel.toggleIncludeProductsSold(!includeProductsSold) }
+                                            ) {
                                                 Checkbox(
                                                     checked = includeProductsSold,
                                                     onCheckedChange = viewModel::toggleIncludeProductsSold,
                                                 )
-                                                Text("Daftar Produk Terjual", fontSize = 12.sp)
+                                                Text("Daftar Produk Terjual", style = MaterialTheme.typography.bodySmall)
                                             }
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.clickable { viewModel.toggleIncludeDeadStock(!includeDeadStock) }
+                                            ) {
                                                 Checkbox(
                                                     checked = includeDeadStock,
                                                     onCheckedChange = viewModel::toggleIncludeDeadStock,
                                                 )
-                                                Text("Daftar Produk Tidak Laku (Dead Stock)", fontSize = 12.sp)
+                                                Text("Daftar Produk Tidak Laku (Dead Stock)", style = MaterialTheme.typography.bodySmall)
                                             }
                                         }
                                         if (periodType != null) {
@@ -484,9 +499,9 @@ fun ReportScreen(
                                     item(key = "list_header") {
                                         Text(
                                             "Daftar Transaksi (${report.transactions.size})",
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier.padding(top = 2.dp),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(top = 4.dp),
                                         )
                                     }
                                     if (report.transactions.isEmpty()) {
@@ -521,9 +536,9 @@ fun ReportScreen(
                                     item(key = "returns_header") {
                                         Text(
                                             "Daftar Retur (${returnSummary.returns.size})",
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier.padding(top = 2.dp),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(top = 4.dp),
                                         )
                                     }
                                     if (returnSummary.returns.isEmpty()) {
@@ -543,9 +558,9 @@ fun ReportScreen(
                                     item(key = "closed_shifts_header") {
                                         Text(
                                             "Riwayat Tutup Shift (${closedShifts.size})",
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier.padding(top = 2.dp),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(top = 4.dp),
                                         )
                                     }
                                     if (closedShifts.isEmpty()) {
@@ -569,10 +584,10 @@ fun ReportScreen(
                 }
             }
         }
-        androidx.compose.animation.AnimatedVisibility(
+        AnimatedVisibility(
             visible = showDirectWarrantyScreen,
-            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it },
-            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it },
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
         ) {
             DirectWarrantyScreen(
                 inventoryViewModel = inventoryViewModel,
@@ -678,10 +693,10 @@ private fun ReportPeriodToggleRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         ReportPeriodChip(
             label = "Harian",
@@ -719,8 +734,8 @@ private fun ReportPeriodChip(
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             color =
                 when {
                     isSelected -> MaterialTheme.colorScheme.onPrimary
@@ -749,25 +764,25 @@ private fun SalesReportResultCard(
                             stiffness = Spring.StiffnessLow,
                         ),
                 ),
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(14.dp),
     ) {
         when (uiState) {
             is SalesReportUiState.Loading -> {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Memuat laporan...", style = MaterialTheme.typography.bodySmall)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Memuat laporan...", style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
             is SalesReportUiState.Loaded -> {
                 val data = uiState.data
                 val periodLabel = if (uiState.periodType == ReportPeriodType.MONTHLY) "Bulanan" else "Harian"
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SummaryLine("Jumlah Transaksi", "${data.summary.transactionCount}x")
                     SummaryLine("Penjualan Kotor", data.summary.subtotalSum.toRupiah())
                     SummaryLine("Pendapatan Bersih", data.pendapatanBersih.toRupiah(), emphasize = true)
@@ -781,10 +796,22 @@ private fun SalesReportResultCard(
                     SummaryLine("Laba Bersih", data.labaBersih.toRupiah(), color = MaterialTheme.colorScheme.primary)
                     if (data.diskon > 0) SummaryLine("Diskon", "- ${data.diskon.toRupiah()}")
                     if (data.summary.taxSum > 0) SummaryLine("Pajak", data.summary.taxSum.toRupiah())
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onPrint, modifier = Modifier.weight(1f)) { Text("Cetak $periodLabel") }
-                        OutlinedButton(onClick = onExportPdf, modifier = Modifier.weight(1f)) { Text("PDF $periodLabel") }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(
+                            onClick = onPrint, 
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { 
+                            Text("Cetak $periodLabel") 
+                        }
+                        OutlinedButton(
+                            onClick = onExportPdf, 
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { 
+                            Text("PDF $periodLabel") 
+                        }
                     }
                 }
             }
@@ -804,11 +831,11 @@ private fun DateNavigator(
     onCalendarClick: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = 2.dp,
     ) {
-        Column(Modifier.fillMaxWidth().padding(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CompactNavIcon(
                     icon = Icons.Rounded.ChevronLeft,
@@ -823,31 +850,23 @@ private fun DateNavigator(
                         Icon(
                             Icons.Rounded.CalendarMonth,
                             contentDescription = "Pilih Tanggal Kalender",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             label,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    if (isToday) {
-                        Text(
-                            "Hari ini (Ketuk untuk pilih kalender)",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    } else {
-                        Text(
-                            "Ketuk untuk pilih kalender",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        )
-                    }
+                    Text(
+                        if (isToday) "Hari ini (Ketuk untuk pilih kalender)" else "Ketuk untuk pilih kalender",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    )
                 }
                 CompactNavIcon(
                     icon = Icons.Rounded.ChevronRight,
@@ -857,93 +876,8 @@ private fun DateNavigator(
                 )
             }
             if (!isToday) {
-                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center) {
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
                     TodayPillButton(onClick = onToday)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ProductHistorySearchSection(
-    query: String,
-    monthGroups: List<MonthSalesGroup>,
-    onQueryChange: (String) -> Unit,
-    onScanClick: () -> Unit,
-    onTransactionClick: (String) -> Unit,
-    onDirectWarrantyClick: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                placeholder = { Text("Cari Nama Produk / SKU / Kategori / Barcode…", fontSize = 11.sp) },
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Rounded.Close, contentDescription = "Hapus", modifier = Modifier.size(16.dp))
-                        }
-                    }
-                },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f).height(46.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Box(
-                modifier =
-                    Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                        .clickable(onClick = onScanClick),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Rounded.QrCodeScanner, contentDescription = "Scan", tint = MaterialTheme.colorScheme.primary)
-            }
-        }
-        if (query.isNotBlank()) {
-            if (monthGroups.isEmpty()) {
-                GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(12.dp)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Tidak ada riwayat penjualan 1 tahun terakhir untuk \"$query\".",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = onDirectWarrantyClick) {
-                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Proses Klaim Garansi Direct (Tanpa Struk)")
-                        }
-                    }
-                }
-            } else {
-                Text(
-                    "Riwayat Penjualan 1 Tahun Terakhir:",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                )
-                monthGroups.forEach { monthGroup ->
-                    MonthExpandableCard(
-                        monthGroup = monthGroup,
-                        onTransactionClick = onTransactionClick,
-                    )
-                }
-                TextButton(
-                    onClick = onDirectWarrantyClick,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                ) {
-                    Text("Nota tidak sesuai? Gunakan Garansi Direct (Tanpa Struk)", fontSize = 11.sp)
                 }
             }
         }
@@ -963,7 +897,7 @@ private fun MonthExpandableCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 12.dp,
-        contentPadding = PaddingValues(10.dp),
+        contentPadding = PaddingValues(12.dp),
     ) {
         Column {
             Row(
@@ -977,15 +911,15 @@ private fun MonthExpandableCard(
                     Icons.Rounded.CalendarMonth,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(monthLabel, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp)) {
                     Text(
                         "${monthGroup.totalTransactions} Transaksi",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
                 Spacer(Modifier.width(4.dp))
@@ -1023,20 +957,20 @@ private fun DayExpandableSection(
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     .clickable { expanded = !expanded }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(dateLabel, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             Text(
                 "${dayGroup.transactions.size} Nota",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.width(4.dp))
             Icon(
                 if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
         AnimatedVisibility(visible = expanded) {
@@ -1062,7 +996,7 @@ private fun CompactNavIcon(
     Box(
         modifier =
             Modifier
-                .size(30.dp)
+                .size(40.dp) // Minimum 40dp-48dp Target Size
                 .clip(CircleShape)
                 .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
@@ -1070,7 +1004,7 @@ private fun CompactNavIcon(
         Icon(
             icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(22.dp),
             tint =
                 if (enabled) {
                     MaterialTheme.colorScheme.onSurface
@@ -1089,21 +1023,21 @@ private fun TodayPillButton(onClick: () -> Unit) {
                 .clip(RoundedCornerShape(20.dp))
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                 .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             Icons.Rounded.Today,
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(16.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
-        Spacer(Modifier.width(5.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
             "Ke Hari Ini",
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
@@ -1114,17 +1048,19 @@ private fun SummarySection(report: DailyReport) {
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 16.dp,
-            contentPadding = PaddingValues(12.dp),
+            contentPadding = PaddingValues(16.dp),
         ) {
             Column {
                 Text(
                     "Total Pendapatan",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     report.totalRevenue.toRupiah(),
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontFamily = FontFamily.Monospace, // Monospace Finansial
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -1139,7 +1075,7 @@ private fun SummarySection(report: DailyReport) {
                             }
                         ) +
                         (if (report.voidedCount > 0) " · ${report.voidedCount} dibatalkan" else ""),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 )
             }
@@ -1148,7 +1084,7 @@ private fun SummarySection(report: DailyReport) {
             StatCard(
                 modifier = Modifier.weight(1f),
                 label = "Jumlah Transaksi",
-                value = report.transactionCount.toString(),
+                value = "${report.transactionCount}",
                 icon = Icons.AutoMirrored.Rounded.ReceiptLong,
             )
             StatCard(
@@ -1171,28 +1107,29 @@ private fun StatCard(
     GlassCard(
         modifier = modifier,
         cornerRadius = 14.dp,
-        contentPadding = PaddingValues(10.dp),
+        contentPadding = PaddingValues(12.dp),
     ) {
         Column {
             Icon(
                 icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 value,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                style = MaterialTheme.typography.titleMedium,
+                fontFamily = FontFamily.Monospace, // Monospace Finansial
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(1.dp))
+            Spacer(Modifier.height(2.dp))
             Text(
                 label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1227,7 +1164,7 @@ private fun RevenueTrendChart(
     val primary = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
     val gridColor = onSurface.copy(alpha = 0.08f)
-    val axisTextColor = onSurface.copy(alpha = 0.55f)
+    val axisTextColor = onSurface.copy(alpha = 0.6f)
     val textMeasurer = rememberTextMeasurer()
     val zone = remember { ZoneId.systemDefault() }
     val dayStartMillis = remember(date) { date.atStartOfDay(zone).toInstant().toEpochMilli() }
@@ -1253,7 +1190,7 @@ private fun RevenueTrendChart(
             list.add(dayEndMillis to running)
             list
         }
-    val labelStyle = remember(axisTextColor) { TextStyle(color = axisTextColor, fontSize = 9.sp) }
+    val labelStyle = remember(axisTextColor) { TextStyle(color = axisTextColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace) }
     val maxRevenue = totalRevenue.coerceAtLeast(1L)
     val ySteps = 4
     val yAxisLabels =
@@ -1267,7 +1204,7 @@ private fun RevenueTrendChart(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 16.dp,
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(14.dp),
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1275,32 +1212,32 @@ private fun RevenueTrendChart(
                     Icons.AutoMirrored.Rounded.ShowChart,
                     contentDescription = null,
                     tint = primary,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(18.dp),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     "Tren Pendapatan",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                 )
             }
             if (totalRevenue > 0L) {
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     "Jam ramai: ${"%02d".format(peakHour)}.00 · ${peakValue.toRupiah()}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Canvas(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .height(160.dp),
             ) {
-                val leftAxisWidth = 40.dp.toPx()
-                val bottomAxisHeight = 16.dp.toPx()
+                val leftAxisWidth = 44.dp.toPx()
+                val bottomAxisHeight = 18.dp.toPx()
                 val plotLeft = leftAxisWidth
                 val plotRight = size.width
                 val plotTop = 0f
@@ -1383,7 +1320,7 @@ private fun RevenueTrendChart(
                     drawPath(path = linePath, color = primary, style = Stroke(width = 2.dp.toPx()))
                     for (i in 1 until points.size - 1) {
                         val (time, value) = points[i]
-                        drawCircle(color = primary, radius = 2.5.dp.toPx(), center = Offset(xFor(time), yFor(value)))
+                        drawCircle(color = primary, radius = 3.dp.toPx(), center = Offset(xFor(time), yFor(value)))
                     }
                 }
             }
@@ -1400,10 +1337,10 @@ private fun ReportTabSwitcher(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         ReportTabChip(
             label = "Transaksi",
@@ -1433,13 +1370,13 @@ private fun ReportTabChip(
                 .clip(RoundedCornerShape(8.dp))
                 .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
                 .clickable(onClick = onClick)
-                .padding(vertical = 8.dp),
+                .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             color =
                 if (selected) {
                     MaterialTheme.colorScheme.onPrimary
@@ -1455,11 +1392,11 @@ private fun PaymentBreakdownSection(
     cashRevenue: Long,
     qrisRevenue: Long,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             "Breakdown Metode Bayar",
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
@@ -1483,11 +1420,11 @@ private fun ReturnSummarySection(
     cashRefundTotal: Long,
     qrisRefundTotal: Long,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             "Retur Hari Ini",
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
@@ -1514,34 +1451,36 @@ private fun ReturnRow(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 12.dp,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         onClick = onClick,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 ReportViewModel.timeFmt.format(Instant.ofEpochMilli(ret.returnedAt)),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.tertiary,
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     ret.transactionId,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     "${ret.cashierName.ifBlank { "Tanpa kasir" }} · ${paymentMethodLabel(ret.refundMethod)}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (ret.note.isNotBlank()) {
                     Text(
                         ret.note,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -1549,16 +1488,17 @@ private fun ReturnRow(
             }
             Text(
                 "- ${ret.refundAmount.toRupiah()}",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.error,
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(6.dp))
             Icon(
                 Icons.Rounded.ChevronRight,
                 contentDescription = "Lihat detail retur",
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -1577,8 +1517,8 @@ private fun EmptyReturns() {
             Spacer(Modifier.height(8.dp))
             Text(
                 "Belum ada retur pada hari ini",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -1595,20 +1535,20 @@ private fun ReturnDetailDialog(
     val totalQty = items.sumOf { it.quantityReturned }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Detail Retur") },
+        title = { Text("Detail Retur", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(header.transactionId, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(header.transactionId, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(
                     ReportViewModel.dateTimeFmt.format(Instant.ofEpochMilli(header.returnedAt)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 val isSynthetic = header.transactionId.startsWith("EXC-") || header.transactionId.startsWith("RET-DIR-")
@@ -1620,10 +1560,10 @@ private fun ReturnDetailDialog(
                         Icon(
                             Icons.AutoMirrored.Rounded.ReceiptLong,
                             contentDescription = null,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(16.dp),
                         )
-                        Spacer(Modifier.width(4.dp))
-                        Text("Lihat Transaksi Asal", style = MaterialTheme.typography.labelSmall)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Lihat Transaksi Asal", style = MaterialTheme.typography.labelMedium)
                     }
                     Spacer(Modifier.height(6.dp))
                 }
@@ -1633,7 +1573,7 @@ private fun ReturnDetailDialog(
                 Spacer(Modifier.height(10.dp))
                 Text(
                     "Item Diretur (${totalQty.formatQuantity()})",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                 )
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
@@ -1651,11 +1591,11 @@ private fun ReturnDetailDialog(
                 )
                 if (header.note.isNotBlank()) {
                     Spacer(Modifier.height(10.dp))
-                    Text("Catatan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text("Catatan", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     Text(
                         header.note,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -1674,11 +1614,12 @@ private fun ReturnDetailItemRow(item: ReturnItemEntity) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                Text(item.productName, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp))
+                Text(item.productName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${item.quantityReturned.formatQuantity()} x ${item.unitPrice.toRupiah()}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Text(
@@ -1686,8 +1627,9 @@ private fun ReturnDetailItemRow(item: ReturnItemEntity) {
                     .round(item.unitPrice * item.quantityReturned)
                     .toLong()
                     .toRupiah(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
             )
         }
         RestockBadge(restocked = item.restocked, hasProduct = item.productId != null)
@@ -1701,13 +1643,13 @@ private fun RestockBadge(
 ) {
     val (label, color) =
         when {
-            !hasProduct -> "Produk sudah dihapus · stok dilewati" to MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            !hasProduct -> "Produk sudah dihapus · stok dilewati" to MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             restocked -> "✓ Dikembalikan ke stok" to MaterialTheme.colorScheme.primary
             else -> "✗ Tidak dikembalikan ke stok" to MaterialTheme.colorScheme.error
         }
     Text(
         label,
-        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+        style = MaterialTheme.typography.labelSmall,
         color = color,
     )
 }
@@ -1722,22 +1664,24 @@ private fun TransactionRow(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 12.dp,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         onClick = onClick,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 ReportViewModel.timeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isVoid) dimmedColor else MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         tx.id,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = if (isVoid) dimmedColor else Color.Unspecified,
@@ -1749,22 +1693,23 @@ private fun TransactionRow(
                 }
                 Text(
                     "Dibayar ${tx.paidAmount.toRupiah()} · ${paymentMethodLabel(tx.paymentMethod)}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Text(
                 tx.total.toRupiah(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 color = if (isVoid) dimmedColor else Color.Unspecified,
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(6.dp))
             Icon(
                 Icons.Rounded.ChevronRight,
                 contentDescription = "Lihat detail transaksi",
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -1778,10 +1723,10 @@ private fun VoidBadge() {
     ) {
         Text(
             "DIBATALKAN",
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
             color = MaterialTheme.colorScheme.error,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
         )
     }
 }
@@ -1794,10 +1739,10 @@ private fun ReturnedBadge() {
     ) {
         Text(
             "SUDAH DIRETUR",
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
             color = MaterialTheme.colorScheme.tertiary,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
         )
     }
 }
@@ -1811,7 +1756,7 @@ private fun ReceiptActionsRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ReceiptActionButton(
             icon = Icons.Rounded.Print,
@@ -1846,23 +1791,24 @@ private fun ReceiptActionButton(
     Column(
         modifier =
             modifier
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(
                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (enabled) 0.4f else 0.2f),
                 ).clickable(enabled = enabled, onClick = onClick)
-                .padding(vertical = 8.dp),
+                .padding(vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             icon,
             contentDescription = label,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
         )
         Spacer(Modifier.height(4.dp))
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f),
         )
     }
@@ -1887,19 +1833,19 @@ private fun TransactionDetailDialog(
     val hasReturn = tx.hasReturn
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Detail Transaksi") },
+        title = { Text("Detail Transaksi", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 banner?.let { msg ->
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color =
                             if (msg.isError) {
                                 MaterialTheme.colorScheme.errorContainer
@@ -1909,7 +1855,7 @@ private fun TransactionDetailDialog(
                     ) {
                         Text(
                             msg.text,
-                            modifier = Modifier.padding(10.dp),
+                            modifier = Modifier.padding(12.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color =
                                 if (msg.isError) {
@@ -1924,7 +1870,7 @@ private fun TransactionDetailDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         tx.id,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     if (isVoid) {
@@ -1939,7 +1885,7 @@ private fun TransactionDetailDialog(
                 Text(
                     ReportViewModel.dateTimeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (isVoid && tx.voidedAt != null) {
                     Text(
@@ -1969,23 +1915,23 @@ private fun TransactionDetailDialog(
                     ) {
                         if (!hasReturn) {
                             TextButton(onClick = onReturnClick, modifier = Modifier.weight(1f)) {
-                                Text("Retur Item", color = MaterialTheme.colorScheme.primary)
+                                Text("Retur Item", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                             }
                             TextButton(onClick = onVoidClick, modifier = Modifier.weight(1f)) {
-                                Text("Batalkan Transaksi", color = MaterialTheme.colorScheme.error)
+                                Text("Batalkan Transaksi", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                             }
                         } else {
                             Text(
                                 "Transaksi ini sudah memiliki riwayat retur, sehingga tidak dapat dibatalkan.",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f),
                             )
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("Item", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("Item Pembelian", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 result.items.forEach { item ->
                     Row(
@@ -2000,22 +1946,25 @@ private fun TransactionDetailDialog(
                         ) {
                             Text(
                                 item.productName,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
                             )
                             Text(
                                 "${item.quantity.formatQuantity()} x ${item.unitPrice.toRupiah()}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Text(
                             item.lineTotal.toRupiah(),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 SummaryLine("Subtotal", tx.subtotal.toRupiah())
                 tx.discountRowLabel()?.let { label ->
@@ -2041,13 +1990,13 @@ private fun TransactionDetailDialog(
                     else -> {
                         val isQrisCashOut = tx.paymentMethod == PaymentMethod.QRIS.name && tx.changeGivenInCash
                         SummaryLine(
-                            if (isQrisCashOut) "Kembali Diberikan (Tunai dari Laci)" else "Kembali Diberikan",
+                            if (isQrisCashOut) "Kembali (Tunai Laci)" else "Kembali",
                             tx.changeGiven.toRupiah(),
                             color = if (isQrisCashOut) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                         )
                         val tip = (tx.change - tx.changeGiven).coerceAtLeast(0L)
                         if (tip > 0L) {
-                            SummaryLine("Tip", tip.toRupiah(), color = MaterialTheme.colorScheme.tertiary)
+                            SummaryLine("Tip/Donasi", tip.toRupiah(), color = MaterialTheme.colorScheme.tertiary)
                         }
                     }
                 }
@@ -2089,9 +2038,9 @@ private fun ReprintResultBanner(
                 val reason = outcome.attempts.firstOrNull()?.message ?: ""
                 if (reason.contains("terhubung", ignoreCase = true)) {
                     if (printerCount > 1) {
-                        "Gagal mencetak ke semua printer. Mohon hubungkan ke perangkat" to true
+                        "Gagal mencetak ke semua printer. Periksa koneksi perangkat." to true
                     } else {
-                        "Gagal mencetak ke printer. Mohon hubungkan ke perangkat" to true
+                        "Gagal mencetak ke printer. Periksa koneksi perangkat." to true
                     }
                 } else {
                     val title = if (printerCount > 1) "Gagal mencetak ke semua printer." else "Gagal mencetak ke printer."
@@ -2110,7 +2059,7 @@ private fun ReprintResultBanner(
     Spacer(Modifier.height(6.dp))
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         color =
             if (isError) {
                 MaterialTheme.colorScheme.errorContainer
@@ -2120,7 +2069,7 @@ private fun ReprintResultBanner(
     ) {
         Text(
             message,
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(12.dp),
             style = MaterialTheme.typography.bodySmall,
             color =
                 if (isError) {
@@ -2150,16 +2099,17 @@ private fun VoidConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Batalkan Transaksi?") },
+        title = { Text("Batalkan Transaksi?", fontWeight = FontWeight.Bold) },
         text = {
             Text(
                 "Transaksi $invoiceId akan dibatalkan dan stok item akan dikembalikan. " +
                     "Tindakan ini tidak dapat diurungkan.",
+                style = MaterialTheme.typography.bodyMedium
             )
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Ya, Batalkan", color = MaterialTheme.colorScheme.error)
+                Text("Ya, Batalkan", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -2222,19 +2172,19 @@ private fun ReturnItemDialog(
     val isRefundOverLimit = refundAmountValue > maxRefundable
     AlertDialog(
         onDismissRequest = { if (!submitting) onDismiss() },
-        title = { Text("Retur Item") },
+        title = { Text("Retur Item", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 message?.let { msg ->
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color =
                             if (msg.isError) {
                                 MaterialTheme.colorScheme.errorContainer
@@ -2244,7 +2194,7 @@ private fun ReturnItemDialog(
                     ) {
                         Text(
                             msg.text,
-                            modifier = Modifier.padding(10.dp),
+                            modifier = Modifier.padding(12.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color =
                                 if (msg.isError) {
@@ -2259,13 +2209,13 @@ private fun ReturnItemDialog(
                 Text(
                     "Transaksi ${tx.id}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     "Pilih item yang dikembalikan pelanggan:",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 rows.forEachIndexed { index, row ->
@@ -2299,11 +2249,11 @@ private fun ReturnItemDialog(
                     HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Metode Pengembalian", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("Metode Pengembalian", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 RefundMethodToggle(selected = refundMethod, onSelect = { refundMethod = it })
                 Spacer(Modifier.height(10.dp))
-                Text("Nominal Pengembalian", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("Nominal Pengembalian", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 RefundAmountField(
                     value = refundAmountText,
@@ -2316,18 +2266,18 @@ private fun ReturnItemDialog(
                 if (isRefundOverLimit) {
                     Text(
                         "Melebihi total transaksi (maks ${maxRefundable.toRupiah()})",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 } else if (includedCount > 0) {
                     Text(
                         "Sugesti: ${suggestedRefund.toRupiah()} (tanpa prorata diskon/pajak)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("Catatan (opsional)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("Catatan (opsional)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 OutlinedTextField(
                     value = note,
@@ -2359,9 +2309,9 @@ private fun ReturnItemDialog(
                 },
             ) {
                 if (submitting) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Proses Retur")
+                    Text("Proses Retur", fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -2385,21 +2335,23 @@ private fun ReturnItemRow(
             Column(Modifier.weight(1f)) {
                 Text(
                     row.productName,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     "${row.unitPrice.toRupiah()} · maks ${row.maxQuantity.formatQuantity()}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
         if (row.included) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(start = 40.dp, top = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 40.dp, top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -2430,7 +2382,7 @@ private fun ReturnItemRow(
                         )
                         Text(
                             "Kembalikan ke stok?",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            style = MaterialTheme.typography.labelSmall,
                             color =
                                 MaterialTheme.colorScheme.onSurface.copy(
                                     alpha = if (row.productId != null) 0.8f else 0.4f,
@@ -2449,7 +2401,7 @@ private fun ReturnItemRow(
                         )
                         Text(
                             "Tandai sebagai Stok Rusak / Garansi",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -2472,31 +2424,32 @@ private fun MiniStepper(
         Box(
             modifier =
                 Modifier
-                    .size(24.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .size(36.dp) // Minimum Touch Target perbaikan UI/UX
+                    .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (canDecrease) 1f else 0.4f))
                     .then(if (canDecrease) Modifier.clickable(onClick = onDecrease) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.Remove, contentDescription = "Kurangi jumlah", modifier = Modifier.size(14.dp))
+            Icon(Icons.Rounded.Remove, contentDescription = "Kurangi jumlah", modifier = Modifier.size(18.dp))
         }
         Text(
             qty.formatQuantity(),
-            modifier = Modifier.width(36.dp),
+            modifier = Modifier.width(44.dp),
             textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
         )
         Box(
             modifier =
                 Modifier
-                    .size(24.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .size(36.dp) // Minimum Touch Target perbaikan UI/UX
+                    .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (canIncrease) 1f else 0.4f))
                     .then(if (canIncrease) Modifier.clickable(onClick = onIncrease) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = "Tambah jumlah", modifier = Modifier.size(14.dp))
+            Icon(Icons.Rounded.Add, contentDescription = "Tambah jumlah", modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -2510,10 +2463,10 @@ private fun RefundMethodToggle(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         listOf(PaymentMethod.CASH to "Tunai", PaymentMethod.QRIS to "QRIS").forEach { (method, label) ->
             val isSelected = selected == method
@@ -2524,13 +2477,13 @@ private fun RefundMethodToggle(
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                         .clickable { onSelect(method) }
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color =
                         if (isSelected) {
                             MaterialTheme.colorScheme.onPrimary
@@ -2556,36 +2509,40 @@ private fun RefundAmountField(
         singleLine = true,
         visualTransformation = ThousandsSeparatorTransformation,
         textStyle =
-            MaterialTheme.typography.bodyMedium.copy(
+            MaterialTheme.typography.titleMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
             ),
-        modifier = Modifier.fillMaxWidth().height(44.dp),
+        modifier = Modifier.fillMaxWidth().height(48.dp),
         decorationBox = { innerTextField ->
             Row(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                         .border(
                             width = 1.dp,
-                            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant,
-                            shape = RoundedCornerShape(10.dp),
-                        ).padding(horizontal = 12.dp),
+                            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(12.dp),
+                        ).padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     "Rp ",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Box(Modifier.weight(1f)) {
                     if (value.isEmpty()) {
                         Text(
                             "0",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                         )
                     }
                     innerTextField()
@@ -2603,7 +2560,7 @@ private fun ClosedShiftRow(
     val diff = shift.cashDifference
     val diffColor =
         when {
-            diff == null -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            diff == null -> MaterialTheme.colorScheme.onSurfaceVariant
             diff < 0L -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.primary
         }
@@ -2617,49 +2574,52 @@ private fun ClosedShiftRow(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = 12.dp,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         onClick = onClick,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 shift.endedAt?.let { ReportViewModel.timeFmt.format(Instant.ofEpochMilli(it)) } ?: "-",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     shift.cashierName,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     "Kas awal ${shift.startingCash.toRupiah()}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     diffLabel,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     color = diffColor,
                 )
                 Text(
                     "Selisih",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(6.dp))
             Icon(
                 Icons.Rounded.ChevronRight,
                 contentDescription = "Lihat detail shift",
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -2677,30 +2637,30 @@ private fun ClosedShiftDetailDialog(
     val difference = shift.cashDifference ?: (actual - expected)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Detail Tutup Shift") },
+        title = { Text("Detail Tutup Shift", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(shift.cashierName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(shift.cashierName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(
                     "Mulai: ${ReportViewModel.dateTimeFmt.format(Instant.ofEpochMilli(shift.startedAt))}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 shift.endedAt?.let {
                     Text(
                         "Ditutup: ${ReportViewModel.dateTimeFmt.format(Instant.ofEpochMilli(it))}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("📋 Ringkasan Shift", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("📋 Ringkasan Shift", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 SummaryLine("Penjualan Tunai", summary.cashRevenue.toRupiah())
                 SummaryLine("Penjualan QRIS", summary.qrisRevenue.toRupiah())
@@ -2722,7 +2682,7 @@ private fun ClosedShiftDetailDialog(
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Text("💵 Rekonsiliasi Laci", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("💵 Rekonsiliasi Laci", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 SummaryLine("Kas Awal (Modal)", summary.startingCash.toRupiah())
                 SummaryLine("Penjualan Tunai", summary.cashRevenue.toRupiah())
@@ -2760,11 +2720,11 @@ private fun ClosedShiftDetailDialog(
                 SummaryLine("Selisih", diffLabel, emphasize = true, color = diffColor)
                 if (shift.note.isNotBlank()) {
                     Spacer(Modifier.height(10.dp))
-                    Text("Catatan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text("Catatan", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     Text(
                         shift.note,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -2788,8 +2748,8 @@ private fun EmptyClosedShifts() {
             Spacer(Modifier.height(8.dp))
             Text(
                 "Belum ada shift yang ditutup pada hari ini",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -2806,12 +2766,14 @@ private fun SummaryLine(
         Text(
             label,
             style = if (emphasize) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
+            fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Normal,
             color = color,
         )
         Text(
             value,
             style = if (emphasize) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
-            fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Normal,
+            fontFamily = FontFamily.Monospace, // Monospace Finansial Wajib
+            fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Medium,
             color = color,
         )
     }
@@ -2830,8 +2792,8 @@ private fun EmptyReport() {
             Spacer(Modifier.height(8.dp))
             Text(
                 "Belum ada transaksi pada hari ini",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -2845,13 +2807,13 @@ private fun MonthGroupCard(
     var expanded by remember { mutableStateOf(true) }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             ),
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier =
                     Modifier
@@ -2863,27 +2825,28 @@ private fun MonthGroupCard(
             ) {
                 Text(
                     text = "📅 ${monthGroup.yearMonth}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "${monthGroup.totalTransactions} Transaksi >",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
                 )
             }
             if (expanded) {
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 monthGroup.days.forEach { dayGroup ->
                     Column(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .padding(start = 8.dp, top = 4.dp),
+                                .padding(start = 8.dp, top = 6.dp),
                     ) {
                         Text(
                             text = "📌 Tanggal ${dayGroup.date}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.secondary,
                         )
@@ -2893,16 +2856,17 @@ private fun MonthGroupCard(
                                     Modifier
                                         .fillMaxWidth()
                                         .clickable { onTransactionClick(tx.id) }
-                                        .padding(vertical = 4.dp, horizontal = 6.dp),
+                                        .padding(vertical = 6.dp, horizontal = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
                                     text = "Struk #${tx.id.takeLast(6)}",
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
                                 )
                                 Text(
                                     text = tx.total.toRupiah(),
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
@@ -2927,7 +2891,6 @@ private fun CompactReportSearchBar(
         textStyle =
             MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 13.sp,
             ),
         modifier = modifier,
         decorationBox = { innerTextField ->
@@ -2935,23 +2898,24 @@ private fun CompactReportSearchBar(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 10.dp),
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     Icons.Rounded.Search,
                     contentDescription = "Cari",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(20.dp),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
                 Box(Modifier.weight(1f)) {
                     if (query.isEmpty()) {
                         Text(
                             text = "Cari struk / produk...",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -2963,7 +2927,7 @@ private fun CompactReportSearchBar(
                     Box(
                         modifier =
                             Modifier
-                                .size(18.dp)
+                                .size(24.dp)
                                 .clip(CircleShape)
                                 .clickable { onQueryChange("") },
                         contentAlignment = Alignment.Center,
@@ -2971,7 +2935,7 @@ private fun CompactReportSearchBar(
                         Icon(
                             Icons.Rounded.Close,
                             contentDescription = "Hapus pencarian",
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -2989,20 +2953,21 @@ private fun CompactSquareIconButton(
     isError: Boolean = false,
 ) {
     val color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val borderColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant
+    val borderColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     Box(
         modifier =
             Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, borderColor, RoundedCornerShape(10.dp))
-                .clickable(onClick = onClick),
+                .size(44.dp) // Minimum 44dp-48dp Tap Target Size
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+                .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(20.dp),
             tint = color,
         )
     }
