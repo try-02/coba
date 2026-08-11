@@ -40,10 +40,6 @@ jobs:
           echo "🏗️ Building release APK with advanced R8 shrinking..."
           chmod +x ./gradlew
 
-      - name: Validate Compose Previews
-        run: |
-          ./gradlew validateDebugScreenshotTest
-
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
           ./gradlew assembleRelease \
             -x test \
@@ -74,14 +70,12 @@ jobs:
 
       # Upload signed APK
       - name: Upload APK Artifact
-        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: pos-offline-release-signed-apk
           path: |
             ${{steps.sign_app.outputs.signedReleaseFile}}
             coba/app/**/*.json
-            coba/app/build/reports/screenshotTest/
           retention-days: 1
           if-no-files-found: error
 

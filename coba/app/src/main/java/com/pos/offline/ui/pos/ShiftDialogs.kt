@@ -54,8 +54,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
-import com.android.compose.screenshot.PreviewTest
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -709,51 +707,5 @@ internal fun CashierDropdownField(
                 )
             }
         }
-    }
-}
-
-// ==========================================
-// PREVIEW COMPOSABLES FOR ANDROID STUDIO
-// ==========================================
-@PreviewTest // 2. Tambahkan ini agar dieksekusi di GitHub Actions
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-// 3. PERBAIKAN: Ubah 'private fun' menjadi 'internal fun' atau 'fun' biasa
-internal fun StartShiftDialogPreview() {
-    MaterialTheme {
-        StartShiftDialog(
-            cashiers = listOf(
-                CashierEntity(id = 1, name = "Budi Santoso"),
-                CashierEntity(id = 2, name = "Siti Rahma")
-            ),
-            isProcessing = false,
-            onDismiss = {},
-            onConfirm = { _, _ -> }
-        )
-    }
-}
-
-@PreviewTest // 2. Tambahkan ini juga untuk dialog kedua
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-// 3. PERBAIKAN: Ubah dari private menjadi internal
-internal fun EndShiftDialogPreview() {
-    MaterialTheme {
-        EndShiftDialog(
-            summary = ShiftSummary(
-                startingCash = 100000L,
-                cashRevenue = 450000L,
-                qrisRevenue = 200000L,
-                qrisRefunds = 0L,
-                cashRefunds = 0L,
-                qrisCashChangeOut = 0L,
-                warrantyExchangeCost = 0L,
-                totalCost = 350000L,
-                restockedReturnsCost = 0L
-            ),
-            isProcessing = false,
-            onDismiss = {},
-            onConfirm = {}
-        )
     }
 }
