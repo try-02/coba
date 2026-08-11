@@ -74,13 +74,14 @@ jobs:
 
       # Upload signed APK
       - name: Upload APK Artifact
+        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: pos-offline-release-signed-apk
           path: |
             ${{steps.sign_app.outputs.signedReleaseFile}}
             coba/app/**/*.json
-            coba/**/build/reports/screenshotTest/
+            coba/app/build/reports/screenshotTest/
           retention-days: 1
           if-no-files-found: error
 
