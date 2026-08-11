@@ -140,6 +140,6 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.test)
     debugImplementation(libs.androidx.compose.ui.tooling)
     screenshotTestImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.screenshot.validation-api)
-    screenshotTestImplementation(libs.screenshot.validation-api)
+    debugImplementation(libs.screenshot.validation.api)
+    screenshotTestImplementation(libs.screenshot.validation.api)
 }
