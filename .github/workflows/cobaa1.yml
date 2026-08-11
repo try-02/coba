@@ -41,7 +41,8 @@ jobs:
           chmod +x ./gradlew
 
       - name: Validate Compose Previews
-        run: ./gradlew validateDebugScreenshotTest
+        run: |
+          ./gradlew validateDebugScreenshotTest
 
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
           ./gradlew assembleRelease \
