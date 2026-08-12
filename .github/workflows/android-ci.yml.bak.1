@@ -18,73 +18,28 @@ jobs:
     runs-on: ubuntu-latest # Menggunakan Ubuntu seperti tes lamamu yang berhasil
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout project code
         uses: actions/checkout@v6
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '17' 
           distribution: 'temurin'
-          # Perbaikan: Hapus 'cache: gradle' di sini agar tidak konflik dengan action resmi Gradle
-
-      # Setup Gradle dengan caching otomatis & Enkripsi untuk Configuration Cache 9.6.1
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: Enhanced
-          gradle-version: wrapper
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-          add-job-summary: on-failure
-          # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
-          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+          cache: gradle
 
       # 1. Memberikan izin eksekusi Gradle
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # 2. Melakukan Gradle Sync & Download Dependency Awal
+      - name: Perform Gradle Sync
+        run: ./gradlew help --parallel --build-cache
+
       # 3. Menjalankan Unit Test (ShiftSummaryTest)
       # Menambahkan --parallel dan --build-cache untuk mempercepat proses build
       - name: Run Pure Unit Tests
         run: ./gradlew testDebugUnitTest --parallel --build-cache --stacktrace
-
-      - name: Upload Test Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-report
-          path: coba/app/build/reports/tests/testDebugUnitTest/
-
-
-instrumented-tests:
-    name: Run Migration Tests (Emulator)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          # Perbaikan: Hapus 'cache: gradle' di sini agar tidak konflik dengan action resmi Gradle
-
-      # Setup Gradle dengan caching otomatis & Enkripsi untuk Configuration Cache 9.6.1
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: Enhanced
-          gradle-version: wrapper
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-          add-job-summary: on-failure
-          # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
-          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
-
-      # 1. Memberikan izin eksekusi Gradle
-      - name: Make gradlew executable
-        run: chmod +x ./coba/gradlew
 
       # 4. Mengaktifkan akselerasi perangkat keras di mesin Ubuntu
       - name: Enable KVM permissions
