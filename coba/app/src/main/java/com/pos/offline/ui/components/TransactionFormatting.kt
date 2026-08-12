@@ -13,7 +13,7 @@ fun paymentMethodLabel(raw: String): String =
         else -> raw
     }
 
-fun formatPercentTrim(value: Double): String {
+internal fun formatPercentTrim(value: Double): String {
     val text = String.format(java.util.Locale.ROOT, "%.4f", value)
     return if (text.contains('.')) text.trimEnd('0').trimEnd('.') else text
 }

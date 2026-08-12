@@ -67,7 +67,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pos.offline.data.local.entity.ProductEntity
 import com.pos.offline.ui.inventory.InventoryViewModel
 import com.pos.offline.util.toRupiah
-import com.pos.offline.util.formatQuantity
 
 @Composable
 fun DirectWarrantyScreen(

@@ -20,7 +20,7 @@ fun Long.toRupiah(): String = "Rp " + rupiahFormatter.get()!!.format(this)
 
 fun Double.roundToRupiah(): Long = this.roundToLong()
 
-fun Double.formatQuantity(): String {
+internal fun Double.formatQuantity(): String {
     val text = String.format(java.util.Locale.ROOT, "%.3f", this)
     return if (text.contains('.')) text.trimEnd('0').trimEnd('.') else text
 }
