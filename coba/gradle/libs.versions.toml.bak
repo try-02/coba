@@ -3,8 +3,7 @@
 agp = "9.3.1"
 kotlin = "2.4.10"
 # KOREKSI BALIK: Menggunakan versi 2.3.10 karena ini adalah rilis resmi yang kompatibel dengan Kotlin 2.4.x
-ksp = "2.3.10"
-serialization = "1.11.0"
+ksp = "2.3.10" 
 
 # ===== Libraries =====
 room = "2.8.4"
@@ -105,4 +104,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "serialization" }
