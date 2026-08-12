@@ -15,7 +15,7 @@ defaults:
 jobs:
   test:
     name: Run Unit & UI Tests
-    runs-on: ubuntu-latest # Menggunakan Ubuntu seperti tes lamamu yang berhasil
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
@@ -26,9 +26,8 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # Perbaikan: Hapus 'cache: gradle' di sini agar tidak konflik dengan action resmi Gradle
 
-      # Setup Gradle dengan caching otomatis & Enkripsi untuk Configuration Cache 9.6.1
+      # Setup Gradle dengan caching otomatis & Enkripsi
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
@@ -36,15 +35,13 @@ jobs:
           gradle-version: wrapper
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           add-job-summary: on-failure
-          # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
           cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
       # 1. Memberikan izin eksekusi Gradle
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # 3. Menjalankan Unit Test (ShiftSummaryTest)
-      # Menambahkan --parallel dan --build-cache untuk mempercepat proses build
+      # 2. Menjalankan Unit Test
       - name: Run Pure Unit Tests
         run: ./gradlew testDebugUnitTest --parallel --build-cache --stacktrace
 
@@ -55,8 +52,7 @@ jobs:
           name: unit-test-report
           path: coba/app/build/reports/tests/testDebugUnitTest/
 
-
-instrumented-tests:
+  instrumented-tests:
     name: Run Migration Tests (Emulator)
     runs-on: ubuntu-latest
 
@@ -69,9 +65,8 @@ instrumented-tests:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # Perbaikan: Hapus 'cache: gradle' di sini agar tidak konflik dengan action resmi Gradle
 
-      # Setup Gradle dengan caching otomatis & Enkripsi untuk Configuration Cache 9.6.1
+      # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
@@ -79,18 +74,17 @@ instrumented-tests:
           gradle-version: wrapper
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           add-job-summary: on-failure
-          # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
           cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
-      # 1. Memberikan izin eksekusi Gradle
+      # 1. Memberikan izin eksekusi Gradle (Diubah dari ./coba/gradlew karena working-directory sudah ./coba)
       - name: Make gradlew executable
-        run: chmod +x ./coba/gradlew
+        run: chmod +x ./gradlew
 
-      # 4. Mengaktifkan akselerasi perangkat keras di mesin Ubuntu
+      # 2. Mengaktifkan akselerasi perangkat keras di mesin Ubuntu
       - name: Enable KVM permissions
         run: sudo chown $USER /dev/kvm
 
-      # 5. Menjalankan Android Instrumented Test (AccountingWalkthroughTest)
+      # 3. Menjalankan Android Instrumented Test
       - name: Run Android Instrumented Tests
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -98,29 +92,29 @@ instrumented-tests:
           target: aosp_atd 
           arch: x86_64
           disable-animations: true
-          working-directory: ./coba # <-- 1. Tambahkan parameter ini agar action berjalan di folder coba/
+          working-directory: ./coba
           emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: ./gradlew clean connectedDebugAndroidTest --rerun-tasks --parallel --stacktrace # <-- 2. Ubah pemanggilan menjadi ./gradlew
+          script: ./gradlew clean connectedDebugAndroidTest --rerun-tasks --parallel --stacktrace
 
-      # 6. Pembersihan Total Runner & Bekas Proses Build
+      # 4. Pembersihan Total Runner & Bekas Proses Build
       - name: Cleanup Runner Environment & Build Artifacts
-        if: always() # Memastikan step ini SELALU berjalan (Sukses, Gagal, atau Dibatalkan)
+        if: always()
         run: |
           echo "--- Memulai Pembersihan Runner & Bekas Build ---"
           
-          # 1. Menghentikan Gradle Daemon agar RAM & CPU lega
+          # Menghentikan Gradle Daemon agar RAM & CPU lega
           ./gradlew --stop || true
           
-          # 2. Menghentikan ADB Server & Emulator
+          # Menghentikan ADB Server & Emulator
           adb kill-server || true
           
-          # 3. Menjalankan task clean dari Gradle
+          # Menjalankan task clean dari Gradle
           ./gradlew clean || true
           
-          # 4. Hapus folder build dan .gradle secara paksa
+          # Hapus folder build dan .gradle secara paksa
           rm -rf build app/build .gradle || true
           
-          # 5. Hapus semua file/folder yang tidak di-track oleh Git (bekas kompilasi, test report, APK temporer, dll)
+          # Hapus semua file/folder yang tidak di-track oleh Git
           git clean -ffdx || true
           
           echo "--- Pembersihan Total Selesai ---"
