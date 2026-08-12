@@ -388,6 +388,12 @@ object Migrations {
                 )
             }
         }
+    val MIGRATION_18_19 =
+        object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE return_items ADD COLUMN restockedToDamaged INTEGER NOT NULL DEFAULT 0")
+            }
+        }
     val ALL: Array<Migration> =
         arrayOf(
             MIGRATION_1_2,
@@ -407,5 +413,6 @@ object Migrations {
             MIGRATION_15_16,
             MIGRATION_16_17,
             MIGRATION_17_18,
+            MIGRATION_18_19,
         )
 }

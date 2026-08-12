@@ -313,17 +313,7 @@
             "id"
           ]
         },
-        "indices": [
-          {
-            "name": "index_transactions_createdAt",
-            "unique": false,
-            "columnNames": [
-              "createdAt"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_transactions_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
-          }
-        ],
+        "indices": [],
         "foreignKeys": []
       },
       {
@@ -395,15 +385,6 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_transaction_items_transactionId` ON `${TABLE_NAME}` (`transactionId`)"
-          },
-          {
-            "name": "index_transaction_items_productId",
-            "unique": false,
-            "columnNames": [
-              "productId"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_transaction_items_productId` ON `${TABLE_NAME}` (`productId`)"
           }
         ],
         "foreignKeys": []

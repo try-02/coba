@@ -264,8 +264,8 @@ object Migrations {
                             `productId` INTEGER NOT NULL,
                             `name` TEXT NOT NULL,
                             `unitPrice` INTEGER NOT NULL,
-                            `quantity` REAL NOT NULL DEFAULT 1,
-                            FOREIGN KEY(`productId`) REFERENCES `products`(`id`) ON DELETE CASCADE
+                            `quantity` REAL NOT NULL,
+                            FOREIGN KEY(`productId`) REFERENCES `products`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
                         )
                         """.trimIndent(),
                     )
