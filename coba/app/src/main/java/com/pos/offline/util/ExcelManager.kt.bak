@@ -535,7 +535,7 @@ object ExcelManager {
         field: String,
     ): Long {
         val value =
-            parseFlexibleNumber(s)
+            parseFlexibleNumber(s, treatSingleSeparatorAsThousands = true)
                 ?: error("$field tidak valid: \"$s\"")
         require(value >= 0) { "$field bernilai negatif" }
         return round(value).toLong()
@@ -546,13 +546,13 @@ object ExcelManager {
         field: String,
     ): Double {
         val value =
-            parseFlexibleNumber(s)
+            parseFlexibleNumber(s, treatSingleSeparatorAsThousands = false)
                 ?: error("$field tidak valid: \"$s\"")
         require(value >= 0) { "$field bernilai negatif" }
         return value
     }
 
-    private fun parseFlexibleNumber(raw: String): Double? {
+    private fun parseFlexibleNumber(raw: String, treatSingleSeparatorAsThousands: Boolean): Double? {
         val cleaned =
             raw.trim().filter {
                 it.isDigit() || it == '.' || it == ',' || it == '-'
@@ -578,7 +578,7 @@ object ExcelManager {
                 hasDot -> {
                     val dotCount = body.count { it == '.' }
                     val digitsAfter = body.length - body.lastIndexOf('.') - 1
-                    if (dotCount > 1 || digitsAfter == 3) {
+                    if (dotCount > 1 || (treatSingleSeparatorAsThousands && digitsAfter == 3)) {
                         body.replace(".", "")
                     } else {
                         body
@@ -588,7 +588,7 @@ object ExcelManager {
                 hasComma -> {
                     val commaCount = body.count { it == ',' }
                     val digitsAfter = body.length - body.lastIndexOf(',') - 1
-                    if (commaCount > 1 || digitsAfter == 3) {
+                    if (commaCount > 1 || (treatSingleSeparatorAsThousands && digitsAfter == 3)) {
                         body.replace(",", "")
                     } else {
                         body.replace(',', '.')

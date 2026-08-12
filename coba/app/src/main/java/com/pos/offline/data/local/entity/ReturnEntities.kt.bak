@@ -41,6 +41,4 @@ data class ReturnItemEntity(
     val unitPrice: Long,
     val quantityReturned: Double,
     val restocked: Boolean,
-    @ColumnInfo(name = "restockedToDamaged", defaultValue = "0")
-    val restockedToDamaged: Boolean = false,
 )

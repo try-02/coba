@@ -387,7 +387,7 @@ private fun WarrantyClaimDialog(
                         )
                     }
                     Text(
-                        text = if (qty % 1.0 == 0.0) qty.toLong().toString() else qty.toString(),
+                        text = qty.formatQuantity(),
                         fontFamily = FontFamily.Monospace,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
@@ -514,7 +514,7 @@ private fun ExchangeClaimDialog(
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text = "${if (brokenQty % 1.0 == 0.0) brokenQty.toLong().toString() else brokenQty}x ${brokenProduct.name}",
+                            text = "${brokenQty.formatQuantity()}x ${brokenProduct.name}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onErrorContainer
@@ -590,7 +590,7 @@ private fun ExchangeClaimDialog(
                         )
                     }
                     Text(
-                        text = if (qty % 1.0 == 0.0) qty.toLong().toString() else qty.toString(),
+                        text = qty.formatQuantity(),
                         fontFamily = FontFamily.Monospace,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,

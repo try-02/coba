@@ -96,7 +96,7 @@ interface ReportDao {
         LEFT JOIN products p ON ri.productId = p.id
         INNER JOIN returns r ON r.id = ri.returnId
         WHERE r.returnedAt >= :start AND r.returnedAt < :end
-          AND ri.restocked = 1 AND ri.restockedToDamaged = 0
+          AND ri.restocked = 1
     """,
     )
     suspend fun getRestockedReturnsCost(

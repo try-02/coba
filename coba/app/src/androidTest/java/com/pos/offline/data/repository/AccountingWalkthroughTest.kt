@@ -647,4 +647,29 @@ class AccountingWalkthroughTest {
             shiftRepository.endShift(shiftId, actualCash = 150_000)
             assertEquals(VoidOutcome.ShiftClosed, transactionRepository.voidTransaction(tx.transaction.id))
         }
+
+@Test
+fun processReturn_restockToDamaged_TIDAK_mengurangi_netCogs() = runTest {
+    val tx = transactionRepository.checkout(
+        cart = cartOf(idA, "Produk A", 50_000),
+        discountType = DiscountType.NOMINAL, discountValue = 0.0, taxRate = 0.0,
+        paid = 50_000, paymentMethod = PaymentMethod.CASH,
+        cashierId = cashierId, cashierName = "Kasir Uji", shiftId = shiftId,
+    )
+    val receipt = transactionRepository.loadReceipt(tx.transaction.id)!!
+    returnRepository.processReturn(
+        transactionId = tx.transaction.id,
+        itemInputs = receipt.items.map {
+            ReturnItemInput(
+                transactionItemId = it.id, productId = it.productId, productName = it.productName,
+                unitPrice = it.unitPrice, quantityReturned = it.quantity,
+                restocked = true, restockToDamaged = true, // kunci skenario ini
+            )
+        },
+        refundAmount = 50_000, refundMethod = PaymentMethod.CASH,
+        shiftId = shiftId, cashierId = cashierId, cashierName = "Kasir Uji",
+    )
+    // Produk A cost=20_000 — karena ditandai rusak, TIDAK boleh dikreditkan balik.
+    assertEquals(0L, shiftRepository.getShiftSummary(shiftId).restockedReturnsCost)
+}
 }

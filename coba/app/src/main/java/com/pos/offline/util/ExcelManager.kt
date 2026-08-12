@@ -530,6 +530,14 @@ object ExcelManager {
         }
     }
 
+    internal fun parseQtyForTest(s: String, field: String = "Qty"): Double {
+        return parseQty(s, field)
+    }
+
+    internal fun parseCurrencyForTest(s: String, field: String = "Harga"): Long {
+        return parseCurrency(s, field)
+    }
+
     private fun parseCurrency(
         s: String,
         field: String,
