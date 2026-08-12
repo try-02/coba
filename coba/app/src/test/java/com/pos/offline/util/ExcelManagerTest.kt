@@ -2,6 +2,7 @@ package com.pos.offline.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.pos.offline.util.ExcelManager
 
 class ExcelManagerTest {
 

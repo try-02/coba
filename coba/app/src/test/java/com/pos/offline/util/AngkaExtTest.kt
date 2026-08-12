@@ -2,6 +2,8 @@ package com.pos.offline.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.pos.offline.util.formatQuantity
+import com.pos.offline.ui.components.formatPercentTrim
 
 class NumberExtTest {
 
