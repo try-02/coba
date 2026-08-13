@@ -1,12 +1,4 @@
 package com.pos.offline.ui.pos
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.mutableDoubleStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -324,17 +316,6 @@ private fun CategoryChip(
     }
 }
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.mutableDoubleStateOf
-import androidx.compose.runtime.mutableFloatStateOf
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ProductPane(
@@ -346,7 +327,10 @@ internal fun ProductPane(
 ) {
     var selectedProductForDetails by remember { mutableStateOf<ProductEntity?>(null) }
     
-    CompositionLocalProvider(LocalOverscrollFactory provides null) {
+    CompositionLocalProvider(
+        LocalOverscrollFactory provides null,
+    ) {
+        // Menggunakan List Horizontal (scrolling vertikal, 1 baris per item)
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
@@ -364,12 +348,11 @@ internal fun ProductPane(
                     qtyInCart = qtyInCart,
                     cartItem = cartItem,
                     onAdd = { onAction(PosAction.AddToCart(product)) },
-                    onSetQuantity = { newQty -> 
-                        cartItem?.let { onAction(PosAction.SetQuantity(it, newQty)) } 
-                    },
+                    onDecrease = { cartItem?.let { onAction(PosAction.DecreaseQty(it)) } },
                     onLongClick = { selectedProductForDetails = product }
                 )
                 
+                // Divider sangat subtle pengganti border
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     thickness = 0.5.dp,
@@ -394,164 +377,102 @@ private fun ProductListRow(
     qtyInCart: Double,
     cartItem: CartItemEntity?,
     onAdd: () -> Unit,
-    onSetQuantity: (Double) -> Unit,
+    onDecrease: () -> Unit,
     onLongClick: () -> Unit,
 ) {
     val outOfStock = (product.stock - qtyInCart) <= 0.0
     val isActive = qtyInCart > 0.0
 
-    // Eksperimen 1 & 2: Background sangat subtle, warna teks tetap normal
     val bgColor = if (isActive) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
     } else {
         Color.Transparent
     }
 
+    // Memastikan area tap konsisten tanpa overlap yang tersembunyi
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(bgColor)
                 .combinedClickable(
-                    onClick = onAdd, // Tap pertama kali menambahkan produk
-                    onLongClick = onLongClick,
+                    onClick = onAdd, 
+                    onLongClick = onLongClick, 
                 )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp), 
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Kolom 1: Nama (Flexible, warna normal)
+            // Kolom 1: Nama (Menggunakan seluruh sisa ruang yang ada)
             Text(
                 text = product.name,
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                 fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface, 
+                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f) 
             )
 
+            // Jarak yang lebih rapat agar Nama Produk mendapatkan ruang maksimal
             Spacer(Modifier.width(8.dp))
 
-            // Kolom 2: Harga (Fixed Width 90dp, "Rp" & Nominal terpisah untuk alignment absolut)
-            Row(
-                modifier = Modifier.width(90.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Rp",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = product.price.toRupiah().replace("Rp", "").trim(),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.End
-                )
-            }
+            // Kolom 2: Harga (Fixed width 85.dp & Rata Kanan Tegas)
+            Text(
+                text = product.price.toRupiah(),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End, 
+                modifier = Modifier.width(85.dp) // Ukuran fixed ini akan membuat angka Rp dan nominal sejajar sempurna ke bawah
+            )
 
-            Spacer(Modifier.width(16.dp))
+            // Jarak antara Harga dan Stok didekatkan dari 16.dp menjadi 12.dp
+            Spacer(Modifier.width(12.dp))
 
-            // Kolom 3: Stok / Qty Gesture (Fixed Width 44dp)
+            // Kolom 3: Stok / Action Stepper (Fixed width 84.dp & Alignment Kanan)
             Box(
-                modifier = Modifier.width(44.dp),
-                contentAlignment = Alignment.CenterEnd
+                modifier = Modifier.width(84.dp),
+                contentAlignment = Alignment.CenterEnd // Memastikan isi selalu menempel ke sisi kanan baris
             ) {
                 if (isActive && cartItem != null) {
-                    QuantityDragStepper(
-                        qty = qtyInCart,
-                        maxStock = product.stock,
-                        onSetQuantity = onSetQuantity
-                    )
+                    // Row untuk aksi tambah kurang saat aktif
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CompactActionBox(
+                            icon = Icons.Rounded.Remove,
+                            contentDescription = "Kurangi",
+                            onClick = onDecrease,
+                            active = true
+                        )
+                        Text(
+                            text = qtyInCart.formatQuantity(),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.width(32.dp)
+                        )
+                        CompactActionBox(
+                            icon = Icons.Rounded.Add,
+                            contentDescription = "Tambah",
+                            onClick = onAdd,
+                            active = true
+                        )
+                    }
                 } else {
+                    // Menampilkan angka stok saat normal
                     val remainingStock = product.stock - qtyInCart
                     Text(
                         text = if (outOfStock) "Habis" else remainingStock.formatQuantity(),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
                         color = if (outOfStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.End // Angka stok juga diratakan di sisi kanan
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun QuantityDragStepper(
-    qty: Double,
-    maxStock: Double,
-    onSetQuantity: (Double) -> Unit
-) {
-    val isInteger = maxStock % 1.0 == 0.0
-    val step = if (isInteger) 1.0 else 0.1
-    
-    var localAccumulator by remember { mutableFloatStateOf(0f) }
-    
-    // State lokal agar UI berubah sekejap mendahului respon Database/ViewModel
-    var dragSessionQty by remember { mutableDoubleStateOf(qty) }
-    LaunchedEffect(qty) {
-        dragSessionQty = qty
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(28.dp) // Membentuk visual seperti pill button kecil
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer) // Elemen ungu hanya ada disini
-            .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onDragStart = { 
-                        localAccumulator = 0f 
-                        dragSessionQty = qty
-                    },
-                    onDragEnd = { localAccumulator = 0f },
-                    onDragCancel = { localAccumulator = 0f }
-                ) { change, dragAmount ->
-                    change.consume() // Mencegah LazyColumn ikut ter-scroll
-                    localAccumulator += dragAmount
-                    
-                    val steps = (localAccumulator / 25f).toInt() // Sensitivitas (1 step tiap 25 piksel gerakan)
-                    if (steps != 0) {
-                        // Negatif dragAmount (scroll ke atas) = increase
-                        // Positif dragAmount (scroll ke bawah) = decrease
-                        val rawNext = dragSessionQty - (steps * step)
-                        val nextQty = (kotlin.math.round(rawNext * 10) / 10.0).coerceIn(0.0, maxStock)
-                        
-                        if (nextQty != dragSessionQty) {
-                            dragSessionQty = nextQty
-                            onSetQuantity(nextQty) // Tembak action ke ViewModel
-                        }
-                        localAccumulator -= (steps * 25f)
-                    }
-                }
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        AnimatedContent(
-            targetState = dragSessionQty,
-            transitionSpec = {
-                // Logika Animasi: Slide dari Bawah jika Naik, Slide dari Atas jika Turun
-                if (targetState > initialState) {
-                    (slideInVertically { height -> height } + fadeIn())
-                        .togetherWith(slideOutVertically { height -> -height } + fadeOut())
-                } else {
-                    (slideInVertically { height -> -height } + fadeIn())
-                        .togetherWith(slideOutVertically { height -> height } + fadeOut())
-                }
-            },
-            label = "qty_drag_animation"
-        ) { animatedQty ->
-            Text(
-                text = animatedQty.formatQuantity(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
