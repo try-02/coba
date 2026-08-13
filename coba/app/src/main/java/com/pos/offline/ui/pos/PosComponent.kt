@@ -396,13 +396,13 @@ private fun ProductListRow(
                 .fillMaxWidth()
                 .background(bgColor)
                 .combinedClickable(
-                    onClick = onAdd, // Tap biasa menambah kuantitas
-                    onLongClick = onLongClick, // Long press melihat detail (SKU, dll)
+                    onClick = onAdd, 
+                    onLongClick = onLongClick, 
                 )
-                .padding(horizontal = 16.dp, vertical = 14.dp), // Lega, minim visual fatigue
+                .padding(horizontal = 16.dp, vertical = 14.dp), 
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Kolom 1: Nama (Flexible weight terbesar)
+            // Kolom 1: Nama (Menggunakan seluruh sisa ruang yang ada)
             Text(
                 text = product.name,
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
@@ -410,30 +410,32 @@ private fun ProductListRow(
                 color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f) 
             )
 
-            Spacer(Modifier.width(12.dp))
+            // Jarak yang lebih rapat agar Nama Produk mendapatkan ruang maksimal
+            Spacer(Modifier.width(8.dp))
 
-            // Kolom 2: Harga (Fixed width, konsisten)
+            // Kolom 2: Harga (Fixed width 85.dp & Rata Kanan Tegas)
             Text(
                 text = product.price.toRupiah(),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
                 fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End,
-                modifier = Modifier.width(90.dp)
+                textAlign = TextAlign.End, 
+                modifier = Modifier.width(85.dp) // Ukuran fixed ini akan membuat angka Rp dan nominal sejajar sempurna ke bawah
             )
 
-            Spacer(Modifier.width(16.dp))
+            // Jarak antara Harga dan Stok didekatkan dari 16.dp menjadi 12.dp
+            Spacer(Modifier.width(12.dp))
 
-            // Kolom 3: Stok / Action Stepper (Fixed width)
+            // Kolom 3: Stok / Action Stepper (Fixed width 84.dp & Alignment Kanan)
             Box(
                 modifier = Modifier.width(84.dp),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = Alignment.CenterEnd // Memastikan isi selalu menempel ke sisi kanan baris
             ) {
                 if (isActive && cartItem != null) {
-                    // Muncul seketika (Peak Moment)
+                    // Row untuk aksi tambah kurang saat aktif
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.End,
@@ -461,12 +463,13 @@ private fun ProductListRow(
                         )
                     }
                 } else {
+                    // Menampilkan angka stok saat normal
                     val remainingStock = product.stock - qtyInCart
                     Text(
                         text = if (outOfStock) "Habis" else remainingStock.formatQuantity(),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
                         color = if (outOfStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.End // Angka stok juga diratakan di sisi kanan
                     )
                 }
             }
