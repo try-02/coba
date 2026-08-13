@@ -173,12 +173,13 @@ fun PosScreen(
                             //            else -> base.heightIn(max = maxH * 0.65f)
                             //        }
                             //    },
-                                .then(
-                                if (localState.isCartExpanded) {
-                                    // Selalu kunci di 65% dari tinggi layar
-                                    Modifier.heightIn(max = screenHeight * 0.65f)
-                                } else Modifier
-                            ),
+                                .let { base ->
+                                if (imeVisible) {
+                                    base // Lepas batas 65% agar bisa mengisi sisa layar di atas keyboard
+                                } else {
+                                    base.heightIn(max = maxH * 0.65f) // Kunci 65% untuk menjaga animasi expand/collapse tetap mulus
+                                }
+                            },
                         cart = uiState.cart,
                         payment = uiState.payment,
                         catalog = uiState.catalog,

@@ -113,7 +113,7 @@ fun PosScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(inner)
-                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
+                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
                     .pointerInput(Unit) {
                     detectTapGestures(onTap = {
                         focusManager.clearFocus()
