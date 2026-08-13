@@ -392,11 +392,9 @@ private fun ProductListRow(
     onSetQuantity: (Double) -> Unit,
     onLongClick: () -> Unit,
 ) {
-    // 1. STATE LOKAL: Menahan UI agar tidak hilang saat drag mencapai angka 0
     var isDragging by remember { mutableStateOf(false) }
     var localDragQty by remember { mutableDoubleStateOf(qtyInCart) }
 
-    // Sinkronisasi nilai dari Database HANYA jika sedang tidak di-drag
     LaunchedEffect(qtyInCart) {
         if (!isDragging) {
             localDragQty = qtyInCart
@@ -404,7 +402,6 @@ private fun ProductListRow(
     }
 
     val outOfStock = (product.stock - localDragQty) <= 0.0
-    // Baris tetap aktif jika qty > 0 ATAU sedang ditahan (drag) oleh jari pengguna
     val isActive = localDragQty > 0.0 || isDragging
 
     val bgColor = if (isActive) {
@@ -417,12 +414,13 @@ private fun ProductListRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .defaultMinSize(minHeight = 56.dp) // KUNCI 1: Tinggi baris distandarkan, baik saat unselected maupun selected
                 .background(bgColor)
                 .combinedClickable(
                     onClick = onAdd,
                     onLongClick = onLongClick,
                 )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp), // KUNCI 2: Padding vertikal dihapus, diganti dengan Alignment.CenterVertically
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Kolom 1: Nama
@@ -438,7 +436,7 @@ private fun ProductListRow(
 
             Spacer(Modifier.width(8.dp))
 
-            // Kolom 2: Harga (Fixed Width & Absolute Right Alignment)
+            // Kolom 2: Harga
             Row(
                 modifier = Modifier.width(90.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -462,7 +460,9 @@ private fun ProductListRow(
 
             // Kolom 3: Stok / Qty Gesture
             Box(
-                modifier = Modifier.width(44.dp),
+                modifier = Modifier
+                    .width(48.dp) // Diperlebar sedikit dari 44dp ke 48dp agar pas dengan standar touch target
+                    .fillMaxHeight(), // KUNCI 3: Kolom ini mengisi penuh tinggi baris (56dp)
                 contentAlignment = Alignment.CenterEnd
             ) {
                 if (isActive) {
@@ -473,15 +473,12 @@ private fun ProductListRow(
                         onDragStart = { isDragging = true },
                         onDragEnd = {
                             isDragging = false
-                            // Jari Dilepas: Jika angka 0, baru kita tembak ke DB untuk menghapusnya
                             if (localDragQty <= 0.0 && cartItem != null) {
                                 onSetQuantity(0.0)
                             }
                         },
                         onQtyChange = { newQty ->
-                            localDragQty = newQty // UI langsung berubah menjadi 0 seketika
-                            
-                            // Selama ditahan, kita tembak angka ke DB (kecuali 0 agar tidak terhapus prematur)
+                            localDragQty = newQty
                             if (newQty > 0.0 && cartItem != null) {
                                 onSetQuantity(newQty)
                             }
@@ -515,16 +512,13 @@ private fun QuantityDragStepper(
     var localAccumulator by remember { mutableFloatStateOf(0f) }
     val currentQty by rememberUpdatedState(qty)
 
-    // Discoverability State
     var showHint by remember { mutableStateOf(true) }
     
-    // Timer untuk menghilangkan hint secara otomatis
     LaunchedEffect(Unit) {
-        delay(2500) // Tampil selama 2.5 detik
+        delay(2500) 
         showHint = false
     }
     
-    // Animasi fade-out yang mulus untuk hint
     val hintAlpha by animateFloatAsState(
         targetValue = if (showHint) 0.5f else 0f,
         animationSpec = tween(durationMillis = 800),
@@ -533,7 +527,7 @@ private fun QuantityDragStepper(
 
     val draggableState = rememberDraggableState { delta ->
         localAccumulator += delta
-        val steps = (localAccumulator / 25f).toInt() // Sensitivitas tarikan
+        val steps = (localAccumulator / 25f).toInt()
         
         if (steps != 0) {
             val rawNext = currentQty - (steps * step)
@@ -546,20 +540,20 @@ private fun QuantityDragStepper(
         }
     }
 
-    // 1. TOUCH TARGET BOX (Luar - Transparan - Minimal 48dp)
     Box(
+        // KUNCI 4: Touch target sekarang mengisi penuh lebar & tinggi area parent-nya (48dp x 56dp)
         modifier = Modifier
-            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .fillMaxSize() 
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null, 
-                onClick = { onAdd() } // Tap target tetap lebar
+                onClick = { onAdd() } 
             )
             .draggable(
                 state = draggableState,
                 orientation = Orientation.Vertical,
                 onDragStarted = { 
-                    showHint = false // Hint langsung hilang begitu layar disentuh
+                    showHint = false 
                     localAccumulator = 0f
                     onDragStart()
                 },
@@ -568,19 +562,17 @@ private fun QuantityDragStepper(
                     onDragEnd()
                 }
             ),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.CenterEnd // Pill visual ditempel rata kanan
     ) {
-        // 2. VISUAL PILL BOX (Dalam - Kecil & Ungu)
+        // Visual Pill Box (Visualnya tetap kecil dan manis)
         Box(
             modifier = Modifier
                 .width(44.dp)
-                .height(28.dp) // Visual tetap kecil agar katalog tidak ramai
+                .height(28.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            
-            // Animasi Angka
             AnimatedContent(
                 targetState = qty,
                 transitionSpec = {
@@ -603,7 +595,6 @@ private fun QuantityDragStepper(
                 )
             }
 
-            // 3. DISCOVERABILITY HINT (Panah atas/bawah sementara)
             if (hintAlpha > 0f) {
                 Column(
                     modifier = Modifier
