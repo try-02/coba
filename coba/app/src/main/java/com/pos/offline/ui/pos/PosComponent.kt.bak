@@ -13,6 +13,12 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.defaultMinSize
 import kotlinx.coroutines.delay
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -642,68 +648,116 @@ internal fun CartPaneContent(
             onAction(PosAction.Checkout)
         }
     }
+    
     val listState = rememberLazyListState()
     var previousCartSize by remember { mutableStateOf(cart.items.size) }
+    var dragAccumulator by remember { mutableFloatStateOf(0f) }
+    
     LaunchedEffect(cart.items.size) {
         if (cart.items.size > previousCartSize && cart.items.isNotEmpty()) {
             listState.animateScrollToItem(cart.items.lastIndex)
         }
         previousCartSize = cart.items.size
     }
+
+    // 1. DINAMISASI PADDING FAB: Melindungi dari FAB (40dp) + margin (16dp) = 56dp
+    val fabSafePadding by animateDpAsState(
+        targetValue = if (!expanded && collapsible) 56.dp else 0.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "fab_padding"
+    )
+
+    val draggableState = rememberDraggableState { delta ->
+        dragAccumulator += delta
+        if (dragAccumulator < -40f && !expanded) {
+            localState.updateCartExpanded(true)
+            dragAccumulator = 0f
+        } else if (dragAccumulator > 40f && expanded) {
+            localState.updateCartExpanded(false)
+            dragAccumulator = 0f
+        }
+    }
+
+    // 2. SWIPE GESTURE YANG STABIL: Menggunakan akumulator agar tidak sensitif/glitch
+    val swipeToToggleModifier = if (collapsible) {
+        Modifier.draggable(
+            state = draggableState,
+            orientation = Orientation.Vertical,
+            onDragStarted = { dragAccumulator = 0f },
+            onDragStopped = { dragAccumulator = 0f }
+        )
+    } else Modifier
+
     Box(
-        modifier =
-            modifier
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-                .background(MaterialTheme.colorScheme.background, RoundedCornerShape(16.dp))
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    RoundedCornerShape(16.dp),
-                ).clip(RoundedCornerShape(16.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { if (collapsible && !expanded) localState.toggleCart() },
-                ),
+        modifier = modifier
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .background(MaterialTheme.colorScheme.background, RoundedCornerShape(16.dp))
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                RoundedCornerShape(16.dp),
+            )
+            .clip(RoundedCornerShape(16.dp))
+            // 3. TRANSISI HALUS: Tinggi berubah mulus saat panel mekar/menyusut
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy, // Tidak mantul berlebihan
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .then(if (!collapsible) Modifier.fillMaxHeight() else Modifier)
-                    .padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!collapsible) Modifier.fillMaxHeight() else Modifier)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
+            
+            // AREA SWIPE INDIKATOR
             if (collapsible) {
                 Box(
-                    modifier =
-                        Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 6.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(16.dp)
+                        .then(swipeToToggleModifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
                             .width(36.dp)
                             .height(4.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
-                )
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
             }
+
+            // HEADER KERANJANG
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .then(
-                            if (collapsible) {
-                                Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable(onClick = localState::toggleCart)
-                                    .padding(vertical = 2.dp)
-                            } else {
-                                Modifier
-                            },
-                        ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Menerapkan safe padding agar Icon + Tulisan bergeser menjauh dari FAB
+                    .padding(start = fabSafePadding) 
+                    .then(
+                        if (collapsible) {
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable(onClick = localState::toggleCart)
+                                .padding(vertical = 2.dp)
+                        } else Modifier
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Rounded.ShoppingCart, contentDescription = null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Keranjang", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(
+                    "Keranjang", 
+                    style = MaterialTheme.typography.titleSmall, 
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                
                 if (collapsible && !expanded && !cart.isEmpty) {
                     Text(
                         text = "${cart.items.size} item · ${cart.totals.total.toRupiah()}",
@@ -713,172 +767,209 @@ internal fun CartPaneContent(
                         modifier = Modifier.padding(end = 6.dp),
                     )
                 }
+                
                 if (!cart.isEmpty && showFull) {
                     TextButton(
                         onClick = localState::showClearDialog,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                        modifier = Modifier.height(28.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                        modifier = Modifier.height(24.dp),
                     ) {
-                        Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Kosongkan", style = MaterialTheme.typography.bodySmall)
+                        Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(2.dp))
+                        Text("Kosongkan", style = MaterialTheme.typography.labelSmall)
                     }
                 }
+                
                 if (collapsible) {
                     Box(
-                        modifier =
-                            Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector =
-                                if (expanded) {
-                                    Icons.Rounded.KeyboardArrowDown
-                                } else {
-                                    Icons.Rounded.KeyboardArrowUp
-                                },
+                            imageVector = if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
                             contentDescription = if (expanded) "Ciutkan" else "Perluas",
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
             }
-            if (showFull) {
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                Box(
-                    modifier =
-                        Modifier
+
+            // ISI KERANJANG SAAT EXPANDED (Di-fade in secara halus)
+            AnimatedVisibility(
+                visible = showFull,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + 
+                    expandVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        expandFrom = Alignment.Top
+                    ),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + 
+                    shrinkVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        shrinkTowards = Alignment.Top
+                    )
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium))
+            ) {
+                Column {
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                    Box(
+                        modifier = Modifier
                             .weight(1f, fill = false)
                             .fillMaxWidth()
                             .clipToBounds(),
-                ) {
-                    @OptIn(ExperimentalFoundationApi::class)
-                    CompositionLocalProvider(
-                        LocalOverscrollFactory provides null,
                     ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize()
-                            .bouncyOverscroll(),
-                            state = listState,
-                            flingBehavior = iosGlideFlingBehavior(),
-                        ) {
-                            if (cart.isEmpty) {
-                                item(key = "empty_cart") {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(
-                                                Icons.Rounded.ShoppingCart,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(32.dp),
-                                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                            )
-                                            Spacer(Modifier.height(8.dp))
-                                            Text(
-                                                "Keranjang masih kosong",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                            )
-                                            Text(
-                                                "Ketuk produk di atas untuk menambahkan",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                            )
+                        @OptIn(ExperimentalFoundationApi::class)
+                        CompositionLocalProvider(LocalOverscrollFactory provides null) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .bouncyOverscroll(),
+                                state = listState,
+                                flingBehavior = iosGlideFlingBehavior(),
+                            ) {
+                                if (cart.isEmpty) {
+                                    item(key = "empty_cart") {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Icon(
+                                                    Icons.Rounded.ShoppingCart,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(32.dp),
+                                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                                )
+                                                Spacer(Modifier.height(8.dp))
+                                                Text(
+                                                    "Keranjang masih kosong",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                                )
+                                            }
                                         }
                                     }
-                                }
-                            } else {
-                                items(items = cart.items, key = { it.id }) { item ->
-                                    CartRow(
-                                        item = item,
-                                        onIncrease = { onAction(PosAction.IncreaseQty(item)) },
-                                        onDecrease = { onAction(PosAction.DecreaseQty(item)) },
-                                        onRemove = { onAction(PosAction.RemoveFromCart(item)) },
-                                        onQuantityClick = { localState.startQtyEdit(item) },
-                                        modifier = Modifier.animateItem(),
-                                    )
+                                } else {
+                                    items(items = cart.items, key = { it.id }) { item ->
+                                        CartRow(
+                                            item = item,
+                                            onIncrease = { onAction(PosAction.IncreaseQty(item)) },
+                                            onDecrease = { onAction(PosAction.DecreaseQty(item)) },
+                                            onRemove = { onAction(PosAction.RemoveFromCart(item)) },
+                                            onQuantityClick = { localState.startQtyEdit(item) },
+                                            modifier = Modifier.animateItem(),
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
-                    val showTopFade by remember { derivedStateOf { listState.canScrollBackward } }
-                    val showBottomFade by remember { derivedStateOf { listState.canScrollForward } }
-                    if (showTopFade) {
-                        HorizontalDivider(
-                            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
-                            thickness = 2.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                        )
-                    }
-                    if (showBottomFade) {
-                        HorizontalDivider(
-                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
-                            thickness = 2.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                        )
-                    }
-                }
-                if (!cart.isEmpty) {
-                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                    TotalsSummary(
-                        payment = payment,
-                        totals = cart.totals,
-                        onAction = onAction,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Button(
-                        onClick = ::attemptCheckout,
-                        enabled = !cart.isEmpty && !checkout.isProcessing,
-                        modifier = Modifier.fillMaxWidth().height(42.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        if (checkout.isProcessing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp,
+                        
+                        // Fading dividers ...
+                        val showTopFade by remember { derivedStateOf { listState.canScrollBackward } }
+                        val showBottomFade by remember { derivedStateOf { listState.canScrollForward } }
+                        if (showTopFade) {
+                            HorizontalDivider(
+                                modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
+                                thickness = 2.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                             )
-                        } else {
-                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Bayar · ${cart.totals.total.toRupiah()}")
+                        }
+                        if (showBottomFade) {
+                            HorizontalDivider(
+                                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                                thickness = 2.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            )
                         }
                     }
-                    Spacer(Modifier.height(4.dp))
+                    
+                    if (!cart.isEmpty) {
+                        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                        TotalsSummary(
+                            payment = payment,
+                            totals = cart.totals,
+                            onAction = onAction,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Button(
+                            onClick = ::attemptCheckout,
+                            enabled = !cart.isEmpty && !checkout.isProcessing,
+                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            if (checkout.isProcessing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Bayar · ${cart.totals.total.toRupiah()}")
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                    }
                 }
-            } else {
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 84.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Total: ${cart.totals.total.toRupiah()}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Button(
-                        onClick = ::attemptCheckout,
-                        enabled = !cart.isEmpty && !checkout.isProcessing,
-                        modifier = Modifier.height(36.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp),
+            }
+
+            // TOTAL RINGKAS SAAT COLLAPSED (Di-fade out secara halus saat diexpand)
+            AnimatedVisibility(
+                visible = !showFull,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + 
+                    expandVertically(spring(stiffness = Spring.StiffnessMediumLow), expandFrom = Alignment.Top),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessHigh)) + 
+                    shrinkVertically(spring(stiffness = Spring.StiffnessHigh), shrinkTowards = Alignment.Top)
+            ) {
+                Column {
+                    Spacer(Modifier.height(2.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            // Safe padding dinamis melindungi teks "Total"
+                            .padding(start = fabSafePadding), 
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        if (checkout.isProcessing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp,
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Total",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 10.sp
                             )
-                        } else {
-                            Text("Bayar", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = cart.totals.total.toRupiah(),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        
+                        Button(
+                            onClick = ::attemptCheckout,
+                            enabled = !cart.isEmpty && !checkout.isProcessing,
+                            modifier = Modifier.height(36.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                        ) {
+                            if (checkout.isProcessing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Text("Bayar", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

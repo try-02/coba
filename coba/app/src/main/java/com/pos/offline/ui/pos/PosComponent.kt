@@ -17,6 +17,8 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -798,8 +800,16 @@ internal fun CartPaneContent(
             // ISI KERANJANG SAAT EXPANDED (Di-fade in secara halus)
             AnimatedVisibility(
                 visible = showFull,
-                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)),
-                exit = fadeOut(spring(stiffness = Spring.StiffnessMediumHigh))
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+                    expandVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        expandFrom = Alignment.Top
+                    ),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) +
+                    shrinkVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        shrinkTowards = Alignment.Top
+                    )
             ) {
                 Column {
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
@@ -908,8 +918,10 @@ internal fun CartPaneContent(
             // TOTAL RINGKAS SAAT COLLAPSED (Di-fade out secara halus saat diexpand)
             AnimatedVisibility(
                 visible = !showFull,
-                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)),
-                exit = fadeOut(spring(stiffness = Spring.StiffnessHigh))
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+                    expandVertically(spring(stiffness = Spring.StiffnessMediumLow), expandFrom = Alignment.Top),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
+                    shrinkVertically(spring(stiffness = Spring.StiffnessHigh), shrinkTowards = Alignment.Top)
             ) {
                 Column {
                     Spacer(Modifier.height(2.dp))
