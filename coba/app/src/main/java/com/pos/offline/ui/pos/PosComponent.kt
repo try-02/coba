@@ -660,13 +660,6 @@ internal fun CartPaneContent(
         previousCartSize = cart.items.size
     }
 
-    // 1. DINAMISASI PADDING FAB: Melindungi dari FAB (40dp) + margin (16dp) = 56dp
-    val fabSafePadding by animateDpAsState(
-        targetValue = if (!expanded && collapsible) 56.dp else 0.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "fab_padding"
-    )
-
     val draggableState = rememberDraggableState { delta ->
         dragAccumulator += delta
         if (dragAccumulator < -40f && !expanded) {
@@ -678,7 +671,6 @@ internal fun CartPaneContent(
         }
     }
 
-    // 2. SWIPE GESTURE YANG STABIL: Menggunakan akumulator agar tidak sensitif/glitch
     val swipeToToggleModifier = if (collapsible) {
         Modifier.draggable(
             state = draggableState,
@@ -698,10 +690,9 @@ internal fun CartPaneContent(
                 RoundedCornerShape(16.dp),
             )
             .clip(RoundedCornerShape(16.dp))
-            // 3. TRANSISI HALUS: Tinggi berubah mulus saat panel mekar/menyusut
             .animateContentSize(
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy, // Tidak mantul berlebihan
+                    dampingRatio = Spring.DampingRatioNoBouncy,
                     stiffness = Spring.StiffnessMediumLow
                 )
             ),
@@ -737,13 +728,12 @@ internal fun CartPaneContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // Menerapkan safe padding agar Icon + Tulisan bergeser menjauh dari FAB
-                    .padding(start = fabSafePadding) 
+                    // fabSafePadding dihapus agar icon & text bergeser rata kiri
                     .then(
                         if (collapsible) {
                             Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable(onClick = localState::toggleCart)
+                                // modifier clickable baris dihapus di sini
                                 .padding(vertical = 2.dp)
                         } else Modifier
                     ),
@@ -781,23 +771,27 @@ internal fun CartPaneContent(
                 }
                 
                 if (collapsible) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
-                            contentDescription = if (expanded) "Ciutkan" else "Perluas",
-                            modifier = Modifier.size(16.dp),
-                        )
+                    // Tombol Panah Expand/Collapse Eksklusif (Surface onClick)
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        Surface(
+                            onClick = localState::toggleCart,
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
+                                    contentDescription = if (expanded) "Ciutkan" else "Perluas",
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            // ISI KERANJANG SAAT EXPANDED (Di-fade in secara halus)
+            // ISI KERANJANG SAAT EXPANDED
             AnimatedVisibility(
                 visible = showFull,
                 enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
@@ -865,7 +859,6 @@ internal fun CartPaneContent(
                             }
                         }
                         
-                        // Fading dividers ...
                         val showTopFade by remember { derivedStateOf { listState.canScrollBackward } }
                         val showBottomFade by remember { derivedStateOf { listState.canScrollForward } }
                         if (showTopFade) {
@@ -914,64 +907,8 @@ internal fun CartPaneContent(
                     }
                 }
             }
-
-            // TOTAL RINGKAS SAAT COLLAPSED (Di-fade out secara halus saat diexpand)
-            AnimatedVisibility(
-                visible = !showFull,
-                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
-                    expandVertically(spring(stiffness = Spring.StiffnessMediumLow), expandFrom = Alignment.Top),
-                exit = fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
-                    shrinkVertically(spring(stiffness = Spring.StiffnessHigh), shrinkTowards = Alignment.Top)
-            ) {
-                Column {
-                    Spacer(Modifier.height(2.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            // Safe padding dinamis melindungi teks "Total"
-                            .padding(start = fabSafePadding), 
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "Total",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 10.sp
-                            )
-                            Text(
-                                text = cart.totals.total.toRupiah(),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                        
-                        Button(
-                            onClick = ::attemptCheckout,
-                            enabled = !cart.isEmpty && !checkout.isProcessing,
-                            modifier = Modifier.height(36.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                        ) {
-                            if (checkout.isProcessing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp,
-                                )
-                            } else {
-                                Text("Bayar", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
+            
+            // BLOK TOTAL COLLAPSE (AnimatedVisibility(visible = !showFull)) DIHAPUS SEPENUHNYA
         }
     }
 }
