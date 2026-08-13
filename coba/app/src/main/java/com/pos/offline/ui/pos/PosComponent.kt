@@ -10,6 +10,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.defaultMinSize
+import kotlinx.coroutines.delay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -512,16 +515,27 @@ private fun QuantityDragStepper(
     var localAccumulator by remember { mutableFloatStateOf(0f) }
     val currentQty by rememberUpdatedState(qty)
 
-    // Menggunakan rememberDraggableState yang lebih stabil dan native
+    // Discoverability State
+    var showHint by remember { mutableStateOf(true) }
+    
+    // Timer untuk menghilangkan hint secara otomatis
+    LaunchedEffect(Unit) {
+        delay(2500) // Tampil selama 2.5 detik
+        showHint = false
+    }
+    
+    // Animasi fade-out yang mulus untuk hint
+    val hintAlpha by animateFloatAsState(
+        targetValue = if (showHint) 0.5f else 0f,
+        animationSpec = tween(durationMillis = 800),
+        label = "hint_fade"
+    )
+
     val draggableState = rememberDraggableState { delta ->
-        // Dalam Compose, drag ke atas menghasilkan delta negatif.
-        // Drag ke bawah menghasilkan delta positif.
         localAccumulator += delta
-        val steps = (localAccumulator / 25f).toInt()
+        val steps = (localAccumulator / 25f).toInt() // Sensitivitas tarikan
         
         if (steps != 0) {
-            // Karena drag atas (negatif) = tambah kuantiti, kita gunakan pengurangan (-)
-            // Logika: currentQty - (langkah negatif * step) = currentQty + step
             val rawNext = currentQty - (steps * step)
             val nextQty = (kotlin.math.round(rawNext * 10) / 10.0).coerceIn(0.0, maxStock)
             
@@ -532,22 +546,20 @@ private fun QuantityDragStepper(
         }
     }
 
+    // 1. TOUCH TARGET BOX (Luar - Transparan - Minimal 48dp)
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(28.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null, 
-                onClick = { onAdd() }
+                onClick = { onAdd() } // Tap target tetap lebar
             )
-            // Menggunakan Modifier.draggable pengganti pointerInput manual
             .draggable(
                 state = draggableState,
                 orientation = Orientation.Vertical,
                 onDragStarted = { 
+                    showHint = false // Hint langsung hilang begitu layar disentuh
                     localAccumulator = 0f
                     onDragStart()
                 },
@@ -558,26 +570,62 @@ private fun QuantityDragStepper(
             ),
         contentAlignment = Alignment.Center
     ) {
-        AnimatedContent(
-            targetState = qty,
-            transitionSpec = {
-                if (targetState > initialState) {
-                    (slideInVertically { height -> height } + fadeIn())
-                        .togetherWith(slideOutVertically { height -> -height } + fadeOut())
-                } else {
-                    (slideInVertically { height -> -height } + fadeIn())
-                        .togetherWith(slideOutVertically { height -> height } + fadeOut())
+        // 2. VISUAL PILL BOX (Dalam - Kecil & Ungu)
+        Box(
+            modifier = Modifier
+                .width(44.dp)
+                .height(28.dp) // Visual tetap kecil agar katalog tidak ramai
+                .clip(RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            
+            // Animasi Angka
+            AnimatedContent(
+                targetState = qty,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        (slideInVertically { height -> height } + fadeIn())
+                            .togetherWith(slideOutVertically { height -> -height } + fadeOut())
+                    } else {
+                        (slideInVertically { height -> -height } + fadeIn())
+                            .togetherWith(slideOutVertically { height -> height } + fadeOut())
+                    }
+                },
+                label = "qty_drag_animation"
+            ) { animatedQty ->
+                Text(
+                    text = animatedQty.formatQuantity(),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            // 3. DISCOVERABILITY HINT (Panah atas/bawah sementara)
+            if (hintAlpha > 0f) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 1.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = hintAlpha),
+                        modifier = Modifier.size(10.dp)
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = hintAlpha),
+                        modifier = Modifier.size(10.dp)
+                    )
                 }
-            },
-            label = "qty_drag_animation"
-        ) { animatedQty ->
-            Text(
-                text = animatedQty.formatQuantity(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center
-            )
+            }
         }
     }
 }

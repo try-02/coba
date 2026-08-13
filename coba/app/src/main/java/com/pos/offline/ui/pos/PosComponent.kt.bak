@@ -8,6 +8,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -508,9 +510,27 @@ private fun QuantityDragStepper(
     val isInteger = maxStock % 1.0 == 0.0
     val step = if (isInteger) 1.0 else 0.1
     var localAccumulator by remember { mutableFloatStateOf(0f) }
-    
-    // 2. STATE TERBARU: Mengamankan nilai qty terbaru agar drag tidak mereset ke 1
     val currentQty by rememberUpdatedState(qty)
+
+    // Menggunakan rememberDraggableState yang lebih stabil dan native
+    val draggableState = rememberDraggableState { delta ->
+        // Dalam Compose, drag ke atas menghasilkan delta negatif.
+        // Drag ke bawah menghasilkan delta positif.
+        localAccumulator += delta
+        val steps = (localAccumulator / 25f).toInt()
+        
+        if (steps != 0) {
+            // Karena drag atas (negatif) = tambah kuantiti, kita gunakan pengurangan (-)
+            // Logika: currentQty - (langkah negatif * step) = currentQty + step
+            val rawNext = currentQty - (steps * step)
+            val nextQty = (kotlin.math.round(rawNext * 10) / 10.0).coerceIn(0.0, maxStock)
+            
+            if (nextQty != currentQty) {
+                onQtyChange(nextQty)
+            }
+            localAccumulator -= (steps * 25f)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -518,43 +538,24 @@ private fun QuantityDragStepper(
             .height(28.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.primaryContainer)
-            // Menyerap sentuhan agar pengguna masih bisa tap (bukan drag) di angka untuk +1
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null, 
                 onClick = { onAdd() }
             )
-            .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onDragStart = { 
-                        localAccumulator = 0f
-                        onDragStart()
-                    },
-                    onDragEnd = { 
-                        localAccumulator = 0f
-                        onDragEnd()
-                    },
-                    onDragCancel = { 
-                        localAccumulator = 0f
-                        onDragEnd()
-                    }
-                ) { change, dragAmount ->
-                    change.consume()
-                    localAccumulator += dragAmount
-                    val steps = (localAccumulator / 25f).toInt()
-                    
-                    if (steps != 0) {
-                        // Menggunakan currentQty agar drag selalu menyambung dari nilai terakhir (misal 13)
-                        val rawNext = currentQty - (steps * step)
-                        val nextQty = (kotlin.math.round(rawNext * 10) / 10.0).coerceIn(0.0, maxStock)
-                        
-                        if (nextQty != currentQty) {
-                            onQtyChange(nextQty)
-                        }
-                        localAccumulator -= (steps * 25f)
-                    }
+            // Menggunakan Modifier.draggable pengganti pointerInput manual
+            .draggable(
+                state = draggableState,
+                orientation = Orientation.Vertical,
+                onDragStarted = { 
+                    localAccumulator = 0f
+                    onDragStart()
+                },
+                onDragStopped = {
+                    localAccumulator = 0f
+                    onDragEnd()
                 }
-            },
+            ),
         contentAlignment = Alignment.Center
     ) {
         AnimatedContent(
