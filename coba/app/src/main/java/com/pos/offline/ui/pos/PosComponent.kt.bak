@@ -232,6 +232,7 @@ internal fun CompactSearchBar(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -267,6 +268,21 @@ internal fun CompactSearchBar(
                         )
                     }
                     innerTextField()
+                }
+                if (query.isNotEmpty()) {
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Hapus Pencarian",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape) // Memberikan efek ripple bulat saat ditekan
+                            .clickable {
+                                onQueryChange("") // Kosongkan teks
+                                focusManager.clearFocus() // Hapus kursor & tutup keyboard
+                            }
+                    )
                 }
             }
         },
