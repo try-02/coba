@@ -322,34 +322,46 @@ internal fun ProductPane(
     modifier: Modifier,
     products: List<ProductEntity>,
     cartQtyByProductId: Map<Long, Double>,
-    onAdd: (ProductEntity) -> Unit,
+    cartItems: List<CartItemEntity>,
+    onAction: (PosAction) -> Unit,
 ) {
     var selectedProductForDetails by remember { mutableStateOf<ProductEntity?>(null) }
+    
     CompositionLocalProvider(
         LocalOverscrollFactory provides null,
     ) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 104.dp),
-            modifier =
-                modifier
-                    .padding(horizontal = 12.dp)
-                    .bouncyOverscroll(),
+        // Menggunakan List Horizontal (scrolling vertikal, 1 baris per item)
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .bouncyOverscroll(),
             contentPadding = PaddingValues(bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
             flingBehavior = iosGlideFlingBehavior(),
         ) {
             items(items = products, key = { it.id }, contentType = { "product" }) { product ->
                 val qtyInCart = cartQtyByProductId[product.id] ?: 0.0
-                ProductCard(
+                val cartItem = cartItems.find { it.productId == product.id }
+                
+                ProductListRow(
                     product = product,
-                    remainingStock = product.stock - qtyInCart,
-                    onAdd = { onAdd(product) },
-                    onLongClick = { selectedProductForDetails = product },
+                    qtyInCart = qtyInCart,
+                    cartItem = cartItem,
+                    onAdd = { onAction(PosAction.AddToCart(product)) },
+                    onDecrease = { cartItem?.let { onAction(PosAction.DecreaseQty(it)) } },
+                    onLongClick = { selectedProductForDetails = product }
+                )
+                
+                // Divider sangat subtle pengganti border
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
                 )
             }
         }
     }
+    
     selectedProductForDetails?.let { product ->
         ProductDetailPopup(
             product = product,
@@ -360,87 +372,102 @@ internal fun ProductPane(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ProductCard(
+private fun ProductListRow(
     product: ProductEntity,
-    remainingStock: Double,
+    qtyInCart: Double,
+    cartItem: CartItemEntity?,
     onAdd: () -> Unit,
+    onDecrease: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val outOfStock = remainingStock <= 0.0
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(0.dp),
-        onClick = null,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(
-                        onClick = onAdd,
-                        onLongClick = onLongClick,
-                    ).padding(8.dp),
+    val outOfStock = (product.stock - qtyInCart) <= 0.0
+    val isActive = qtyInCart > 0.0
+
+    val bgColor = if (isActive) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
+    } else {
+        Color.Transparent
+    }
+
+    // Memastikan area tap konsisten tanpa overlap yang tersembunyi
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(bgColor)
+                .combinedClickable(
+                    onClick = onAdd, // Tap biasa menambah kuantitas
+                    onLongClick = onLongClick, // Long press melihat detail (SKU, dll)
+                )
+                .padding(horizontal = 16.dp, vertical = 14.dp), // Lega, minim visual fatigue
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = product.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = product.sku,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
+            // Kolom 1: Nama (Flexible weight terbesar)
+            Text(
+                text = product.name,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Medium,
+                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            // Kolom 2: Harga (Fixed width, konsisten)
+            Text(
+                text = product.price.toRupiah(),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+                modifier = Modifier.width(90.dp)
+            )
+
+            Spacer(Modifier.width(16.dp))
+
+            // Kolom 3: Stok / Action Stepper (Fixed width)
+            Box(
+                modifier = Modifier.width(84.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if (isActive && cartItem != null) {
+                    // Muncul seketika (Peak Moment)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CompactActionBox(
+                            icon = Icons.Rounded.Remove,
+                            contentDescription = "Kurangi",
+                            onClick = onDecrease,
+                            active = true
+                        )
                         Text(
-                            text = product.price.toRupiah(),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontFamily = FontFamily.Monospace),
+                            text = qtyInCart.formatQuantity(),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.width(32.dp)
                         )
-                        Text(
-                            text = if (outOfStock) "Habis" else "Stok: ${remainingStock.formatQuantity()}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color =
-                                if (outOfStock) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                },
+                        CompactActionBox(
+                            icon = Icons.Rounded.Add,
+                            contentDescription = "Tambah",
+                            onClick = onAdd,
+                            active = true
                         )
                     }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier =
-                            Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (outOfStock) {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    } else {
-                                        MaterialTheme.colorScheme.primary
-                                    },
-                                ),
-                    ) {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = "Tambah ${product.name}",
-                            tint =
-                                if (outOfStock) {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                } else {
-                                    MaterialTheme.colorScheme.onPrimary
-                                },
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
+                } else {
+                    val remainingStock = product.stock - qtyInCart
+                    Text(
+                        text = if (outOfStock) "Habis" else remainingStock.formatQuantity(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
+                        color = if (outOfStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End
+                    )
                 }
             }
         }
@@ -806,6 +833,7 @@ internal fun CompactActionBox(
     icon: ImageVector,
     contentDescription: String,
     dimmed: Boolean = false,
+    active: Boolean = false, // Menandakan sedang di-state aktif
     onClick: () -> Unit,
 ) {
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
@@ -813,19 +841,23 @@ internal fun CompactActionBox(
             onClick = onClick,
             enabled = !dimmed,
             shape = RoundedCornerShape(6.dp),
-            color = if (dimmed) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
+            color = when {
+                dimmed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                active -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surfaceVariant
             },
-            modifier = Modifier.size(26.dp) // Ukuran tombol -/+ diperkecil dari 32.dp ke 26.dp
+            modifier = Modifier.size(26.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     icon,
                     contentDescription = contentDescription,
-                    modifier = Modifier.size(14.dp), // Ukuran ikon -/+ diperkecil ke 14.dp
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (dimmed) 0.4f else 1f),
+                    modifier = Modifier.size(14.dp),
+                    tint = when {
+                        dimmed -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        active -> MaterialTheme.colorScheme.onPrimaryContainer
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 )
             }
         }

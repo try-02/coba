@@ -6,7 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -261,7 +261,7 @@ internal fun CategoryChipsRow(
     onSelect: (String?) -> Unit,
 ) {
     CompositionLocalProvider(
-        LocalOverscrollConfiguration provides null,
+        LocalOverscrollFactory provides null,
         LocalMinimumInteractiveComponentSize provides Dp.Unspecified
     ) {
         LazyRow(
@@ -326,7 +326,7 @@ internal fun ProductPane(
 ) {
     var selectedProductForDetails by remember { mutableStateOf<ProductEntity?>(null) }
     CompositionLocalProvider(
-        LocalOverscrollConfiguration provides null,
+        LocalOverscrollFactory provides null,
     ) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 104.dp),
@@ -583,7 +583,7 @@ internal fun CartPaneContent(
                 ) {
                     @OptIn(ExperimentalFoundationApi::class)
                     CompositionLocalProvider(
-                        LocalOverscrollConfiguration provides null,
+                        LocalOverscrollFactory provides null,
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize()

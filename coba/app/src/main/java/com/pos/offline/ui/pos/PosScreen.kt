@@ -117,13 +117,13 @@ fun PosScreen(
             if (isWide) {
                 Row(Modifier.fillMaxSize()) {
                     ProductPane(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
                         products = uiState.catalog.products,
                         cartQtyByProductId = uiState.catalog.cartQtyByProductId,
-                        onAdd = { viewModel.onAction(PosAction.AddToCart(it)) },
+                        cartItems = uiState.cart.items, // Melempar data item keranjang
+                        onAction = viewModel::onAction, // Mengganti onAdd dengan onAction
                     )
                     Spacer(Modifier.width(12.dp))
                     CartPaneContent(
@@ -146,7 +146,8 @@ fun PosScreen(
                         modifier = Modifier.fillMaxSize(),
                         products = uiState.catalog.products,
                         cartQtyByProductId = uiState.catalog.cartQtyByProductId,
-                        onAdd = { viewModel.onAction(PosAction.AddToCart(it)) },
+                        cartItems = uiState.cart.items, // Melempar data item keranjang
+                        onAction = viewModel::onAction, // Mengganti onAdd dengan onAction
                     )
                     CartPaneContent(
                         modifier =
