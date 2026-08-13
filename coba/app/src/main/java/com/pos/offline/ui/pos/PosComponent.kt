@@ -704,87 +704,90 @@ internal fun CartPaneContent(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
             
-            // AREA SWIPE INDIKATOR
-            if (collapsible) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(16.dp)
-                        .then(swipeToToggleModifier),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
-                    )
-                }
-                Spacer(Modifier.height(2.dp))
-            }
-
-            // HEADER KERANJANG
-            Row(
+            // --- WRAPPER DRAG: SELURUH HEADER & INDIKATOR ---
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // fabSafePadding dihapus agar icon & text bergeser rata kiri
-                    .then(
-                        if (collapsible) {
-                            Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                // modifier clickable baris dihapus di sini
-                                .padding(vertical = 2.dp)
-                        } else Modifier
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
+                    .then(swipeToToggleModifier) // Modifier diletakkan di sini agar seluruh header bisa di-drag
             ) {
-                Icon(Icons.Rounded.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "Keranjang", 
-                    style = MaterialTheme.typography.titleSmall, 
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                
-                if (collapsible && !expanded && !cart.isEmpty) {
-                    Text(
-                        text = "${cart.items.size} item · ${cart.totals.total.toRupiah()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(end = 6.dp),
-                    )
-                }
-                
-                if (!cart.isEmpty && showFull) {
-                    TextButton(
-                        onClick = localState::showClearDialog,
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                        modifier = Modifier.height(24.dp),
-                    ) {
-                        Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(2.dp))
-                        Text("Kosongkan", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                
+                // AREA SWIPE INDIKATOR (Visual saja)
                 if (collapsible) {
-                    // Tombol Panah Expand/Collapse Eksklusif (Surface onClick)
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                        Surface(
-                            onClick = localState::toggleCart,
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.size(28.dp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(36.dp)
+                                .height(4.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
+                }
+
+                // HEADER KERANJANG
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (collapsible) {
+                                Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .padding(vertical = 2.dp)
+                            } else Modifier
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Keranjang", 
+                        style = MaterialTheme.typography.titleSmall, 
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    if (collapsible && !expanded && !cart.isEmpty) {
+                        Text(
+                            text = "${cart.items.size} item · ${cart.totals.total.toRupiah()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
+                    }
+                    
+                    if (!cart.isEmpty && showFull) {
+                        TextButton(
+                            onClick = localState::showClearDialog,
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                            modifier = Modifier.height(24.dp),
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
-                                    contentDescription = if (expanded) "Ciutkan" else "Perluas",
-                                    modifier = Modifier.size(16.dp),
-                                )
+                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(2.dp))
+                            Text("Kosongkan", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    
+                    if (collapsible) {
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                            Surface(
+                                onClick = localState::toggleCart,
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
+                                        contentDescription = if (expanded) "Ciutkan" else "Perluas",
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
                             }
                         }
                     }
