@@ -111,8 +111,8 @@ fun PosScreen(
                     .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
         ) {
             val isWide = forceWideLayout || maxWidth >= 840.dp
-            val maxH = maxHeight
-            val density = LocalDensity.current
+            val configuration = LocalConfiguration.current
+            val screenHeight = configuration.screenHeightDp.dp
             val imeVisible = WindowInsets.ime.getBottom(density) > 0
             if (isWide) {
                 Row(Modifier.fillMaxSize()) {
@@ -155,13 +155,19 @@ fun PosScreen(
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
                                 .wrapContentHeight()
-                                .let { base ->
-                                    when {
-                                        !localState.isCartExpanded -> base
-                                        imeVisible -> base
-                                        else -> base.heightIn(max = maxH * 0.65f)
-                                    }
-                                },
+                            //    .let { base ->
+                            //        when {
+                            //            !localState.isCartExpanded -> base
+                            //            imeVisible -> base
+                            //            else -> base.heightIn(max = maxH * 0.65f)
+                            //        }
+                            //    },
+                                .then(
+                                if (localState.isCartExpanded) {
+                                    // Selalu kunci di 65% dari tinggi layar
+                                    Modifier.heightIn(max = screenHeight * 0.65f)
+                                } else Modifier
+                            ),
                         cart = uiState.cart,
                         payment = uiState.payment,
                         catalog = uiState.catalog,

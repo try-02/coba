@@ -690,12 +690,12 @@ internal fun CartPaneContent(
                 RoundedCornerShape(16.dp),
             )
             .clip(RoundedCornerShape(16.dp))
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
-            ),
+        //    .animateContentSize(
+        //        animationSpec = spring(
+        //            dampingRatio = Spring.DampingRatioNoBouncy,
+        //            stiffness = Spring.StiffnessMediumLow
+        //        )
+        //    ),
     ) {
         Column(
             modifier = Modifier
