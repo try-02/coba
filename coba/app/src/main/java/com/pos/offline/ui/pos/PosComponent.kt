@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -386,10 +387,21 @@ private fun ProductListRow(
     onSetQuantity: (Double) -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val outOfStock = (product.stock - qtyInCart) <= 0.0
-    val isActive = qtyInCart > 0.0
+    // 1. STATE LOKAL: Menahan UI agar tidak hilang saat drag mencapai angka 0
+    var isDragging by remember { mutableStateOf(false) }
+    var localDragQty by remember { mutableDoubleStateOf(qtyInCart) }
 
-    // Eksperimen 1 & 2: Background sangat subtle, warna teks tetap normal
+    // Sinkronisasi nilai dari Database HANYA jika sedang tidak di-drag
+    LaunchedEffect(qtyInCart) {
+        if (!isDragging) {
+            localDragQty = qtyInCart
+        }
+    }
+
+    val outOfStock = (product.stock - localDragQty) <= 0.0
+    // Baris tetap aktif jika qty > 0 ATAU sedang ditahan (drag) oleh jari pengguna
+    val isActive = localDragQty > 0.0 || isDragging
+
     val bgColor = if (isActive) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
     } else {
@@ -402,13 +414,13 @@ private fun ProductListRow(
                 .fillMaxWidth()
                 .background(bgColor)
                 .combinedClickable(
-                    onClick = onAdd, // Tap pertama kali menambahkan produk
+                    onClick = onAdd,
                     onLongClick = onLongClick,
                 )
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Kolom 1: Nama (Flexible, warna normal)
+            // Kolom 1: Nama
             Text(
                 text = product.name,
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
@@ -421,7 +433,7 @@ private fun ProductListRow(
 
             Spacer(Modifier.width(8.dp))
 
-            // Kolom 2: Harga (Fixed Width 90dp, "Rp" & Nominal terpisah untuk alignment absolut)
+            // Kolom 2: Harga (Fixed Width & Absolute Right Alignment)
             Row(
                 modifier = Modifier.width(90.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -443,19 +455,35 @@ private fun ProductListRow(
 
             Spacer(Modifier.width(16.dp))
 
-            // Kolom 3: Stok / Qty Gesture (Fixed Width 44dp)
+            // Kolom 3: Stok / Qty Gesture
             Box(
                 modifier = Modifier.width(44.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                if (isActive && cartItem != null) {
+                if (isActive) {
                     QuantityDragStepper(
-                        qty = qtyInCart,
+                        qty = localDragQty,
                         maxStock = product.stock,
-                        onSetQuantity = onSetQuantity
+                        onAdd = onAdd,
+                        onDragStart = { isDragging = true },
+                        onDragEnd = {
+                            isDragging = false
+                            // Jari Dilepas: Jika angka 0, baru kita tembak ke DB untuk menghapusnya
+                            if (localDragQty <= 0.0 && cartItem != null) {
+                                onSetQuantity(0.0)
+                            }
+                        },
+                        onQtyChange = { newQty ->
+                            localDragQty = newQty // UI langsung berubah menjadi 0 seketika
+                            
+                            // Selama ditahan, kita tembak angka ke DB (kecuali 0 agar tidak terhapus prematur)
+                            if (newQty > 0.0 && cartItem != null) {
+                                onSetQuantity(newQty)
+                            }
+                        }
                     )
                 } else {
-                    val remainingStock = product.stock - qtyInCart
+                    val remainingStock = product.stock - localDragQty
                     Text(
                         text = if (outOfStock) "Habis" else remainingStock.formatQuantity(),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
@@ -472,47 +500,56 @@ private fun ProductListRow(
 private fun QuantityDragStepper(
     qty: Double,
     maxStock: Double,
-    onSetQuantity: (Double) -> Unit
+    onAdd: () -> Unit,
+    onDragStart: () -> Unit,
+    onDragEnd: () -> Unit,
+    onQtyChange: (Double) -> Unit
 ) {
     val isInteger = maxStock % 1.0 == 0.0
     val step = if (isInteger) 1.0 else 0.1
-    
     var localAccumulator by remember { mutableFloatStateOf(0f) }
     
-    // State lokal agar UI berubah sekejap mendahului respon Database/ViewModel
-    var dragSessionQty by remember { mutableDoubleStateOf(qty) }
-    LaunchedEffect(qty) {
-        dragSessionQty = qty
-    }
+    // 2. STATE TERBARU: Mengamankan nilai qty terbaru agar drag tidak mereset ke 1
+    val currentQty by rememberUpdatedState(qty)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(28.dp) // Membentuk visual seperti pill button kecil
+            .height(28.dp)
             .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer) // Elemen ungu hanya ada disini
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            // Menyerap sentuhan agar pengguna masih bisa tap (bukan drag) di angka untuk +1
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null, 
+                onClick = { onAdd() }
+            )
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragStart = { 
-                        localAccumulator = 0f 
-                        dragSessionQty = qty
+                        localAccumulator = 0f
+                        onDragStart()
                     },
-                    onDragEnd = { localAccumulator = 0f },
-                    onDragCancel = { localAccumulator = 0f }
+                    onDragEnd = { 
+                        localAccumulator = 0f
+                        onDragEnd()
+                    },
+                    onDragCancel = { 
+                        localAccumulator = 0f
+                        onDragEnd()
+                    }
                 ) { change, dragAmount ->
-                    change.consume() // Mencegah LazyColumn ikut ter-scroll
+                    change.consume()
                     localAccumulator += dragAmount
+                    val steps = (localAccumulator / 25f).toInt()
                     
-                    val steps = (localAccumulator / 25f).toInt() // Sensitivitas (1 step tiap 25 piksel gerakan)
                     if (steps != 0) {
-                        // Negatif dragAmount (scroll ke atas) = increase
-                        // Positif dragAmount (scroll ke bawah) = decrease
-                        val rawNext = dragSessionQty - (steps * step)
+                        // Menggunakan currentQty agar drag selalu menyambung dari nilai terakhir (misal 13)
+                        val rawNext = currentQty - (steps * step)
                         val nextQty = (kotlin.math.round(rawNext * 10) / 10.0).coerceIn(0.0, maxStock)
                         
-                        if (nextQty != dragSessionQty) {
-                            dragSessionQty = nextQty
-                            onSetQuantity(nextQty) // Tembak action ke ViewModel
+                        if (nextQty != currentQty) {
+                            onQtyChange(nextQty)
                         }
                         localAccumulator -= (steps * 25f)
                     }
@@ -521,9 +558,8 @@ private fun QuantityDragStepper(
         contentAlignment = Alignment.Center
     ) {
         AnimatedContent(
-            targetState = dragSessionQty,
+            targetState = qty,
             transitionSpec = {
-                // Logika Animasi: Slide dari Bawah jika Naik, Slide dari Atas jika Turun
                 if (targetState > initialState) {
                     (slideInVertically { height -> height } + fadeIn())
                         .togetherWith(slideOutVertically { height -> -height } + fadeOut())
