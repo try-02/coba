@@ -1,4 +1,8 @@
 package com.pos.offline.ui.pos
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +96,7 @@ fun PosScreen(
         }
     }
     val launchScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned)
+    val focusManager = LocalFocusManager.current
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -109,10 +114,16 @@ fun PosScreen(
                     .fillMaxSize()
                     .padding(inner)
                     .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
+                    .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                },
         ) {
             val isWide = forceWideLayout || maxWidth >= 840.dp
             val configuration = LocalConfiguration.current
-            val screenHeight = configuration.screenHeightDp.dp
+            val screenHeight = configuration.screenHeightDp.dp 
+            val density = LocalDensity.current
             val imeVisible = WindowInsets.ime.getBottom(density) > 0
             if (isWide) {
                 Row(Modifier.fillMaxSize()) {
