@@ -68,6 +68,7 @@ import com.pos.offline.data.local.entity.ProductEntity
 import com.pos.offline.ui.inventory.InventoryViewModel
 import com.pos.offline.util.toRupiah
 import com.pos.offline.util.formatQuantity
+import com.pos.offline.util.roundToQuantityPrecision
 
 @Composable
 fun DirectWarrantyScreen(
@@ -378,7 +379,7 @@ private fun WarrantyClaimDialog(
                             .size(36.dp) // Accessible Touch Target
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable(enabled = qty > step) { qty = (qty - step).coerceAtLeast(step) },
+                            .clickable(enabled = qty > step) { qty = (qty - step).roundToQuantityPrecision() },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -404,7 +405,7 @@ private fun WarrantyClaimDialog(
                                 if (canIncrease) MaterialTheme.colorScheme.surfaceVariant
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                             )
-                            .clickable(enabled = canIncrease) { qty = (qty + step).coerceAtMost(product.stock) },
+                            .clickable(enabled = canIncrease) { qty = (qty + step).coerceAtMost(product.stock).roundToQuantityPrecision() },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -581,7 +582,7 @@ private fun ExchangeClaimDialog(
                             .size(36.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable(enabled = qty > step) { qty = (qty - step).coerceAtLeast(step) },
+                            .clickable(enabled = qty > step) { qty = (qty - step).roundToQuantityPrecision() },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -608,7 +609,7 @@ private fun ExchangeClaimDialog(
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                             )
                             .clickable(enabled = canIncrease) {
-                                qty = (qty + step).coerceAtMost(replacementProduct.stock)
+                                qty = (qty + step).coerceAtMost(replacementProduct.stock).roundToQuantityPrecision()
                             },
                         contentAlignment = Alignment.Center,
                     ) {

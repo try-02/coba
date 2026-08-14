@@ -138,7 +138,6 @@ import com.pos.offline.util.bouncyOverscroll
 import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.toRupiah
-import com.pos.offline.util.roundToQuantityPrecision
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -2231,7 +2230,7 @@ private fun ReturnItemDialog(
                         onQuantityChange = { qty ->
                             rows =
                                 rows.toMutableList().also {
-                                    it[index] = row.copy(quantity = qty.coerceIn(0.1, row.maxQuantity).roundToQuantityPrecision())
+                                    it[index] = row.copy(quantity = qty.coerceIn(0.1, row.maxQuantity))
                                 }
                         },
                         onRestockedChange = { checked ->

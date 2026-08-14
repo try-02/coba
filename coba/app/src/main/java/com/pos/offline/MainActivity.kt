@@ -1,4 +1,11 @@
 package com.pos.offline
+import kotlin.math.cos
+import kotlin.math.sin
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.offset
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.KeyEvent
@@ -357,7 +364,7 @@ private fun AppRoot() {
                         ) { menuExpanded = false },
             )
         }
-        val fabBottomPadding = if (currentDest == Dest.POS) 6.dp else 16.dp
+        val fabBottomPadding = 6.dp // if (currentDest == Dest.POS) 6.dp else 16.dp
 
         AnimatedVisibility(
             visible = !hideFab,
@@ -424,41 +431,90 @@ private fun ExpandableMenuFab(
     selected: Dest,
     onSelect: (Dest) -> Unit,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    // Penggerak utama animasi (dari 0.0 ke 1.0) dengan efek pegas (bouncy)
+    val expandFraction by animateFloatAsState(
+        targetValue = if (expanded) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "fab_expand"
+    )
+
+    Box(
+        contentAlignment = Alignment.BottomCenter,
+        modifier = Modifier.padding(bottom = 8.dp) // Ruang bernafas tambahan
     ) {
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
-            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Dest.entries.forEach { item ->
+        // MENGGAMBAR MENU PELANGI DENGAN TRIGONOMETRI
+        Dest.entries.forEachIndexed { index, dest ->
+            // Sudut pelangi: Dari 160° (kiri) ke 20° (kanan)
+            val startAngle = 160.0
+            val endAngle = 20.0
+            // Membagi rata sudut berdasarkan jumlah menu (4 menu)
+            val angle = startAngle - (index * (startAngle - endAngle) / (Dest.entries.size - 1))
+            val angleRad = Math.toRadians(angle)
+            
+            val radius = 95.dp // Jarak lontaran menu dari FAB utama
+
+            // Rumus posisi melingkar
+            val xOffset = (cos(angleRad) * radius.value).dp * expandFraction
+            val yOffset = (-sin(angleRad) * radius.value).dp * expandFraction
+
+            if (expandFraction > 0f) {
+                Column(
+                    modifier = Modifier
+                        .offset(x = xOffset, y = yOffset) // Posisi radial
+                        .graphicsLayer {
+                            // Muncul dari titik tengah membesar dan memudar masuk
+                            scaleX = 0.3f + (0.7f * expandFraction)
+                            scaleY = 0.3f + (0.7f * expandFraction)
+                            alpha = expandFraction
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     MiniMenuItem(
-                        dest = item,
-                        isSelected = item == selected,
-                        onClick = { onSelect(item) },
+                        dest = dest,
+                        isSelected = dest == selected,
+                        onClick = { onSelect(dest) }
+                    )
+                    // IDE BRILIAN: Label teks putih yang memperjelas fungsi ikon
+                    Text(
+                        text = dest.label,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
         }
+
+        // FAB UTAMA
         Surface(
-            modifier = Modifier.size(40.dp).shadow(6.dp, CircleShape),
+            modifier = Modifier
+                .size(56.dp) // Diperbesar dari 40dp ke standar Material 56dp agar kokoh di tengah
+                .shadow(8.dp, CircleShape)
+                .graphicsLayer {
+                    // Animasi putaran halus searah jarum jam saat dibuka
+                    rotationZ = expandFraction * 135f 
+                },
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary,
             onClick = onToggle,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (expanded) Icons.Rounded.Close else Icons.Rounded.Menu,
-                    contentDescription = if (expanded) "Tutup menu" else "Buka menu",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(20.dp),
-                )
+                // Animasi Morphing Icon (Menu bersalin rupa menjadi Close)
+                AnimatedContent(
+                    targetState = expanded,
+                    label = "fab_icon_morph"
+                ) { isExpanded ->
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Rounded.Close else Icons.Rounded.Menu,
+                        contentDescription = if (isExpanded) "Tutup menu" else "Buka menu",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         }
     }
@@ -471,7 +527,8 @@ private fun MiniMenuItem(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.size(36.dp).shadow(4.dp, CircleShape),
+        // Ubah dari 36.dp menjadi 44.dp agar lebih nyaman ditekan
+        modifier = Modifier.size(44.dp).shadow(6.dp, CircleShape),
         shape = CircleShape,
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         onClick = onClick,
@@ -481,7 +538,8 @@ private fun MiniMenuItem(
                 imageVector = dest.icon(),
                 contentDescription = dest.label,
                 tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
+                // Ubah dari 18.dp menjadi 22.dp
+                modifier = Modifier.size(22.dp),
             )
         }
     }

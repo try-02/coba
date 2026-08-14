@@ -357,14 +357,16 @@ private fun AppRoot() {
                         ) { menuExpanded = false },
             )
         }
+        val fabBottomPadding = if (currentDest == Dest.POS) 6.dp else 16.dp
+
         AnimatedVisibility(
             visible = !hideFab,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier =
                 Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 8.dp)
+                    .align(Alignment.BottomCenter) // 1. UBAH KE TENGAH
+                    .padding(bottom = fabBottomPadding) // 2. HAPUS PADDING KIRI (start), gunakan padding dinamis bawah
                     .navigationBarsPadding(),
         ) {
             ExpandableMenuFab(
