@@ -148,11 +148,12 @@ internal fun ShiftIndicatorBar(
                 .weight(1f)
                 .height(32.dp),
             shape = RoundedCornerShape(8.dp),
-            color = if (openShift != null) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            }
+            color = Color.Transparent
+            // color = if (openShift != null) {
+            //    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+            //} else {
+            //    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            //}
         ) {
             Row(
                 modifier = Modifier
@@ -166,7 +167,7 @@ internal fun ShiftIndicatorBar(
                         .clip(CircleShape)
                         .background(
                             if (openShift != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
                 )
                 Spacer(Modifier.width(6.dp))
@@ -176,7 +177,7 @@ internal fun ShiftIndicatorBar(
                     style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp),
                     fontWeight = FontWeight.SemiBold,
                     color = if (openShift != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), // MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1208,12 +1209,13 @@ private fun CompactPaymentSwitch(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(
-                    if (isCash) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                    } else {
-                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                    },
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                //.background(
+                //    if (isCash) {
+                //        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                //    } else {
+                //        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                //    },
                 ).clickable(onClick = onToggle)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,

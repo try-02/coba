@@ -1209,7 +1209,7 @@ private fun CompactPaymentSwitch(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 //.background(
                 //    if (isCash) {
                 //        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
