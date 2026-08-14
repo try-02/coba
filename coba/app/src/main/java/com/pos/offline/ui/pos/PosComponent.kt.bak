@@ -1209,13 +1209,14 @@ private fun CompactPaymentSwitch(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                //.background(
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                // .background(
                 //    if (isCash) {
                 //        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                 //    } else {
                 //        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
                 //    },
+                // )
                 .clickable(onClick = onToggle)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
