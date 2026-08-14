@@ -469,13 +469,13 @@ private fun ProductListRow(
                 Text(
                     text = "Rp",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    color = if (isActive) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
                 Text(
                     text = product.price.toRupiah().replace("Rp", "").trim(),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
                     fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, // color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End
                 )
             }
@@ -704,7 +704,7 @@ internal fun CartPaneContent(
             .background(MaterialTheme.colorScheme.background, RoundedCornerShape(16.dp))
             .border(
                 1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
                 RoundedCornerShape(16.dp),
             )
             .clip(RoundedCornerShape(16.dp))
@@ -983,7 +983,7 @@ internal fun CartRow(
             text = item.lineTotal.toRupiah(),
             style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 12.sp),  // style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp), // Total harga baris diperkecil ke 12.sp
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.width(6.dp)) // Jarak antar elemen dipersempit dari 12.dp ke 6.dp
         QuantityStepper(
