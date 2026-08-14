@@ -964,20 +964,21 @@ internal fun CartRow(
             Text(
                 text = item.name,
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp), // Nama produk diperkecil ke 12.sp
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.SemiBold, // fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "${item.unitPrice.toRupiah()} × ${item.quantity.formatQuantity()}",
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), // Harga satuan diperkecil ke 10.sp
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant, // color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             )
         }
         Text(
             text = item.lineTotal.toRupiah(),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp), // Total harga baris diperkecil ke 12.sp
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontSize = 12.sp),  // style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp), // Total harga baris diperkecil ke 12.sp
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.width(6.dp)) // Jarak antar elemen dipersempit dari 12.dp ke 6.dp
         QuantityStepper(
@@ -990,7 +991,7 @@ internal fun CartRow(
         Box(
             modifier = Modifier
                 .size(24.dp) // Ukuran tombol hapus diperkecil dari 28.dp ke 24.dp
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
                 .clickable(onClick = onRemove),
             contentAlignment = Alignment.Center,

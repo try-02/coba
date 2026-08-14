@@ -708,6 +708,11 @@ internal fun CartPaneContent(
                 RoundedCornerShape(16.dp),
             )
             .clip(RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null, 
+                onClick = {} 
+            )
         //    .animateContentSize(
         //        animationSpec = spring(
         //            dampingRatio = Spring.DampingRatioNoBouncy,
@@ -1000,7 +1005,7 @@ internal fun CartRow(
                 Icons.Rounded.Close,
                 contentDescription = "Hapus",
                 modifier = Modifier.size(14.dp), // Ukuran ikon x diperkecil ke 14.dp
-                tint = MaterialTheme.colorScheme.onError,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
     }
