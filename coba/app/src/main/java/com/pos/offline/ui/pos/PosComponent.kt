@@ -554,7 +554,7 @@ private fun QuantityDragStepper(
         
         if (steps != 0) {
             val rawNext = currentQty - (steps * step)
-            val nextQty = (kotlin.math.round(rawNext * 10) / 10.0).coerceIn(0.0, maxStock)
+            val nextQty = (kotlin.math.round(rawNext * 10) / 10.0).coerceAtLeast(0.0)
             
             if (nextQty != currentQty) {
                 onQtyChange(nextQty)
@@ -910,15 +910,26 @@ internal fun CartPaneContent(
                             enabled = !cart.isEmpty && !checkout.isProcessing,
                             modifier = Modifier.fillMaxWidth().height(42.dp),
                             shape = RoundedCornerShape(12.dp),
+                            // MENGGUNAKAN WARNA SEKUNDER (HIJAU EMERALD)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary,
+                                disabledContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f)
+                            )
                         ) {
                             if (checkout.isProcessing) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    color = MaterialTheme.colorScheme.onSecondary, // Pastikan spinner berwarna putih
                                     strokeWidth = 2.dp,
                                 )
                             } else {
-                                Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Rounded.Check, 
+                                    contentDescription = null, 
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(Modifier.width(6.dp))
                                 Text("Bayar · ${cart.totals.total.toRupiah()}")
                             }
