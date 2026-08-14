@@ -1216,7 +1216,7 @@ private fun CompactPaymentSwitch(
                 //    } else {
                 //        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
                 //    },
-                ).clickable(onClick = onToggle)
+                .clickable(onClick = onToggle)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
