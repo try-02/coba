@@ -34,7 +34,7 @@ private val DarkColors = darkColorScheme(
     
     onBackground = Color(0xFFF8FAFC), // Slate 50 (Putih tulang, tidak silau)
     onSurface = Color(0xFFF8FAFC),
-    onSurfaceVariant = Color(0xFF94A3B8), // Teks sekunder
+    onSurfaceVariant = Color(0xFFCBD5E1), // Teks sekunder
     
     error = Color(0xFFF87171),
     errorContainer = Color(0xFF7F1D1D),

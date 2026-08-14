@@ -198,8 +198,8 @@ private fun TransactionSummaryBlock(result: CheckoutResult) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+        color = MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
         Column(
             modifier = Modifier
@@ -211,13 +211,13 @@ private fun TransactionSummaryBlock(result: CheckoutResult) {
             // 1. Badge Metode Pembayaran (Tunai / QRIS)
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = if (isQris) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Text(
                     text = paymentMethodLabel(paymentMethodRaw).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isQris) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
@@ -293,7 +293,7 @@ private fun TransactionSummaryBlock(result: CheckoutResult) {
                         fontFamily = FontFamily.Monospace, // Monospace untuk kembalian
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isQrisCashOut) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary
                     )
 
                     val tip = (txChange - txChangeGiven).coerceAtLeast(0L)
