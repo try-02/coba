@@ -1,11 +1,11 @@
 package com.pos.offline
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.OptIn
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -14,12 +14,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-@OptIn(ExperimentalTestApi::class) // Ditambahkan di sini agar berlaku untuk seluruh isi kelas
 class PosGlobalMessageTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
+    @OptIn(ExperimentalTestApi::class)
     private fun waitForSeededPos() {
         composeRule.waitUntilAtLeastOneExists(
             hasText("Kopi Hitam", substring = true),
@@ -27,6 +27,7 @@ class PosGlobalMessageTest {
         )
     }
 
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun openingCashDrawerWithoutPrinter_showsGlobalMessage() {
         waitForSeededPos()
@@ -40,6 +41,15 @@ class PosGlobalMessageTest {
             .assertIsDisplayed()
             .performClick()
 
+        // PosViewModel:
+        // OpenCashDrawer
+        // → printer == null
+        // → PosUiEvent.ShowMessage(...)
+        //
+        // PosScreen:
+        // PosUiEvent.ShowMessage
+        // → GlobalMessageController.showMessage()
+        // → TopAlignedMessagePill
         composeRule.waitUntilAtLeastOneExists(
             hasText(
                 "Printer belum diatur. Atur printer default di tab Pengaturan.",
@@ -59,6 +69,7 @@ class PosGlobalMessageTest {
             .assertIsDisplayed()
     }
 
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun globalMessage_canBeDismissedByClickingPill() {
         waitForSeededPos()
