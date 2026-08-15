@@ -58,12 +58,10 @@ class InventoryGlobalMessageTest {
                 .isNotEmpty()
         }
 
-        // 3. SOLUSI UTAMA: Cari kontainer menu yang memiliki aksi klik (hasClickAction) 
-        //    dan di dalamnya mengandung teks "Inventaris". Ini akan otomatis mengklik area ikon Anda.
         composeRule
             .onNode(
-                hasAnyDescendant(hasText("Inventaris", substring = true)) and hasClickAction(),
-                useUnmergedTree = true
+                hasText("Inventaris", substring = true),
+                useUnmergedTree = true, // Kunci utama untuk menembus batasan layout custom
             )
             .assertIsDisplayed()
             .performClick()

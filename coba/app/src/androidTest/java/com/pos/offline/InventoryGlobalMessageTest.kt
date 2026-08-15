@@ -37,40 +37,44 @@ class InventoryGlobalMessageTest {
         )
     }
 
-    private fun navigateToInventory() {
-        waitForSeededPos()
+private fun navigateToInventory() {
+    waitForSeededPos()
 
-        composeRule
-            .onNode(
-                hasContentDescription("Buka menu"),
-                useUnmergedTree = true,
-            )
-            .assertIsDisplayed()
-            .performClick()
-
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule
-                .onAllNodes(
-                    hasText("Inventaris", substring = true),
-                    useUnmergedTree = true
-                )
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-
-        composeRule
-            .onNode(
-                hasText("Inventaris", substring = true),
-                useUnmergedTree = true, // Kunci utama untuk menembus batasan layout custom
-            )
-            .assertIsDisplayed()
-            .performClick()
-
-        composeRule.waitUntilAtLeastOneExists(
-            hasText("Inventaris", substring = true),
-            timeoutMillis = 5_000,
+    // 1. Klik FAB "Buka menu"
+    composeRule
+        .onNode(
+            hasContentDescription("Buka menu"),
+            useUnmergedTree = true,
         )
+        .assertIsDisplayed()
+        .performClick()
+
+    // 2. Tunggu icon mini menu "Inventaris" muncul
+    composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule
+            .onAllNodes(
+                hasContentDescription("Inventaris") and hasClickAction(),
+                useUnmergedTree = true
+            )
+            .fetchSemanticsNodes()
+            .isNotEmpty()
     }
+
+    // 3. Klik Icon/Tombol "Inventaris" (Bukan Text-nya)
+    composeRule
+        .onNode(
+            hasContentDescription("Inventaris") and hasClickAction(),
+            useUnmergedTree = true,
+        )
+        .assertIsDisplayed()
+        .performClick()
+
+    // 4. Tunggu tombol (+) "Tambah Produk" di InventoryScreen muncul sebagai bukti berhasil pindah halaman
+    composeRule.waitUntilAtLeastOneExists(
+        hasContentDescription("Tambah Produk"),
+        timeoutMillis = 5_000,
+    )
+}
 
     @Test
     fun addAndDeleteProduct_usesGlobalMessagePill() {
