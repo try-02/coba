@@ -6,6 +6,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -117,25 +118,25 @@ class InventoryGlobalMessageTest {
             )
             .assertIsDisplayed()
 
-        // Cari produk lewat Search Bar agar langsung tampil di paling atas layar tanpa perlu scroll
+        // Cari produk lewat Search Bar
         composeRule
             .onNode(
                 hasText("Cari nama / SKU…", substring = true),
             )
             .performTextInput(TEST_PRODUCT_NAME)
 
-        // Tunggu produk hasil pencarian muncul di layar
-        composeRule.waitUntilAtLeastOneExists(
-            hasText(TEST_PRODUCT_NAME, substring = true),
-            timeoutMillis = 5_000,
-        )
-
+        // Tutup keyboard (Search action) agar layar kembali penuh dan item tidak terpotong
         composeRule
             .onNode(
                 hasText(TEST_PRODUCT_NAME, substring = true),
-                useUnmergedTree = true,
             )
-            .assertIsDisplayed()
+            .performImeAction()
+
+        // Tunggu tombol Edit produk hasil pencarian muncul di layar
+        composeRule.waitUntilAtLeastOneExists(
+            hasContentDescription("Edit $TEST_PRODUCT_NAME"),
+            timeoutMillis = 5_000,
+        )
 
         // Clean up the test data using the real UI.
         composeRule
