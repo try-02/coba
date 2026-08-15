@@ -6,8 +6,8 @@ org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=1g -XX:+Use
 # ===== PARALLEL BUILD CONFIG =====
 org.gradle.workers.max=2
 org.gradle.parallel=true
-# org.gradle.caching=true
-# org.gradle.configuration-cache=true
+org.gradle.caching=true
+org.gradle.configuration-cache=true
 
 # ===== KOTLIN & ANDROID CONFIG =====
 # Mengembalikan ke daemon eksternal terkontrol agar garbage collection compiler Kotlin tidak mengganggu proses utama Gradle
