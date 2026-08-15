@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -44,11 +45,16 @@ class GlobalMessageControllerTest {
             durationMillis = 3_000L,
         )
 
+        // Tepat sebelum 3 detik, pesan masih harus terlihat.
         scope.advanceTimeBy(2_999L)
 
         assertEquals("Pesan", controller.currentMessage)
 
+        // Mencapai tepat 3 detik.
         scope.advanceTimeBy(1L)
+
+        // Jalankan coroutine yang dijadwalkan tepat pada t=3000.
+        scope.runCurrent()
 
         assertNull(controller.currentMessage)
     }
@@ -71,13 +77,16 @@ class GlobalMessageControllerTest {
     fun newerMessage_replacesOlderMessage() {
         val (scope, controller) = controller()
 
+        // t=0
         controller.showMessage(
             message = "A",
             durationMillis = 3_000L,
         )
 
+        // t=1000
         scope.advanceTimeBy(1_000L)
 
+        // A dibatalkan dan B dimulai.
         controller.showMessage(
             message = "B",
             durationMillis = 3_000L,
@@ -85,14 +94,16 @@ class GlobalMessageControllerTest {
 
         assertEquals("B", controller.currentMessage)
 
-        // 2 detik setelah B ditampilkan:
-        // B masih harus terlihat.
+        // t=3000
+        // B baru berjalan 2 detik.
         scope.advanceTimeBy(2_000L)
 
         assertEquals("B", controller.currentMessage)
 
-        // 1 detik berikutnya = tepat 3 detik sejak B.
+        // t=4000
+        // Tepat 3 detik sejak B.
         scope.advanceTimeBy(1_000L)
+        scope.runCurrent()
 
         assertNull(controller.currentMessage)
     }
@@ -112,15 +123,19 @@ class GlobalMessageControllerTest {
     fun dismissedMessage_cannotClearLaterMessage() {
         val (scope, controller) = controller()
 
+        // t=0
         controller.showMessage(
             message = "A",
             durationMillis = 3_000L,
         )
 
+        // t=1000
         scope.advanceTimeBy(1_000L)
 
+        // Batalkan A.
         controller.dismiss()
 
+        // Tampilkan B.
         controller.showMessage(
             message = "B",
             durationMillis = 3_000L,
@@ -128,15 +143,16 @@ class GlobalMessageControllerTest {
 
         assertEquals("B", controller.currentMessage)
 
-        // 2 detik setelah B.
-        // Coroutine A sudah dibatalkan/di-invalidasi.
-        // B masih harus hidup.
+        // t=3000
+        // B baru berjalan 2 detik.
         scope.advanceTimeBy(2_000L)
 
         assertEquals("B", controller.currentMessage)
 
-        // Tepat 3 detik setelah B.
+        // t=4000
+        // Tepat 3 detik sejak B.
         scope.advanceTimeBy(1_000L)
+        scope.runCurrent()
 
         assertNull(controller.currentMessage)
     }

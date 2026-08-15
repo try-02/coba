@@ -22,12 +22,14 @@ class GlobalMessageControllerTest {
     @Test
     fun initialMessage_isNull() {
         val (_, controller) = controller()
+
         assertNull(controller.currentMessage)
     }
 
     @Test
     fun showMessage_setsMessage() {
         val (_, controller) = controller()
+
         controller.showMessage("Pesan")
 
         assertEquals("Pesan", controller.currentMessage)
@@ -36,46 +38,69 @@ class GlobalMessageControllerTest {
     @Test
     fun showMessage_autoDismissesAfterDuration() {
         val (scope, controller) = controller()
-        controller.showMessage("Pesan", durationMillis = 3_000)
 
-        scope.advanceTimeBy(2_999)
+        controller.showMessage(
+            message = "Pesan",
+            durationMillis = 3_000L,
+        )
+
+        scope.advanceTimeBy(2_999L)
+
         assertEquals("Pesan", controller.currentMessage)
 
-        scope.advanceTimeBy(1)
-        scope.advanceUntilIdle()
+        scope.advanceTimeBy(1L)
+
         assertNull(controller.currentMessage)
     }
 
     @Test
     fun negativeDuration_isSafeAndDismisses() {
         val (scope, controller) = controller()
-        controller.showMessage("Pesan", durationMillis = -1)
+
+        controller.showMessage(
+            message = "Pesan",
+            durationMillis = -1L,
+        )
 
         scope.advanceUntilIdle()
+
         assertNull(controller.currentMessage)
     }
 
     @Test
     fun newerMessage_replacesOlderMessage() {
         val (scope, controller) = controller()
-        controller.showMessage("A", durationMillis = 3_000)
 
-        scope.advanceTimeBy(1_000)
-        controller.showMessage("B", durationMillis = 3_000)
+        controller.showMessage(
+            message = "A",
+            durationMillis = 3_000L,
+        )
 
-        scope.advanceTimeBy(2_000)
-        scope.advanceUntilIdle()
+        scope.advanceTimeBy(1_000L)
+
+        controller.showMessage(
+            message = "B",
+            durationMillis = 3_000L,
+        )
 
         assertEquals("B", controller.currentMessage)
 
-        scope.advanceTimeBy(1_000)
-        scope.advanceUntilIdle()
+        // 2 detik setelah B ditampilkan:
+        // B masih harus terlihat.
+        scope.advanceTimeBy(2_000L)
+
+        assertEquals("B", controller.currentMessage)
+
+        // 1 detik berikutnya = tepat 3 detik sejak B.
+        scope.advanceTimeBy(1_000L)
+
         assertNull(controller.currentMessage)
     }
 
     @Test
     fun dismiss_clearsMessageImmediately() {
         val (_, controller) = controller()
+
         controller.showMessage("Pesan")
 
         controller.dismiss()
@@ -86,15 +111,33 @@ class GlobalMessageControllerTest {
     @Test
     fun dismissedMessage_cannotClearLaterMessage() {
         val (scope, controller) = controller()
-        controller.showMessage("A", durationMillis = 3_000)
-        scope.advanceTimeBy(1_000)
+
+        controller.showMessage(
+            message = "A",
+            durationMillis = 3_000L,
+        )
+
+        scope.advanceTimeBy(1_000L)
 
         controller.dismiss()
-        controller.showMessage("B", durationMillis = 3_000)
 
-        scope.advanceTimeBy(2_000)
-        scope.advanceUntilIdle()
+        controller.showMessage(
+            message = "B",
+            durationMillis = 3_000L,
+        )
 
         assertEquals("B", controller.currentMessage)
+
+        // 2 detik setelah B.
+        // Coroutine A sudah dibatalkan/di-invalidasi.
+        // B masih harus hidup.
+        scope.advanceTimeBy(2_000L)
+
+        assertEquals("B", controller.currentMessage)
+
+        // Tepat 3 detik setelah B.
+        scope.advanceTimeBy(1_000L)
+
+        assertNull(controller.currentMessage)
     }
 }
