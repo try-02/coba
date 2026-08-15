@@ -443,7 +443,7 @@ private fun ExpandableMenuFab(
 
     Box(
         contentAlignment = Alignment.BottomCenter,
-        modifier = Modifier.padding(bottom = 8.dp) // Ruang bernafas tambahan
+        modifier = Modifier.padding(bottom = 1.dp) // Ruang bernafas tambahan 8.dp
     ) {
         // MENGGAMBAR MENU PELANGI DENGAN TRIGONOMETRI
         Dest.entries.forEachIndexed { index, dest ->
@@ -454,7 +454,7 @@ private fun ExpandableMenuFab(
             val angle = startAngle - (index * (startAngle - endAngle) / (Dest.entries.size - 1))
             val angleRad = Math.toRadians(angle)
             
-            val radius = 95.dp // Jarak lontaran menu dari FAB utama
+            val radius = 80.dp // Jarak lontaran menu dari FAB utama 95.dp
 
             // Rumus posisi melingkar
             val xOffset = (cos(angleRad) * radius.value).dp * expandFraction
@@ -492,7 +492,7 @@ private fun ExpandableMenuFab(
         // FAB UTAMA
         Surface(
             modifier = Modifier
-                .size(56.dp) // Diperbesar dari 40dp ke standar Material 56dp agar kokoh di tengah
+                .size(40.dp) // Diperbesar dari 40dp ke standar Material 56dp agar kokoh di tengah
                 .shadow(8.dp, CircleShape)
                 .graphicsLayer {
                     // Animasi putaran halus searah jarum jam saat dibuka
@@ -512,7 +512,7 @@ private fun ExpandableMenuFab(
                         imageVector = if (isExpanded) Icons.Rounded.Close else Icons.Rounded.Menu,
                         contentDescription = if (isExpanded) "Tutup menu" else "Buka menu",
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(20.dp), // 24.dp
                     )
                 }
             }
@@ -528,7 +528,7 @@ private fun MiniMenuItem(
 ) {
     Surface(
         // Ubah dari 36.dp menjadi 44.dp agar lebih nyaman ditekan
-        modifier = Modifier.size(44.dp).shadow(6.dp, CircleShape),
+        modifier = Modifier.size(36.dp).shadow(6.dp, CircleShape),
         shape = CircleShape,
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         onClick = onClick,
@@ -539,7 +539,7 @@ private fun MiniMenuItem(
                 contentDescription = dest.label,
                 tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 // Ubah dari 18.dp menjadi 22.dp
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
     }

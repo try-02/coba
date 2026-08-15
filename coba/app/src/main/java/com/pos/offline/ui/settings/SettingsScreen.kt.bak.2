@@ -1,5 +1,6 @@
 package com.pos.offline.ui.settings
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -77,7 +78,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pos.offline.data.backup.BackupManager
 import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.ui.components.GlassCard
-import com.pos.offline.ui.components.LocalGlobalMessage
 import com.pos.offline.util.VibrationLevel
 import com.pos.offline.util.bouncyOverscroll
 import com.pos.offline.util.iosGlideFlingBehavior
@@ -101,7 +101,6 @@ fun SettingsScreen(
     val isVibrationEnabled by viewModel.isVibrationEnabled.collectAsStateWithLifecycle()
     val vibrationLevel by viewModel.vibrationLevel.collectAsStateWithLifecycle()
     val vibrationDurationMs by viewModel.vibrationDurationMs.collectAsStateWithLifecycle()
-    val globalMessage = LocalGlobalMessage.current
 
     var showPrinterDialog by remember { mutableStateOf(false) }
     var showStoreProfileDialog by remember { mutableStateOf(false) }
@@ -116,34 +115,30 @@ fun SettingsScreen(
             contract = ActivityResultContracts.GetContent(),
         ) { uri -> if (uri != null) viewModel.requestRestore(uri) }
 
-LaunchedEffect(viewModel, globalMessage) {
-    viewModel.messages.collect { msg ->
-        globalMessage.showMessage(msg)
-    }
-}
-
-LaunchedEffect(printerViewModel, globalMessage) {
-    printerViewModel.messages.collect { msg ->
-        globalMessage.showMessage(msg)
-    }
-}
-
-LaunchedEffect(storeProfileViewModel, globalMessage) {
-    storeProfileViewModel.messages.collect { msg ->
-        globalMessage.showMessage(msg)
-    }
-}
-LaunchedEffect(viewModel, globalMessage) {
-    viewModel.shareIntent.collect { intent ->
-        try {
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            globalMessage.showMessage(
-                "Tidak ada aplikasi untuk membagikan file",
-            )
+    LaunchedEffect(Unit) {
+        viewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
         }
     }
-}
+    LaunchedEffect(Unit) {
+        printerViewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    }
+    LaunchedEffect(Unit) {
+        storeProfileViewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    }
+    LaunchedEffect(Unit) {
+        viewModel.shareIntent.collect { intent ->
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Tidak ada aplikasi untuk membagikan file", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     if (uiState.pendingRestoreUri != null) {
         RestoreConfirmDialog(

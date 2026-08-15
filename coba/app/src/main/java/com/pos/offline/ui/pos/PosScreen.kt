@@ -31,9 +31,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -54,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.ui.components.rememberBarcodeScanner
+import com.pos.offline.ui.components.LocalGlobalMessage
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +67,7 @@ fun PosScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localState = rememberPosLocalState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val globalMessage = LocalGlobalMessage.current
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(isCartExpanded) {
         if (localState.isCartExpanded != isCartExpanded) {
@@ -81,24 +79,22 @@ fun PosScreen(
             onCartExpandedChange(localState.isCartExpanded)
         }
     }
-    LaunchedEffect(viewModel, lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.uiEvents.collect { event ->
-                when (event) {
-                    is PosUiEvent.ShowMessage -> {
-                        snackbarHostState.showSnackbar(
-                            message = event.message,
-                            duration = SnackbarDuration.Short,
-                        )
-                    }
+LaunchedEffect(viewModel, lifecycleOwner, globalMessage) {
+    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+        viewModel.uiEvents.collect { event ->
+            when (event) {
+                is PosUiEvent.ShowMessage -> {
+                    globalMessage.showMessage(
+                        message = event.message,
+                    )
                 }
             }
         }
     }
+}
     val launchScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned)
     val focusManager = LocalFocusManager.current
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             PosTopBar(
                 uiState = uiState,

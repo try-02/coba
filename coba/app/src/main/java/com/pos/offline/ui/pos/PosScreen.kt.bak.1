@@ -122,7 +122,7 @@ fun PosScreen(
         ) {
             val isWide = forceWideLayout || maxWidth >= 840.dp
             val configuration = LocalConfiguration.current
-            val screenHeight = configuration.screenHeightDp.dp 
+            val maxH = configuration.screenHeightDp.dp 
             val density = LocalDensity.current
             val imeVisible = WindowInsets.ime.getBottom(density) > 0
             if (isWide) {

@@ -78,8 +78,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -91,6 +89,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -129,6 +128,7 @@ import com.pos.offline.ui.components.ThousandsSeparatorTransformation
 import com.pos.offline.ui.components.discountRowLabel
 import com.pos.offline.ui.components.paymentMethodLabel
 import com.pos.offline.ui.components.rememberBarcodeScanner
+import com.pos.offline.ui.components.LocalGlobalMessage
 import com.pos.offline.ui.inventory.InventoryViewModel
 import com.pos.offline.ui.receipt.PrintUiState
 import com.pos.offline.ui.receipt.ReceiptManager
@@ -175,7 +175,8 @@ fun ReportScreen(
     val selectedReturnDetail by viewModel.selectedReturnDetail.collectAsStateWithLifecycle()
     var pendingVoidConfirm by remember { mutableStateOf(false) }
     var voidBanner by remember { mutableStateOf<ReportMessage?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
+    val globalMessage = LocalGlobalMessage.current
+    val currentSelectedTransaction by rememberUpdatedState(selectedTransaction)
     val productHistoryQuery by viewModel.productHistoryQuery.collectAsStateWithLifecycle()
     val productHistoryHierarchy by viewModel.productHistoryHierarchy.collectAsStateWithLifecycle()
     val searchUiState by viewModel.searchUiState.collectAsStateWithLifecycle()
@@ -193,15 +194,16 @@ fun ReportScreen(
             viewModel.searchInvoice(scannedCode)
             scannedCode
         }
-    LaunchedEffect(Unit) {
-        viewModel.messages.collect { msg ->
-            if (selectedTransaction != null) {
-                voidBanner = msg
-            } else {
-                snackbarHostState.showSnackbar(msg.text)
-            }
+// Tetapi sekarang selectedTransaction yang digunakan selalu merupakan nilai terbaru.
+LaunchedEffect(viewModel, globalMessage) {
+    viewModel.messages.collect { msg ->
+        if (currentSelectedTransaction != null) {
+            voidBanner = msg
+        } else {
+            globalMessage.showMessage(msg.text)
         }
     }
+}
     LaunchedEffect(voidBanner) {
         if (voidBanner != null) {
             delay(3000)
@@ -235,7 +237,6 @@ fun ReportScreen(
     }
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 Column(
                     modifier =

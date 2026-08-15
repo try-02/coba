@@ -1,33 +1,27 @@
 package com.pos.offline
-import kotlin.math.cos
-import kotlin.math.sin
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.layout.offset
+
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
+import androidx.activity.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.TargetedFlingBehavior
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,8 +31,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
@@ -87,6 +81,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pos.offline.data.di.ServiceLocator
+import com.pos.offline.ui.components.GlobalMessageController
+import com.pos.offline.ui.components.LocalGlobalMessage
+import com.pos.offline.ui.components.TopAlignedMessagePill
 import com.pos.offline.ui.inventory.InventoryScreen
 import com.pos.offline.ui.inventory.InventoryViewModel
 import com.pos.offline.ui.pos.PosScreen
@@ -102,6 +99,8 @@ import com.pos.offline.ui.theme.PosTheme
 import com.pos.offline.util.HardwareScannerInterceptor
 import io.iamjosephmj.flinger.behaviours.FlingPresets
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.sin
 
 private enum class Dest(
     val label: String,
@@ -113,9 +112,11 @@ private enum class Dest(
 }
 
 class MainActivity : ComponentActivity() {
+
     private val posViewModel: PosViewModel by viewModels {
         ServiceLocator.posViewModelFactory()
     }
+
     private val scannerInterceptor =
         HardwareScannerInterceptor { barcode ->
             lifecycleScope.launch {
@@ -125,7 +126,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
+
         setContent {
             PosTheme {
                 AppRoot()
@@ -141,69 +144,178 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AppRoot() {
-    val posViewModel: PosViewModel = viewModel(factory = ServiceLocator.posViewModelFactory())
+    val posViewModel: PosViewModel =
+        viewModel(
+            factory = ServiceLocator.posViewModelFactory(),
+        )
+
     val inventoryViewModel: InventoryViewModel =
-        viewModel(factory = ServiceLocator.inventoryViewModelFactory())
+        viewModel(
+            factory = ServiceLocator.inventoryViewModelFactory(),
+        )
+
     val reportViewModel: ReportViewModel =
-        viewModel(factory = ServiceLocator.reportViewModelFactory())
+        viewModel(
+            factory = ServiceLocator.reportViewModelFactory(),
+        )
+
     val settingsViewModel: SettingsViewModel =
-        viewModel(factory = ServiceLocator.settingsViewModelFactory())
+        viewModel(
+            factory = ServiceLocator.settingsViewModelFactory(),
+        )
+
     val printerViewModel: PrinterViewModel =
-        viewModel(factory = ServiceLocator.printerViewModelFactory())
+        viewModel(
+            factory = ServiceLocator.printerViewModelFactory(),
+        )
+
     val storeProfileViewModel: StoreProfileViewModel =
-        viewModel(factory = ServiceLocator.storeProfileViewModelFactory())
+        viewModel(
+            factory = ServiceLocator.storeProfileViewModelFactory(),
+        )
+
     val context = LocalContext.current
+
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(initialPage = 0) { Dest.entries.size }
+
+    /*
+     * Scope pesan mengikuti lifecycle Composition AppRoot.
+     *
+     * remember memastikan controller tidak dibuat ulang
+     * pada setiap recomposition.
+     */
+    val messageController =
+        remember {
+            GlobalMessageController(scope)
+        }
+
+    val pagerState =
+        rememberPagerState(
+            initialPage = 0,
+        ) {
+            Dest.entries.size
+        }
+
     val currentDest = Dest.entries[pagerState.currentPage]
-    val storeProfile by storeProfileViewModel.profile.collectAsStateWithLifecycle()
-    val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+    val storeProfile by
+        storeProfileViewModel.profile.collectAsStateWithLifecycle()
+
+    val settingsUiState by
+        settingsViewModel.uiState.collectAsStateWithLifecycle()
+
     val isRestoringDatabase = settingsUiState.isImporting
-    val pageAlpha = remember { Animatable(1f) }
-    var isJumping by remember { mutableStateOf(false) }
+
+    val pageAlpha = remember {
+        Animatable(1f)
+    }
+
+    var isJumping by remember {
+        mutableStateOf(false)
+    }
 
     fun goTo(dest: Dest) {
         val target = dest.ordinal
+
         if (pagerState.currentPage == target) return
+
         scope.launch {
             isJumping = true
-            pageAlpha.animateTo(0f, animationSpec = tween(90))
+
+            pageAlpha.animateTo(
+                0f,
+                animationSpec = tween(90),
+            )
+
             pagerState.scrollToPage(target)
-            pageAlpha.animateTo(1f, animationSpec = tween(140))
+
+            pageAlpha.animateTo(
+                1f,
+                animationSpec = tween(140),
+            )
+
             isJumping = false
         }
     }
-    val openShift by posViewModel.openShift.collectAsStateWithLifecycle()
-    var showExitDialog by rememberSaveable { mutableStateOf(false) }
-    BackHandler(enabled = isRestoringDatabase) { }
-    BackHandler(enabled = showExitDialog) { showExitDialog = false }
-    BackHandler(enabled = currentDest != Dest.POS && !isRestoringDatabase && !showExitDialog) { goTo(Dest.POS) }
-    BackHandler(enabled = currentDest == Dest.POS && !showExitDialog && !isRestoringDatabase) { showExitDialog = true }
+
+    val openShift by
+        posViewModel.openShift.collectAsStateWithLifecycle()
+
+    var showExitDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    BackHandler(
+        enabled = isRestoringDatabase,
+    ) {
+        // Block back while database restore is running.
+    }
+
+    BackHandler(
+        enabled = showExitDialog,
+    ) {
+        showExitDialog = false
+    }
+
+    BackHandler(
+        enabled =
+            currentDest != Dest.POS &&
+                !isRestoringDatabase &&
+                !showExitDialog,
+    ) {
+        goTo(Dest.POS)
+    }
+
+    BackHandler(
+        enabled =
+            currentDest == Dest.POS &&
+                !showExitDialog &&
+                !isRestoringDatabase,
+    ) {
+        showExitDialog = true
+    }
+
     if (showExitDialog) {
         val shift = openShift
+
         if (shift != null) {
             AlertDialog(
-                onDismissRequest = { showExitDialog = false },
+                onDismissRequest = {
+                    showExitDialog = false
+                },
                 icon = {
                     Icon(
-                        Icons.Rounded.Warning,
+                        imageVector = Icons.Rounded.Warning,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(28.dp),
                     )
                 },
-                title = { Text("Ada Shift Kasir Aktif!", fontSize = 15.sp, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = "Ada Shift Kasir Aktif!",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
                         Text(
-                            "Shift kasir atas nama ${shift.cashierName} masih berjalan. " +
-                                "Untuk keakuratan laporan keuangan dan laci kas (rekonsiliasi uang fisik), " +
-                                "sangat disarankan untuk menutup shift terlebih dahulu di tab Kasir.",
+                            text =
+                                "Shift kasir atas nama ${shift.cashierName} masih berjalan. " +
+                                    "Untuk keakuratan laporan keuangan dan laci kas " +
+                                    "(rekonsiliasi uang fisik), sangat disarankan untuk " +
+                                    "menutup shift terlebih dahulu di tab Kasir.",
                             fontSize = 13.sp,
                         )
+
                         Text(
-                            "Catatan: Jika Anda memilih 'Tetap Keluar', sesi shift akan tetap aktif menggantung " +
-                                "dan harus ditutup secara normal saat aplikasi dibuka kembali.",
+                            text =
+                                "Catatan: Jika Anda memilih 'Tetap Keluar', sesi shift " +
+                                    "akan tetap aktif menggantung dan harus ditutup secara " +
+                                    "normal saat aplikasi dibuka kembali.",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium,
@@ -211,11 +323,16 @@ private fun AppRoot() {
                     }
                 },
                 confirmButton = {
-                    Button(onClick = {
-                        showExitDialog = false
-                        goTo(Dest.POS)
-                    }) {
-                        Text("Tutup Shift Dulu", fontSize = 13.sp)
+                    Button(
+                        onClick = {
+                            showExitDialog = false
+                            goTo(Dest.POS)
+                        },
+                    ) {
+                        Text(
+                            text = "Tutup Shift Dulu",
+                            fontSize = 13.sp,
+                        )
                     }
                 },
                 dismissButton = {
@@ -226,24 +343,53 @@ private fun AppRoot() {
                         TextButton(
                             onClick = {
                                 showExitDialog = false
-                                (context as? android.app.Activity)?.finishAndRemoveTask()
+
+                                (context as? android.app.Activity)
+                                    ?.finishAndRemoveTask()
                             },
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        ) { Text("Tetap Keluar", fontSize = 13.sp) }
-                        OutlinedButton(onClick = { showExitDialog = false }) {
-                            Text("Batal", fontSize = 13.sp)
+                            colors =
+                                ButtonDefaults.textButtonColors(
+                                    contentColor =
+                                        MaterialTheme.colorScheme.error,
+                                ),
+                        ) {
+                            Text(
+                                text = "Tetap Keluar",
+                                fontSize = 13.sp,
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                showExitDialog = false
+                            },
+                        ) {
+                            Text(
+                                text = "Batal",
+                                fontSize = 13.sp,
+                            )
                         }
                     }
                 },
             )
         } else {
             AlertDialog(
-                onDismissRequest = { showExitDialog = false },
-                title = { Text("Keluar Aplikasi?", fontSize = 15.sp, fontWeight = FontWeight.Bold) },
+                onDismissRequest = {
+                    showExitDialog = false
+                },
+                title = {
+                    Text(
+                        text = "Keluar Aplikasi?",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
                 text = {
                     Text(
-                        "Semua data transaksi dan laci kas Anda telah tersimpan dengan aman di database lokal. " +
-                            "Sesi kasir Anda saat ini bersih (tidak ada shift berjalan). Keluar sekarang?",
+                        text =
+                            "Semua data transaksi dan laci kas Anda telah tersimpan " +
+                                "dengan aman di database lokal. Sesi kasir Anda saat ini " +
+                                "bersih (tidak ada shift berjalan). Keluar sekarang?",
                         fontSize = 13.sp,
                     )
                 },
@@ -251,175 +397,370 @@ private fun AppRoot() {
                     Button(
                         onClick = {
                             showExitDialog = false
-                            (context as? android.app.Activity)?.finishAndRemoveTask()
+
+                            (context as? android.app.Activity)
+                                ?.finishAndRemoveTask()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    ) { Text("Keluar", fontSize = 13.sp) }
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    MaterialTheme.colorScheme.error,
+                            ),
+                    ) {
+                        Text(
+                            text = "Keluar",
+                            fontSize = 13.sp,
+                        )
+                    }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showExitDialog = false }) { Text("Batal", fontSize = 13.sp) }
+                    TextButton(
+                        onClick = {
+                            showExitDialog = false
+                        },
+                    ) {
+                        Text("Batal", fontSize = 13.sp)
+                    }
                 },
             )
         }
     }
+
     val density = LocalDensity.current
-    val imeVisible = WindowInsets.ime.getBottom(density) > 0
-    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    var isCartExpanded by remember { mutableStateOf(false) }
-    var menuExpanded by remember { mutableStateOf(false) }
+
+    val imeVisible =
+        WindowInsets.ime.getBottom(density) > 0
+
+    val isLandscape =
+        LocalConfiguration.current.orientation ==
+            Configuration.ORIENTATION_LANDSCAPE
+
+    var isCartExpanded by remember {
+        mutableStateOf(false)
+    }
+
+    var menuExpanded by remember {
+        mutableStateOf(false)
+    }
+
     LaunchedEffect(pagerState.currentPage) {
-        if (currentDest != Dest.POS) isCartExpanded = false
+        if (currentDest != Dest.POS) {
+            isCartExpanded = false
+        }
+
         menuExpanded = false
     }
-    val hideFab = isRestoringDatabase || imeVisible || (!isLandscape && currentDest == Dest.POS && isCartExpanded)
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-    ) {
-        @OptIn(ExperimentalFoundationApi::class)
-        CompositionLocalProvider(
-            LocalOverscrollFactory provides null,
-        ) {
-            HorizontalPager(
-                state = pagerState,
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = pageAlpha.value },
-                userScrollEnabled = !menuExpanded && !imeVisible && !isJumping && !isRestoringDatabase,
-                flingBehavior = PagerDefaults.flingBehavior(state = pagerState),
-            ) { page ->
-                val dest = Dest.entries[page]
-                when (dest) {
-                    Dest.POS -> {
-                        PosScreen(
-                            viewModel = posViewModel,
-                            forceWideLayout = isLandscape,
-                            onNavigateToSettings = { goTo(Dest.SETTINGS) },
-                            onSharePdfFile = { file ->
-                                context.startActivity(ReceiptManager.buildPdfShareIntent(context, file))
-                            },
-                            onExportPdf = { result ->
-                                scope.launch {
-                                    val file = ReceiptManager.exportToPdf(context, result, storeProfile)
-                                    Toast.makeText(context, "Struk tersimpan: ${file.name}", Toast.LENGTH_LONG).show()
-                                }
-                            },
-                            isCartExpanded = if (isLandscape) false else isCartExpanded,
-                            onCartExpandedChange = if (isLandscape) ({}) else ({ v: Boolean -> isCartExpanded = v }),
-                        )
-                    }
 
-                    Dest.INVENTORY -> {
-                        InventoryScreen(viewModel = inventoryViewModel)
-                    }
-
-                    Dest.REPORT -> {
-                        ReportScreen(
-                            viewModel = reportViewModel,
-                            inventoryViewModel = inventoryViewModel,
-                            onNavigateToSettings = { goTo(Dest.SETTINGS) },
-                            onSharePdfFile = { file ->
-                                context.startActivity(ReceiptManager.buildPdfShareIntent(context, file))
-                            },
-                            onExportPdf = { result ->
-                                scope.launch {
-                                    val file = ReceiptManager.exportToPdf(context, result, storeProfile)
-                                    Toast.makeText(context, "Struk tersimpan: ${file.name}", Toast.LENGTH_LONG).show()
-                                }
-                            },
-                            onShare = { result ->
-                                context.startActivity(ReceiptManager.buildShareIntent(context, result))
-                            },
-                        )
-                    }
-
-                    Dest.SETTINGS -> {
-                        SettingsScreen(
-                            viewModel = settingsViewModel,
-                            printerViewModel = printerViewModel,
-                            storeProfileViewModel = storeProfileViewModel,
-                            onExitClick = { showExitDialog = true },
-                        )
-                    }
-                }
-            }
-        }
-        AnimatedVisibility(
-            visible = menuExpanded,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { menuExpanded = false },
+    val hideFab =
+        isRestoringDatabase ||
+            imeVisible ||
+            (
+                !isLandscape &&
+                    currentDest == Dest.POS &&
+                    isCartExpanded
             )
-        }
-        val fabBottomPadding = 6.dp // if (currentDest == Dest.POS) 6.dp else 16.dp
 
-        AnimatedVisibility(
-            visible = !hideFab,
-            enter = fadeIn(),
-            exit = fadeOut(),
+    /*
+     * GlobalMessageController disediakan ke seluruh subtree AppRoot.
+     *
+     * Semua screen di bawah sini dapat mengakses:
+     *
+     * val messageController = LocalGlobalMessage.current
+     *
+     * tanpa perlu meneruskan controller sebagai parameter.
+     */
+    CompositionLocalProvider(
+        LocalGlobalMessage provides messageController,
+    ) {
+        Box(
             modifier =
                 Modifier
-                    .align(Alignment.BottomCenter) // 1. UBAH KE TENGAH
-                    .padding(bottom = fabBottomPadding) // 2. HAPUS PADDING KIRI (start), gunakan padding dinamis bawah
-                    .navigationBarsPadding(),
+                    .fillMaxSize()
+                    .background(
+                        MaterialTheme.colorScheme.background,
+                    ),
         ) {
-            ExpandableMenuFab(
-                expanded = menuExpanded,
-                onToggle = { menuExpanded = !menuExpanded },
-                selected = currentDest,
-                onSelect = { dest ->
-                    goTo(dest)
-                    menuExpanded = false
-                },
-            )
-        }
-        AnimatedVisibility(
-            visible = isRestoringDatabase,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.75f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { },
-                contentAlignment = Alignment.Center,
+
+            /*
+             * ============================================================
+             * KONTEN UTAMA + NAVIGASI
+             * ============================================================
+             */
+
+            @OptIn(ExperimentalFoundationApi::class)
+            CompositionLocalProvider(
+                LocalOverscrollFactory provides null,
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color.White)
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Memulihkan cadangan…",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Jangan tutup aplikasi. Aplikasi akan otomatis restart.",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 11.sp,
-                    )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                alpha = pageAlpha.value
+                            },
+                    userScrollEnabled =
+                        !menuExpanded &&
+                            !imeVisible &&
+                            !isJumping &&
+                            !isRestoringDatabase,
+                    flingBehavior =
+                        PagerDefaults.flingBehavior(
+                            state = pagerState,
+                        ),
+                ) { page ->
+
+                    val dest = Dest.entries[page]
+
+                    when (dest) {
+                        Dest.POS -> {
+                            PosScreen(
+                                viewModel = posViewModel,
+                                forceWideLayout = isLandscape,
+                                onNavigateToSettings = {
+                                    goTo(Dest.SETTINGS)
+                                },
+                                onSharePdfFile = { file ->
+                                    context.startActivity(
+                                        ReceiptManager.buildPdfShareIntent(
+                                            context,
+                                            file,
+                                        ),
+                                    )
+                                },
+                                onExportPdf = { result ->
+                                    scope.launch {
+                                        val file =
+                                            ReceiptManager.exportToPdf(
+                                                context,
+                                                result,
+                                                storeProfile,
+                                            )
+
+                                        Toast.makeText(
+                                            context,
+                                            "Struk tersimpan: ${file.name}",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    }
+                                },
+                                isCartExpanded =
+                                    if (isLandscape) {
+                                        false
+                                    } else {
+                                        isCartExpanded
+                                    },
+                                onCartExpandedChange =
+                                    if (isLandscape) {
+                                        {}
+                                    } else {
+                                        { value: Boolean ->
+                                            isCartExpanded = value
+                                        }
+                                    },
+                            )
+                        }
+
+                        Dest.INVENTORY -> {
+                            InventoryScreen(
+                                viewModel = inventoryViewModel,
+                            )
+                        }
+
+                        Dest.REPORT -> {
+                            ReportScreen(
+                                viewModel = reportViewModel,
+                                inventoryViewModel = inventoryViewModel,
+                                onNavigateToSettings = {
+                                    goTo(Dest.SETTINGS)
+                                },
+                                onSharePdfFile = { file ->
+                                    context.startActivity(
+                                        ReceiptManager.buildPdfShareIntent(
+                                            context,
+                                            file,
+                                        ),
+                                    )
+                                },
+                                onExportPdf = { result ->
+                                    scope.launch {
+                                        val file =
+                                            ReceiptManager.exportToPdf(
+                                                context,
+                                                result,
+                                                storeProfile,
+                                            )
+
+                                        Toast.makeText(
+                                            context,
+                                            "Struk tersimpan: ${file.name}",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    }
+                                },
+                                onShare = { result ->
+                                    context.startActivity(
+                                        ReceiptManager.buildShareIntent(
+                                            context,
+                                            result,
+                                        ),
+                                    )
+                                },
+                            )
+                        }
+
+                        Dest.SETTINGS -> {
+                            SettingsScreen(
+                                viewModel = settingsViewModel,
+                                printerViewModel = printerViewModel,
+                                storeProfileViewModel =
+                                    storeProfileViewModel,
+                                onExitClick = {
+                                    showExitDialog = true
+                                },
+                            )
+                        }
+                    }
                 }
             }
+
+            /*
+             * ============================================================
+             * MENU NAVIGASI FAB
+             * ============================================================
+             */
+
+            AnimatedVisibility(
+                visible = menuExpanded,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Color.Black.copy(alpha = 0.35f),
+                            )
+                            .clickable(
+                                interactionSource =
+                                    remember {
+                                        MutableInteractionSource()
+                                    },
+                                indication = null,
+                            ) {
+                                menuExpanded = false
+                            },
+                )
+            }
+
+            val fabBottomPadding = 6.dp
+
+            AnimatedVisibility(
+                visible = !hideFab,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(
+                            bottom = fabBottomPadding,
+                        )
+                        .navigationBarsPadding(),
+            ) {
+                ExpandableMenuFab(
+                    expanded = menuExpanded,
+                    onToggle = {
+                        menuExpanded = !menuExpanded
+                    },
+                    selected = currentDest,
+                    onSelect = { dest ->
+                        goTo(dest)
+                        menuExpanded = false
+                    },
+                )
+            }
+
+            /*
+             * ============================================================
+             * DATABASE RESTORE OVERLAY
+             * ============================================================
+             */
+
+            AnimatedVisibility(
+                visible = isRestoringDatabase,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Color.Black.copy(alpha = 0.75f),
+                            )
+                            .clickable(
+                                interactionSource =
+                                    remember {
+                                        MutableInteractionSource()
+                                    },
+                                indication = null,
+                            ) {
+                                // Block click while restoring.
+                            },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally,
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(12.dp),
+                        )
+
+                        Text(
+                            text = "Memulihkan cadangan…",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(4.dp),
+                        )
+
+                        Text(
+                            text =
+                                "Jangan tutup aplikasi. " +
+                                    "Aplikasi akan otomatis restart.",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
+            }
+
+            /*
+             * ============================================================
+             * GLOBAL MESSAGE PILL
+             *
+             * Diletakkan terakhir di dalam Box sehingga digambar
+             * setelah layer aplikasi, FAB, dan restore overlay.
+             * ============================================================
+             */
+
+            TopAlignedMessagePill(
+                message = messageController.currentMessage,
+                onDismiss = {
+                    messageController.dismiss()
+                },
+            )
         }
     }
 }
@@ -431,88 +772,128 @@ private fun ExpandableMenuFab(
     selected: Dest,
     onSelect: (Dest) -> Unit,
 ) {
-    // Penggerak utama animasi (dari 0.0 ke 1.0) dengan efek pegas (bouncy)
     val expandFraction by animateFloatAsState(
         targetValue = if (expanded) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "fab_expand"
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow,
+            ),
+        label = "fab_expand",
     )
 
     Box(
         contentAlignment = Alignment.BottomCenter,
-        modifier = Modifier.padding(bottom = 1.dp) // Ruang bernafas tambahan 8.dp
+        modifier = Modifier.padding(bottom = 1.dp),
     ) {
-        // MENGGAMBAR MENU PELANGI DENGAN TRIGONOMETRI
         Dest.entries.forEachIndexed { index, dest ->
-            // Sudut pelangi: Dari 160° (kiri) ke 20° (kanan)
+
             val startAngle = 160.0
             val endAngle = 20.0
-            // Membagi rata sudut berdasarkan jumlah menu (4 menu)
-            val angle = startAngle - (index * (startAngle - endAngle) / (Dest.entries.size - 1))
-            val angleRad = Math.toRadians(angle)
-            
-            val radius = 80.dp // Jarak lontaran menu dari FAB utama 95.dp
 
-            // Rumus posisi melingkar
-            val xOffset = (cos(angleRad) * radius.value).dp * expandFraction
-            val yOffset = (-sin(angleRad) * radius.value).dp * expandFraction
+            val angle =
+                startAngle -
+                    (
+                        index *
+                            (startAngle - endAngle) /
+                            (Dest.entries.size - 1)
+                    )
+
+            val angleRad = Math.toRadians(angle)
+
+            val radius = 80.dp
+
+            val xOffset =
+                (cos(angleRad) * radius.value).dp *
+                    expandFraction
+
+            val yOffset =
+                (-sin(angleRad) * radius.value).dp *
+                    expandFraction
 
             if (expandFraction > 0f) {
                 Column(
-                    modifier = Modifier
-                        .offset(x = xOffset, y = yOffset) // Posisi radial
-                        .graphicsLayer {
-                            // Muncul dari titik tengah membesar dan memudar masuk
-                            scaleX = 0.3f + (0.7f * expandFraction)
-                            scaleY = 0.3f + (0.7f * expandFraction)
-                            alpha = expandFraction
-                        },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier =
+                        Modifier
+                            .offset(
+                                x = xOffset,
+                                y = yOffset,
+                            )
+                            .graphicsLayer {
+                                scaleX =
+                                    0.3f +
+                                        (0.7f * expandFraction)
+
+                                scaleY =
+                                    0.3f +
+                                        (0.7f * expandFraction)
+
+                                alpha = expandFraction
+                            },
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(6.dp),
                 ) {
                     MiniMenuItem(
                         dest = dest,
                         isSelected = dest == selected,
-                        onClick = { onSelect(dest) }
+                        onClick = {
+                            onSelect(dest)
+                        },
                     )
-                    // IDE BRILIAN: Label teks putih yang memperjelas fungsi ikon
+
                     Text(
                         text = dest.label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        style =
+                            MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                            ),
                         color = Color.White,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
             }
         }
 
-        // FAB UTAMA
         Surface(
-            modifier = Modifier
-                .size(40.dp) // Diperbesar dari 40dp ke standar Material 56dp agar kokoh di tengah
-                .shadow(8.dp, CircleShape)
-                .graphicsLayer {
-                    // Animasi putaran halus searah jarum jam saat dibuka
-                    rotationZ = expandFraction * 135f 
-                },
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = CircleShape,
+                    )
+                    .graphicsLayer {
+                        rotationZ = expandFraction * 135f
+                    },
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary,
             onClick = onToggle,
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                // Animasi Morphing Icon (Menu bersalin rupa menjadi Close)
+            Box(
+                contentAlignment = Alignment.Center,
+            ) {
                 AnimatedContent(
                     targetState = expanded,
-                    label = "fab_icon_morph"
+                    label = "fab_icon_morph",
                 ) { isExpanded ->
+
                     Icon(
-                        imageVector = if (isExpanded) Icons.Rounded.Close else Icons.Rounded.Menu,
-                        contentDescription = if (isExpanded) "Tutup menu" else "Buka menu",
+                        imageVector =
+                            if (isExpanded) {
+                                Icons.Rounded.Close
+                            } else {
+                                Icons.Rounded.Menu
+                            },
+                        contentDescription =
+                            if (isExpanded) {
+                                "Tutup menu"
+                            } else {
+                                "Buka menu"
+                            },
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp), // 24.dp
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
@@ -527,18 +908,34 @@ private fun MiniMenuItem(
     onClick: () -> Unit,
 ) {
     Surface(
-        // Ubah dari 36.dp menjadi 44.dp agar lebih nyaman ditekan
-        modifier = Modifier.size(36.dp).shadow(6.dp, CircleShape),
+        modifier =
+            Modifier
+                .size(36.dp)
+                .shadow(
+                    elevation = 6.dp,
+                    shape = CircleShape,
+                ),
         shape = CircleShape,
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        color =
+            if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
         onClick = onClick,
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
                 imageVector = dest.icon(),
                 contentDescription = dest.label,
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                // Ubah dari 18.dp menjadi 22.dp
+                tint =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 modifier = Modifier.size(18.dp),
             )
         }
