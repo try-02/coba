@@ -4,8 +4,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
@@ -37,44 +35,39 @@ class InventoryGlobalMessageTest {
         )
     }
 
-private fun navigateToInventory() {
-    waitForSeededPos()
+    private fun navigateToInventory() {
+        waitForSeededPos()
 
-    // 1. Klik FAB "Buka menu"
-    composeRule
-        .onNode(
-            hasContentDescription("Buka menu"),
-            useUnmergedTree = true,
-        )
-        .assertIsDisplayed()
-        .performClick()
-
-    // 2. Tunggu icon mini menu "Inventaris" muncul
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+        // 1. Klik FAB "Buka menu"
         composeRule
-            .onAllNodes(
-                hasContentDescription("Inventaris") and hasClickAction(),
-                useUnmergedTree = true
+            .onNode(
+                hasContentDescription("Buka menu"),
+                useUnmergedTree = true,
             )
-            .fetchSemanticsNodes()
-            .isNotEmpty()
-    }
+            .assertIsDisplayed()
+            .performClick()
 
-    // 3. Klik Icon/Tombol "Inventaris" (Bukan Text-nya)
-    composeRule
-        .onNode(
-            hasContentDescription("Inventaris") and hasClickAction(),
-            useUnmergedTree = true,
+        // 2. Tunggu icon mini menu "Inventaris" muncul
+        composeRule.waitUntilAtLeastOneExists(
+            hasContentDescription("Inventaris"),
+            timeoutMillis = 5_000,
         )
-        .assertIsDisplayed()
-        .performClick()
 
-    // 4. Tunggu tombol (+) "Tambah Produk" di InventoryScreen muncul sebagai bukti berhasil pindah halaman
-    composeRule.waitUntilAtLeastOneExists(
-        hasContentDescription("Tambah Produk"),
-        timeoutMillis = 5_000,
-    )
-}
+        // 3. Klik Icon/Tombol "Inventaris"
+        composeRule
+            .onNode(
+                hasContentDescription("Inventaris"),
+                useUnmergedTree = true,
+            )
+            .assertIsDisplayed()
+            .performClick()
+
+        // 4. Tunggu tombol (+) "Tambah Produk" di InventoryScreen muncul sebagai bukti berhasil pindah halaman
+        composeRule.waitUntilAtLeastOneExists(
+            hasContentDescription("Tambah Produk"),
+            timeoutMillis = 5_000,
+        )
+    }
 
     @Test
     fun addAndDeleteProduct_usesGlobalMessagePill() {
