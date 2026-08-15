@@ -3,7 +3,6 @@ package com.pos.offline
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
@@ -89,18 +88,17 @@ class InventoryGlobalMessageTest {
             )
             .assertIsDisplayed()
 
-        // In ProductFormDialog the first editable field is "Nama Produk".
+        // Target field "Nama Produk" secara langsung berdasarkan labelnya
         composeRule
-            .onAllNodes(
-                hasSetTextAction(),
-                useUnmergedTree = true,
+            .onNode(
+                hasText("Nama Produk", substring = true),
             )
-            .get(0)
+            .assertIsDisplayed()
             .performTextInput(TEST_PRODUCT_NAME)
 
         composeRule
             .onNode(
-                hasText("Simpan", substring = true),
+                hasText("Simpan"),
                 useUnmergedTree = true,
             )
             .assertIsDisplayed()
@@ -136,7 +134,7 @@ class InventoryGlobalMessageTest {
 
         composeRule
             .onNode(
-                hasText("Hapus", substring = true),
+                hasText("Hapus"),
                 useUnmergedTree = true,
             )
             .assertIsDisplayed()
@@ -152,7 +150,7 @@ class InventoryGlobalMessageTest {
         // Confirmation dialog also contains the actual delete button.
         composeRule
             .onNode(
-                hasText("Hapus", substring = true),
+                hasText("Hapus"),
                 useUnmergedTree = true,
             )
             .assertIsDisplayed()
