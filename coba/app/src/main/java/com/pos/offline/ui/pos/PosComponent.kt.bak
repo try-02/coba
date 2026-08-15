@@ -1273,6 +1273,7 @@ private fun PayMoneyField(
     var text by remember(value) {
         mutableStateOf(if (value <= 0) "" else value.toString())
     }
+    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = text,
         onValueChange = { input ->
@@ -1374,6 +1375,7 @@ private fun ChangeGivenField(
     onValueChange: (Long?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
     val effectiveValue = value?.coerceIn(0L, maxChange) ?: maxChange
     var text by remember(effectiveValue) { mutableStateOf(effectiveValue.toString()) }
     val tip = (maxChange - effectiveValue).coerceAtLeast(0L)
@@ -1572,6 +1574,7 @@ internal fun DiscountField(
                 }
         }
     }
+    val focusManager = LocalFocusManager.current
     val isNominal = type == DiscountType.NOMINAL
     val keyboardType = if (isNominal) KeyboardType.Number else KeyboardType.Decimal
     val visualTransformation =
@@ -1686,6 +1689,7 @@ internal fun DecimalField(
     var text by remember(value) {
         mutableStateOf(if (value <= 0.0) "" else formatPercentTrim(value))
     }
+    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = text,
         onValueChange = { input ->

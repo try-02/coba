@@ -134,6 +134,8 @@ import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.toRupiah
 import com.pos.offline.LocalActiveFocusBounds
+import androidx.compose.runtime.MutableState
+import androidx.compose.ui.geometry.Rect
 
 @Composable
 internal fun ShiftIndicatorBar(

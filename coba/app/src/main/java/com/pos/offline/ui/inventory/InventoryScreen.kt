@@ -108,8 +108,9 @@ import com.pos.offline.LocalActiveFocusBounds
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.composed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1437,4 +1438,22 @@ private fun TopSalesChip(
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
         )
     }
+}
+
+fun Modifier.trackFocusBounds(): Modifier = composed {
+    val activeBounds = LocalActiveFocusBounds.current
+    var isFocused by remember { mutableStateOf(false) }
+
+    this
+        .onFocusChanged { focusState ->
+            isFocused = focusState.isFocused
+            if (!isFocused) {
+                activeBounds.value = null 
+            }
+        }
+        .onGloballyPositioned { coords ->
+            if (isFocused) {
+                activeBounds.value = coords.boundsInRoot() 
+            }
+        }
 }
