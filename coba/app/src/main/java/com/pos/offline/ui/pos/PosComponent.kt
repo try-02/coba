@@ -60,7 +60,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachMoney
@@ -115,6 +117,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.composed
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import com.pos.offline.data.local.entity.CartItemEntity
 import com.pos.offline.data.local.entity.DiscountType
 import com.pos.offline.data.local.entity.PaymentMethod
@@ -127,6 +133,7 @@ import com.pos.offline.util.bouncyOverscroll
 import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.toRupiah
+import com.pos.offline.LocalActiveFocusBounds
 
 @Composable
 internal fun ShiftIndicatorBar(
@@ -244,7 +251,16 @@ internal fun CompactSearchBar(
             MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface,
             ),
-        modifier = modifier,
+        modifier = modifier.trackFocusBounds(), 
+        
+        // 3. TAMBAHKAN KONTROL KEYBOARD (Tombol Enter/Selesai)
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search // Ubah ikon enter menjadi kaca pembesar
+        ),
+        keyboardActions = KeyboardActions(
+            onSearch = { focusManager.clearFocus() }, // Hapus fokus saat ditekan
+            onDone = { focusManager.clearFocus() }
+        ),
         decorationBox = { innerTextField ->
             Row(
                 modifier =
@@ -1257,6 +1273,7 @@ private fun PayMoneyField(
     var text by remember(value) {
         mutableStateOf(if (value <= 0) "" else value.toString())
     }
+    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = text,
         onValueChange = { input ->
@@ -1264,7 +1281,15 @@ private fun PayMoneyField(
             text = digits
             onValueChange(digits.toLongOrNull() ?: 0L)
         },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        // 1. Tambahkan imeAction.Done
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Done 
+        ),
+        // 2. Tambahkan aksi untuk menutup keyboard saat Selesai ditekan
+        keyboardActions = KeyboardActions(
+            onDone = { focusManager.clearFocus() }
+        ),
         singleLine = true,
         visualTransformation = ThousandsSeparatorTransformation,
         textStyle =
@@ -1272,7 +1297,8 @@ private fun PayMoneyField(
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
             ),
-        modifier = modifier,
+        // 3. Tempelkan pelacak fokus
+        modifier = modifier.trackFocusBounds(), 
         decorationBox = { innerTextField ->
             Row(
                 modifier =
@@ -1349,6 +1375,7 @@ private fun ChangeGivenField(
     onValueChange: (Long?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
     val effectiveValue = value?.coerceIn(0L, maxChange) ?: maxChange
     var text by remember(effectiveValue) { mutableStateOf(effectiveValue.toString()) }
     val tip = (maxChange - effectiveValue).coerceAtLeast(0L)
@@ -1361,7 +1388,15 @@ private fun ChangeGivenField(
                 val parsed = (digits.toLongOrNull() ?: 0L).coerceIn(0L, maxChange)
                 onValueChange(if (parsed == maxChange) null else parsed)
             },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            // 1. Tambahkan imeAction.Done
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            // 2. Tambahkan aksi untuk menutup keyboard
+            keyboardActions = KeyboardActions(
+                onDone = { focusManager.clearFocus() }
+            ),
             singleLine = true,
             visualTransformation = ThousandsSeparatorTransformation,
             textStyle =
@@ -1369,7 +1404,8 @@ private fun ChangeGivenField(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                 ),
-            modifier = Modifier.fillMaxWidth().height(34.dp),
+            // 3. Tempelkan pelacak fokus di akhir modifier berantai
+            modifier = Modifier.fillMaxWidth().height(34.dp).trackFocusBounds(),
             decorationBox = { innerTextField ->
                 Row(
                     modifier =
@@ -1538,6 +1574,7 @@ internal fun DiscountField(
                 }
         }
     }
+    val focusManager = LocalFocusManager.current
     val isNominal = type == DiscountType.NOMINAL
     val keyboardType = if (isNominal) KeyboardType.Number else KeyboardType.Decimal
     val visualTransformation =
@@ -1568,7 +1605,15 @@ internal fun DiscountField(
             text = cleaned
             onValueChange(cleaned.toDoubleOrNull() ?: 0.0)
         },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        // 1. Tambahkan imeAction.Done
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType, // Tetap menggunakan parameter bawaan Anda
+            imeAction = ImeAction.Done
+        ),
+        // 2. Tambahkan aksi untuk menutup keyboard
+        keyboardActions = KeyboardActions(
+            onDone = { focusManager.clearFocus() }
+        ),
         singleLine = true,
         visualTransformation = visualTransformation,
         textStyle =
@@ -1576,7 +1621,8 @@ internal fun DiscountField(
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
             ),
-        modifier = modifier,
+        // 3. Tempelkan pelacak fokus
+        modifier = modifier.trackFocusBounds(),
         decorationBox = { innerTextField ->
             Row(
                 modifier =
@@ -1643,6 +1689,7 @@ internal fun DecimalField(
     var text by remember(value) {
         mutableStateOf(if (value <= 0.0) "" else formatPercentTrim(value))
     }
+    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = text,
         onValueChange = { input ->
@@ -1665,14 +1712,23 @@ internal fun DecimalField(
             text = cleaned
             onValueChange(cleaned.toDoubleOrNull() ?: 0.0)
         },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        // 1. Tambahkan imeAction.Done
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = ImeAction.Done
+        ),
+        // 2. Tambahkan aksi untuk menutup keyboard
+        keyboardActions = KeyboardActions(
+            onDone = { focusManager.clearFocus() }
+        ),
         singleLine = true,
         textStyle =
             MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
             ),
-        modifier = modifier,
+        // 3. Tempelkan pelacak fokus
+        modifier = modifier.trackFocusBounds(),
         decorationBox = { innerTextField ->
             Row(
                 modifier =
@@ -1835,4 +1891,22 @@ private fun PopupDetailRow(
             color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+fun Modifier.trackFocusBounds(): Modifier = composed {
+    val activeBounds = LocalActiveFocusBounds.current
+    var isFocused by remember { mutableStateOf(false) }
+
+    this
+        .onFocusChanged { focusState ->
+            isFocused = focusState.isFocused
+            if (!isFocused) {
+                activeBounds.value = null 
+            }
+        }
+        .onGloballyPositioned { coords ->
+            if (isFocused) {
+                activeBounds.value = coords.boundsInRoot() 
+            }
+        }
 }

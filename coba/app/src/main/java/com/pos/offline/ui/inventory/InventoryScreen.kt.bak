@@ -104,12 +104,6 @@ import com.pos.offline.util.sanitizeScannedCode
 import com.pos.offline.util.toRupiah
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.pos.offline.LocalActiveFocusBounds
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.ImeAction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -791,7 +785,6 @@ private fun CompactInventorySearchBar(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -800,16 +793,7 @@ private fun CompactInventorySearchBar(
             MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface,
             ),
-        modifier = modifier.trackFocusBounds(), 
-        
-        // 3. TAMBAHKAN KONTROL KEYBOARD (Tombol Enter/Selesai)
-        keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Search // Ubah ikon enter menjadi kaca pembesar
-        ),
-        keyboardActions = KeyboardActions(
-            onSearch = { focusManager.clearFocus() }, // Hapus fokus saat ditekan
-            onDone = { focusManager.clearFocus() }
-        ),
+        modifier = modifier,
         decorationBox = { innerTextField ->
             Row(
                 modifier =

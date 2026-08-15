@@ -102,10 +102,6 @@ import io.iamjosephmj.flinger.behaviours.FlingPresets
 import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 
 private enum class Dest(
     val label: String,
@@ -115,9 +111,7 @@ private enum class Dest(
     REPORT("Laporan"),
     SETTINGS("Pengaturan"),
 }
-val LocalActiveFocusBounds = staticCompositionLocalOf<MutableState<Rect?>> {
-    error("LocalActiveFocusBounds belum disediakan")
-}
+
 class MainActivity : ComponentActivity() {
 
     private val posViewModel: PosViewModel by viewModels {
@@ -195,9 +189,6 @@ private fun AppRoot() {
         remember {
             GlobalMessageController(scope)
         }
-
-    val activeFocusBounds = remember { mutableStateOf<Rect?>(null) }
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     val pagerState =
         rememberPagerState(
@@ -481,30 +472,14 @@ private fun AppRoot() {
      */
     CompositionLocalProvider(
         LocalGlobalMessage provides messageController,
-        LocalActiveFocusBounds provides activeFocusBounds
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                // 3. TAMBAHAN BARU: Radar Sentuhan (Pointer Interceptor)
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            // Tangkap sentuhan pertama kali sebelum ditelan oleh tombol produk
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            val downEvent = event.changes.firstOrNull { it.pressed && it.previousPressed.not() }
-                            
-                            if (downEvent != null) {
-                                val bounds = activeFocusBounds.value
-                                // Jika kursor sedang aktif, tapi jari menyentuh area DI LUAR kotak teks
-                                if (bounds != null && !bounds.contains(downEvent.position)) {
-                                    focusManager.clearFocus() // Hilangkan kursor & keyboard
-                                }
-                            }
-                        }
-                    }
-                },
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        MaterialTheme.colorScheme.background,
+                    ),
         ) {
 
             /*
