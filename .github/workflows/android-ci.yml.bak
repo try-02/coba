@@ -91,10 +91,9 @@ jobs:
           api-level: 30
           target: aosp_atd 
           arch: x86_64
-          force-avd-creation: false
           disable-animations: true
           working-directory: ./coba
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
           script: ./gradlew clean connectedDebugAndroidTest --rerun-tasks --parallel --stacktrace
 
       - name: Upload instrumentation test reports

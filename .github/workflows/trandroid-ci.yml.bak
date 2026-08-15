@@ -1,6 +1,9 @@
 name: Android CI try
 
 on:
+  push:
+    branches: ["**"]
+  pull_request:
   workflow_dispatch:
 
 permissions:
