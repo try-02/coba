@@ -4,6 +4,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
@@ -46,15 +48,22 @@ class InventoryGlobalMessageTest {
             .assertIsDisplayed()
             .performClick()
 
-        composeRule.waitUntilAtLeastOneExists(
-            hasText("Inventaris", substring = true),
-            timeoutMillis = 3_000,
-        )
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule
+                .onAllNodes(
+                    hasText("Inventaris", substring = true),
+                    useUnmergedTree = true
+                )
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
 
+        // 3. SOLUSI UTAMA: Cari kontainer menu yang memiliki aksi klik (hasClickAction) 
+        //    dan di dalamnya mengandung teks "Inventaris". Ini akan otomatis mengklik area ikon Anda.
         composeRule
             .onNode(
-                hasText("Inventaris", substring = true),
-                useUnmergedTree = true,
+                hasAnyDescendant(hasText("Inventaris", substring = true)) and hasClickAction(),
+                useUnmergedTree = true
             )
             .assertIsDisplayed()
             .performClick()

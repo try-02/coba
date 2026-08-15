@@ -46,6 +46,11 @@ class InventoryGlobalMessageTest {
             .assertIsDisplayed()
             .performClick()
 
+        composeRule.waitUntilAtLeastOneExists(
+            hasText("Inventaris", substring = true),
+            timeoutMillis = 3_000,
+        )
+
         composeRule
             .onNode(
                 hasText("Inventaris", substring = true),
