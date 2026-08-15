@@ -1,7 +1,6 @@
 package com.pos.offline
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.OptIn
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
