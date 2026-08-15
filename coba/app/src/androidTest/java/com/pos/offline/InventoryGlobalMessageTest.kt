@@ -3,9 +3,11 @@ package com.pos.offline
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -117,11 +119,17 @@ class InventoryGlobalMessageTest {
             )
             .assertIsDisplayed()
 
-        // Wait until the newly-created product is visible.
-        composeRule.waitUntilAtLeastOneExists(
-            hasText(TEST_PRODUCT_NAME, substring = true),
-            timeoutMillis = 5_000,
-        )
+        // Scroll LazyColumn sampai produk yang baru dibuat terlihat di layar
+        composeRule
+            .onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText(TEST_PRODUCT_NAME, substring = true))
+
+        composeRule
+            .onNode(
+                hasText(TEST_PRODUCT_NAME, substring = true),
+                useUnmergedTree = true,
+            )
+            .assertIsDisplayed()
 
         // Clean up the test data using the real UI.
         composeRule
