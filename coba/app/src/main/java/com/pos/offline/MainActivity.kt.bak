@@ -298,7 +298,6 @@ private fun AppRoot() {
                 onDismissRequest = {
                     showExitDialog = false
                 },
-                containerColor = MaterialTheme.colorScheme.surface,
                 icon = {
                     Icon(
                         imageVector = Icons.Rounded.Warning,
@@ -380,7 +379,6 @@ private fun AppRoot() {
                 onDismissRequest = {
                     showExitDialog = false
                 },
-                containerColor = MaterialTheme.colorScheme.surface,
                 title = {
                     Text(
                         text = "Keluar Aplikasi?",

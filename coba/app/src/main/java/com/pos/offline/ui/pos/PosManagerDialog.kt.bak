@@ -402,8 +402,6 @@ internal fun ManageShiftsDialog(
     }
 }
 
-import androidx.compose.foundation.BorderStroke // Pastikan ini di-import
-
 @Composable
 private fun OpenShiftRow(
     shift: ShiftEntity,
@@ -413,26 +411,19 @@ private fun OpenShiftRow(
     onDesignateActiveClick: () -> Unit,
 ) {
     val elapsed = remember(shift.id, shift.startedAt) { formatElapsedSince(shift.startedAt) }
-    
-    // Menggunakan Surface sebagai pengganti GlassCard
-    Surface(
-        onClick = onCloseClick,
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+        cornerRadius = 12.dp,
+        contentPadding = PaddingValues(10.dp),
+        onClick = onCloseClick,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(10.dp) // Padding dipindah ke dalam Row
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         shift.cashierName,
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface // Menjaga warna teks
                     )
                     if (isDesignatedActive) {
                         Spacer(Modifier.width(6.dp))
