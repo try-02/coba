@@ -52,6 +52,7 @@ import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -171,20 +172,12 @@ LaunchedEffect(viewModel, globalMessage) {
                                 .padding(top = 8.dp, bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(36.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     Icons.Rounded.Inventory2,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = MaterialTheme.colorScheme.Primary,
                                 )
-                            }
-                        }
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "Inventaris",
@@ -193,20 +186,15 @@ LaunchedEffect(viewModel, globalMessage) {
                             modifier = Modifier.weight(1f),
                         )
                         if (products.isNotEmpty()) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            ) {
-                                Text(
+                                 Text(
                                     "${products.size} produk",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                 //   modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 )
                             }
                         }
-                    }
 
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                         Row(
@@ -621,62 +609,75 @@ private fun ProductRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onEdit) // Seluruh baris kini bisa diklik untuk edit
-            .padding(horizontal = 16.dp, vertical = 14.dp), // Padding disesuaikan dengan POS
+            .clickable(role = Role.Button, onClick = onEdit) 
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            // Baris Atas: Nama Produk & Kategori
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = product.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                if (product.category.isNotBlank()) {
-                    Spacer(Modifier.width(8.dp))
-                    CategoryBadge(category = product.category)
-                }
-            }
+            // Baris Atas: Nama Produk Saja
+            Text(
+                text = product.name,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
             
             Spacer(Modifier.height(4.dp))
             
-            // Baris Bawah: SKU, Harga, & Laba
+            // Baris Bawah: Harga -> Laba -> Kategori
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = product.sku,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                
-                Spacer(Modifier.width(6.dp))
-                Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.width(6.dp))
-                
-                Text(
-                    text = product.price.toRupiah(),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                
-                if (product.cost > 0) {
-                    Spacer(Modifier.width(6.dp))
+                // 1. Format Harga: "Rp" kecil, Angka besar & menonjol (Sejajar dengan POS Kasir)
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "(Laba ${(product.price - product.cost).toRupiah()})",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        text = "Rp",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        text = product.price.toRupiah().replace("Rp", "").trim(),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface, // Warna onSurface agar menonjol
+                    )
+                }
+                
+                // 2. Laba: Menggunakan icon tren naik dan angka (tanpa kurung/kata Laba)
+                if (product.cost > 0) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                    Spacer(Modifier.width(8.dp))
+                    
+                    val profit = product.price - product.cost
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Rounded.TrendingUp,
+                            contentDescription = "Laba",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            text = profit.toRupiah().replace("Rp", "").trim(),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                
+                // 3. Kategori
+                if (product.category.isNotBlank()) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                    Spacer(Modifier.width(8.dp))
+                    
+                    CategoryBadge(category = product.category)
                 }
             }
         }
@@ -693,66 +694,49 @@ private fun ProductRow(
                 DamagedStockBadge(stock = product.damagedStock)
             }
         }
-        
-        Spacer(Modifier.width(12.dp))
-        
-        // Ikon Edit Chevron (simpel dan lebih kalem)
-        Icon(
-            imageVector = Icons.Rounded.Edit,
-            contentDescription = "Edit ${product.name}",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(16.dp)
-        )
     }
 }
 
 @Composable
 private fun CategoryBadge(category: String) {
-    Surface(color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
-        Text(
-            text = category,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.tertiary,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    Text(
+        text = category,
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+        color = MaterialTheme.colorScheme.tertiary, // Warna teks dipertahankan
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable
 private fun StockBadge(stock: Double) {
-    val color =
-        when {
-            stock <= 0.0 -> MaterialTheme.colorScheme.error
-            stock <= 5.0 -> Color(0xFFF5A623)
-            else -> MaterialTheme.colorScheme.primary
-        }
-    Surface(color = color.copy(alpha = 0.16f), shape = RoundedCornerShape(6.dp)) {
-        Text(
-            text = if (stock <= 0.0) "Habis" else "Stok ${stock.formatQuantity()}",
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace, // Monospace Finansial
-            color = color,
-            fontWeight = FontWeight.Bold,
-        )
+    // Penyesuaian warna stok sesuai dengan POS Kasir
+    val color = when {
+        stock <= 0.0 -> MaterialTheme.colorScheme.error
+        stock <= 5.0 -> Color(0xFFF5A623) // Kuning/Oranye untuk stok menipis
+        else -> MaterialTheme.colorScheme.onSurfaceVariant // Sama seperti di POS Kasir (tanpa warna solid)
     }
+    Text(
+        text = if (stock <= 0.0) "Habis" else stock.formatQuantity(),
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+        fontFamily = FontFamily.Monospace,
+        color = color,
+        fontWeight = if (stock <= 5.0) FontWeight.Bold else FontWeight.Medium,
+        textAlign = TextAlign.End
+    )
 }
 
 @Composable
 private fun DamagedStockBadge(stock: Double) {
-    Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.16f), shape = RoundedCornerShape(6.dp)) {
-        Text(
-            text = "Rusak ${stock.formatQuantity()}",
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.error,
-            fontWeight = FontWeight.Bold,
-        )
-    }
+    Text(
+        text = "${stock.formatQuantity()} Rusak",
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+        fontFamily = FontFamily.Monospace,
+        color = MaterialTheme.colorScheme.error,
+        fontWeight = FontWeight.Medium,
+        textAlign = TextAlign.End
+    )
 }
 
 @Composable
