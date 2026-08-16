@@ -68,6 +68,8 @@ import java.util.Locale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.OutlinedButton
 
 @Composable
 fun PosDialogManager(

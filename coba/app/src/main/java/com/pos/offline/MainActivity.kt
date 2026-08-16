@@ -152,6 +152,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AppRoot() {
     val posViewModel: PosViewModel =
@@ -335,8 +336,7 @@ private fun AppRoot() {
                         )
                     }
                 },
-                // MASUKKAN SEMUA TOMBOL KE DALAM FLOWROW
-                @OptIn(ExperimentalLayoutApi::class)
+                // HAPUS @OptIn DARI SINI
                 confirmButton = {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -371,7 +371,7 @@ private fun AppRoot() {
                         }
                     }
                 },
-                dismissButton = {} // Biarkan kosong agar semua kontrol dipegang oleh FlowRow di atas
+                dismissButton = {} 
             )
         } else {
             AlertDialog(
