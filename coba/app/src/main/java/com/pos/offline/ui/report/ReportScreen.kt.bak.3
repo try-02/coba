@@ -147,19 +147,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.compose.material3.Switch
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.composed
-import com.pos.offline.LocalActiveFocusBounds
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -305,33 +292,31 @@ LaunchedEffect(viewModel, globalMessage) {
                     flingBehavior = iosGlideFlingBehavior(),
                 ) {
                     item(key = "unified_search_actions") {
-                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                CompactReportSearchBar(
-                                    query = productHistoryQuery,
-                                    onQueryChange = { query ->
-                                        viewModel.searchProductHistory(query)
-                                        viewModel.searchInvoice(query)
-                                    },
-                                    modifier = Modifier.weight(1f).height(34.dp), // Disamakan ukurannya (34dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                CompactSquareIconButton(
-                                    icon = Icons.Rounded.QrCodeScanner,
-                                    contentDescription = "Scan Barcode",
-                                    onClick = { openScanner() },
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                CompactSquareIconButton(
-                                    icon = Icons.Rounded.Build,
-                                    contentDescription = "Klaim Garansi Direct",
-                                    onClick = { showDirectWarrantyScreen = true },
-                                    isError = true,
-                                )
-                            }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CompactReportSearchBar(
+                                query = productHistoryQuery,
+                                onQueryChange = { query ->
+                                    viewModel.searchProductHistory(query)
+                                    viewModel.searchInvoice(query)
+                                },
+                                modifier = Modifier.weight(1f).height(44.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            CompactSquareIconButton(
+                                icon = Icons.Rounded.QrCodeScanner,
+                                contentDescription = "Scan Barcode",
+                                onClick = { openScanner() },
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            CompactSquareIconButton(
+                                icon = Icons.Rounded.Build,
+                                contentDescription = "Klaim Garansi Direct",
+                                onClick = { showDirectWarrantyScreen = true },
+                                isError = true,
+                            )
                         }
                     }
                     when (val state = searchUiState) {
@@ -416,50 +401,62 @@ LaunchedEffect(viewModel, globalMessage) {
                                 val salesReportState by viewModel.salesReportUiState.collectAsStateWithLifecycle()
                                 val scope = rememberCoroutineScope()
                                 val context = LocalContext.current
-                                
-                                // HAPUS GlassCard, GANTI dengan Surface datar
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateContentSize(spring(stiffness = Spring.StiffnessLow)),
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                                GlassCard(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .animateContentSize(
+                                                animationSpec =
+                                                    spring(
+                                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        stiffness = Spring.StiffnessLow,
+                                                    ),
+                                            ),
+                                    contentPadding = PaddingValues(16.dp),
                                 ) {
-                                    Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Text(
                                             "Generator Laporan Penjualan",
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                         )
-                                        
                                         ReportPeriodToggleRow(
                                             selected = periodType,
                                             enabled = true,
                                             onSelect = viewModel::toggleReportPeriod,
                                         )
-                                        
-                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            ReportOptionRow(
-                                                label = "Ringkasan Penjualan & Keuangan",
-                                                checked = includeSalesSummary,
-                                                onCheckedChange = viewModel::toggleIncludeSalesSummary
-                                            )
-                                            ReportOptionRow(
-                                                label = "Daftar Produk Terjual",
-                                                checked = includeProductsSold,
-                                                onCheckedChange = viewModel::toggleIncludeProductsSold
-                                            )
-                                            ReportOptionRow(
-                                                label = "Produk Tidak Laku (Dead Stock)",
-                                                checked = includeDeadStock,
-                                                onCheckedChange = viewModel::toggleIncludeDeadStock
-                                            )
+                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.clickable { viewModel.toggleIncludeSalesSummary(!includeSalesSummary) }
+                                            ) {
+                                                Checkbox(
+                                                    checked = includeSalesSummary,
+                                                    onCheckedChange = viewModel::toggleIncludeSalesSummary,
+                                                )
+                                                Text("Ringkasan Penjualan & Keuangan", style = MaterialTheme.typography.bodySmall)
+                                            }
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.clickable { viewModel.toggleIncludeProductsSold(!includeProductsSold) }
+                                            ) {
+                                                Checkbox(
+                                                    checked = includeProductsSold,
+                                                    onCheckedChange = viewModel::toggleIncludeProductsSold,
+                                                )
+                                                Text("Daftar Produk Terjual", style = MaterialTheme.typography.bodySmall)
+                                            }
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.clickable { viewModel.toggleIncludeDeadStock(!includeDeadStock) }
+                                            ) {
+                                                Checkbox(
+                                                    checked = includeDeadStock,
+                                                    onCheckedChange = viewModel::toggleIncludeDeadStock,
+                                                )
+                                                Text("Daftar Produk Tidak Laku (Dead Stock)", style = MaterialTheme.typography.bodySmall)
+                                            }
                                         }
-                                        
                                         if (periodType != null) {
                                             SalesReportResultCard(
                                                 uiState = salesReportState,
@@ -468,8 +465,11 @@ LaunchedEffect(viewModel, globalMessage) {
                                                     viewModel.buildCurrentReportLinesForExportAsync { lines ->
                                                         if (lines != null) {
                                                             scope.launch {
-                                                                val file = ReceiptManager.exportPdfFromLines(
-                                                                        context, lines, "Laporan_${periodType?.name}_$selectedDate"
+                                                                val file =
+                                                                    ReceiptManager.exportPdfFromLines(
+                                                                        context,
+                                                                        lines,
+                                                                        "Laporan_${periodType?.name}_$selectedDate",
                                                                     )
                                                                 viewModel.notifyPdfExported()
                                                                 onSharePdfFile(file)
@@ -754,18 +754,19 @@ private fun SalesReportResultCard(
     onPrint: () -> Unit,
     onExportPdf: () -> Unit,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
-        .animateContentSize(
+    GlassCard(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+                .animateContentSize(
                     animationSpec =
                         spring(
                             dampingRatio = Spring.DampingRatioNoBouncy,
                             stiffness = Spring.StiffnessLow,
                         ),
                 ),
+        contentPadding = PaddingValues(14.dp),
     ) {
         when (uiState) {
             is SalesReportUiState.Loading -> {
@@ -1046,11 +1047,10 @@ private fun TodayPillButton(onClick: () -> Unit) {
 @Composable
 private fun SummarySection(report: DailyReport) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 16.dp,
+            contentPadding = PaddingValues(16.dp),
         ) {
             Column {
                 Text(
@@ -1106,13 +1106,12 @@ private fun StatCard(
     value: String,
     icon: ImageVector,
 ) {
-    Surface(
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+        cornerRadius = 14.dp,
+        contentPadding = PaddingValues(12.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column {
             Icon(
                 icon,
                 contentDescription = null,
@@ -1123,7 +1122,7 @@ private fun StatCard(
             Text(
                 value,
                 style = MaterialTheme.typography.titleMedium,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = FontFamily.Monospace, // Monospace Finansial
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -1204,11 +1203,10 @@ private fun RevenueTrendChart(
                 textMeasurer.measure(labelStr, labelStyle)
             }
         }
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        contentPadding = PaddingValues(14.dp),
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1452,17 +1450,13 @@ private fun ReturnRow(
     ret: ReturnEntity,
     onClick: () -> Unit,
 ) {
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 12.dp,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 ReportViewModel.timeFmt.format(Instant.ofEpochMilli(ret.returnedAt)),
                 style = MaterialTheme.typography.bodyMedium,
@@ -1669,17 +1663,13 @@ private fun TransactionRow(
 ) {
     val isVoid = tx.isVoid
     val dimmedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 12.dp,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 ReportViewModel.timeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
                 style = MaterialTheme.typography.bodyMedium,
@@ -2583,18 +2573,13 @@ private fun ClosedShiftRow(
             diff < 0L -> "-${(-diff).toRupiah()}"
             else -> "+${diff.toRupiah()}"
         }
-        
-    Surface(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 12.dp,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 shift.endedAt?.let { ReportViewModel.timeFmt.format(Instant.ofEpochMilli(it)) } ?: "-",
                 style = MaterialTheme.typography.bodyMedium,
@@ -2901,25 +2886,24 @@ private fun CompactReportSearchBar(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(
-            onSearch = { focusManager.clearFocus() },
-            onDone = { focusManager.clearFocus() }
-        ),
-        modifier = modifier.trackFocusBounds(),
+        textStyle =
+            MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+            ),
+        modifier = modifier,
         decorationBox = { innerTextField ->
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -2942,24 +2926,20 @@ private fun CompactReportSearchBar(
                     innerTextField()
                 }
                 if (query.isNotEmpty()) {
-                    Spacer(Modifier.width(8.dp))
-                    Surface(
-                        onClick = {
-                            onQueryChange("")
-                            focusManager.clearFocus()
-                        },
-                        shape = CircleShape,
-                        color = Color.Transparent,
-                        modifier = Modifier.size(24.dp)
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .clickable { onQueryChange("") },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Rounded.Close,
-                                contentDescription = "Hapus pencarian",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = "Hapus pencarian",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -2976,71 +2956,21 @@ private fun CompactSquareIconButton(
 ) {
     val color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     val borderColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-    
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(8.dp), // Radius dipertajam karena ukuran lebih kecil (34dp)
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier.size(34.dp)
+    Box(
+        modifier =
+            Modifier
+                .size(44.dp) // Minimum 44dp-48dp Tap Target Size
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+                .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                icon,
-                contentDescription = contentDescription,
-                modifier = Modifier.size(16.dp),
-                tint = color,
-            )
-        }
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = color,
+        )
     }
-}
-
-@Composable
-private fun ReportOptionRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Surface(
-        onClick = { onCheckedChange(!checked) },
-        shape = RoundedCornerShape(10.dp),
-        color = if (checked) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), // Padding vertikal lebih tipis
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Medium
-            )
-            Switch(
-                checked = checked,
-                onCheckedChange = null, // Disable internal click, di-handle oleh Surface
-                modifier = Modifier.scale(0.7f) // Mengecilkan ukuran Switch agar proporsional
-            )
-        }
-    }
-}
-
-fun Modifier.trackFocusBounds(): Modifier = composed {
-    val activeBounds = LocalActiveFocusBounds.current
-    var isFocused by remember { mutableStateOf(false) }
-
-    this
-        .onFocusChanged { focusState ->
-            isFocused = focusState.isFocused
-            if (!isFocused) {
-                activeBounds.value = null 
-            }
-        }
-        .onGloballyPositioned { coords ->
-            if (isFocused) {
-                activeBounds.value = coords.boundsInRoot() 
-            }
-        }
 }
