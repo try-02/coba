@@ -801,14 +801,15 @@ private fun CompactInventorySearchBar(
             MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface,
             ),
+        // 1. Tempelkan pelacak fokus
         modifier = modifier.trackFocusBounds(), 
         
-        // 3. TAMBAHKAN KONTROL KEYBOARD (Tombol Enter/Selesai)
+        // 2. Kontrol Keyboard
         keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Search // Ubah ikon enter menjadi kaca pembesar
+            imeAction = ImeAction.Search
         ),
         keyboardActions = KeyboardActions(
-            onSearch = { focusManager.clearFocus() }, // Hapus fokus saat ditekan
+            onSearch = { focusManager.clearFocus() },
             onDone = { focusManager.clearFocus() }
         ),
         decorationBox = { innerTextField ->
@@ -817,8 +818,8 @@ private fun CompactInventorySearchBar(
                     Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        // Samakan dengan POS: Tanpa background abu-abu, hanya border outline
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                         .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -842,21 +843,19 @@ private fun CompactInventorySearchBar(
                     innerTextField()
                 }
                 if (query.isNotEmpty()) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .clickable { onQueryChange("") },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = "Hapus pencarian",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Hapus Pencarian",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape) // Efek ripple bulat saat ditekan
+                            .clickable {
+                                onQueryChange("") // Kosongkan teks
+                                focusManager.clearFocus() // Tutup keyboard
+                            }
+                    )
                 }
             }
         },
@@ -1042,9 +1041,10 @@ private fun ProductFormDialog(
                     onValueChange = { name = it },
                     label = { Text("Nama Produk *") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), // Tambahan Keyboard Options
                     textStyle = MaterialTheme.typography.bodyMedium,
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().trackFocusBounds(), // Tambahan Tracker
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -1052,6 +1052,7 @@ private fun ProductFormDialog(
                         onValueChange = { sku = it },
                         label = { Text("SKU") },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         isError = skuConflict != null,
                         supportingText =
                             if (skuConflict != null) {
@@ -1067,13 +1068,14 @@ private fun ProductFormDialog(
                             },
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).trackFocusBounds(),
                     )
                     OutlinedTextField(
                         value = barcode,
                         onValueChange = { barcode = it },
                         label = { Text("Barcode") },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         isError = barcodeConflict != null,
                         supportingText =
                             if (barcodeConflict != null) {
@@ -1089,7 +1091,7 @@ private fun ProductFormDialog(
                             },
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1.2f),
+                        modifier = Modifier.weight(1.2f).trackFocusBounds(),
                         trailingIcon = {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
                                 if (barcode.isNotEmpty()) {
@@ -1111,21 +1113,28 @@ private fun ProductFormDialog(
                         },
                     )
                 }
+                
                 CategoryField(
                     value = category,
                     suggestions = categories,
                     onValueChange = { category = it },
+                    modifier = Modifier.trackFocusBounds() // Tempelkan Tracker
                 )
+                
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // MoneyNumberField sekarang otomatis menggunakan tracker di dalamnya
                     MoneyNumberField(price, { price = it }, "Harga Jual", Modifier.weight(1f))
                     MoneyNumberField(cost, { cost = it }, "Modal", Modifier.weight(1f))
                 }
+                
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // DecimalNumberField sekarang otomatis menggunakan tracker di dalamnya
                     DecimalNumberField(stock, { stock = it }, "Stok", Modifier.weight(1f))
+                    
                     OutlinedTextField(
                         value = (priceLong - costLong).toRupiah(),
                         onValueChange = {},
-                        readOnly = true,
+                        readOnly = true, // Read-Only tidak perlu diberikan trackFocusBounds
                         label = { Text("Laba/Unit") },
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
@@ -1279,6 +1288,7 @@ private fun DecimalNumberField(
     label: String,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
     OutlinedTextField(
         value = value,
         onValueChange = { input ->
@@ -1290,7 +1300,6 @@ private fun DecimalNumberField(
                             c.isDigit() -> {
                                 append(c)
                             }
-
                             c == '.' && !dotSeen -> {
                                 append(c)
                                 dotSeen = true
@@ -1303,9 +1312,15 @@ private fun DecimalNumberField(
         label = { Text(label) },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = ImeAction.Done // Aksi "Selesai" karena ini kolom terakhir
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = { focusManager.clearFocus() } // Menutup keyboard saat Selesai
+        ),
         shape = RoundedCornerShape(12.dp),
-        modifier = modifier,
+        modifier = modifier.trackFocusBounds(),
     )
 }
 
@@ -1314,6 +1329,7 @@ private fun CategoryField(
     value: String,
     suggestions: List<String>,
     onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier, // Tambahan parameter modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
     val filtered =
@@ -1333,6 +1349,7 @@ private fun CategoryField(
             },
             label = { Text("Kategori (opsional)") },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             textStyle = MaterialTheme.typography.bodyMedium,
             shape = RoundedCornerShape(12.dp),
             trailingIcon = {
@@ -1346,10 +1363,9 @@ private fun CategoryField(
                     }
                 }
             },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { if (it.isFocused) expanded = suggestions.isNotEmpty() },
+            modifier = modifier
+                .fillMaxWidth()
+                .onFocusChanged { if (it.isFocused) expanded = suggestions.isNotEmpty() },
         )
         DropdownMenu(
             expanded = expanded && filtered.isNotEmpty(),
@@ -1382,10 +1398,13 @@ private fun MoneyNumberField(
         prefix = { Text("Rp ", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold) },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next // Aksi "Lanjut" (pindah ke input stok)
+        ),
         visualTransformation = ThousandsSeparatorTransformation,
         shape = RoundedCornerShape(12.dp),
-        modifier = modifier,
+        modifier = modifier.trackFocusBounds(),
     )
 }
 
