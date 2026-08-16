@@ -756,10 +756,7 @@ private fun SalesReportResultCard(
     onExportPdf: () -> Unit,
 ) {
     Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+        modifier = modifier
         .animateContentSize(
                     animationSpec =
                         spring(
@@ -767,6 +764,9 @@ private fun SalesReportResultCard(
                             stiffness = Spring.StiffnessLow,
                         ),
                 ),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
         when (uiState) {
             is SalesReportUiState.Loading -> {
@@ -1048,12 +1048,13 @@ private fun TodayPillButton(onClick: () -> Unit) {
 private fun SummarySection(report: DailyReport) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
         ) {
-            Column {
+            // Padding dipindah ke dalam Column ini
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     "Total Pendapatan",
                     style = MaterialTheme.typography.bodyMedium,
@@ -1063,7 +1064,7 @@ private fun SummarySection(report: DailyReport) {
                 Text(
                     report.totalRevenue.toRupiah(),
                     style = MaterialTheme.typography.headlineMedium,
-                    fontFamily = FontFamily.Monospace, // Monospace Finansial
+                    fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -1172,46 +1173,41 @@ private fun RevenueTrendChart(
     val textMeasurer = rememberTextMeasurer()
     val zone = remember { ZoneId.systemDefault() }
     val dayStartMillis = remember(date) { date.atStartOfDay(zone).toInstant().toEpochMilli() }
-    val dayEndMillis =
-        remember(date) {
-            date
-                .plusDays(1)
-                .atStartOfDay(zone)
-                .toInstant()
-                .toEpochMilli()
-        }
+    val dayEndMillis = remember(date) { date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() }
     val peakHour = remember(hourly) { hourly.indices.maxByOrNull { hourly[it] } ?: 0 }
     val peakValue = remember(hourly) { hourly.getOrElse(peakHour) { 0L } }
-    val points =
-        remember(transactions, dayStartMillis, dayEndMillis) {
-            val sorted = transactions.sortedBy { it.createdAt }
-            val list = mutableListOf(dayStartMillis to 0L)
-            var running = 0L
-            for (tx in sorted) {
-                running += tx.total
-                list.add(tx.createdAt.coerceIn(dayStartMillis, dayEndMillis) to running)
-            }
-            list.add(dayEndMillis to running)
-            list
+    
+    val points = remember(transactions, dayStartMillis, dayEndMillis) {
+        val sorted = transactions.sortedBy { it.createdAt }
+        val list = mutableListOf(dayStartMillis to 0L)
+        var running = 0L
+        for (tx in sorted) {
+            running += tx.total
+            list.add(tx.createdAt.coerceIn(dayStartMillis, dayEndMillis) to running)
         }
+        list.add(dayEndMillis to running)
+        list
+    }
+    
     val labelStyle = remember(axisTextColor) { TextStyle(color = axisTextColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace) }
     val maxRevenue = totalRevenue.coerceAtLeast(1L)
     val ySteps = 4
-    val yAxisLabels =
-        remember(maxRevenue, labelStyle) {
-            (0..ySteps).map { i ->
-                val ratio = i / ySteps.toFloat()
-                val labelStr = (maxRevenue * ratio).toLong().toCompactRupiah()
-                textMeasurer.measure(labelStr, labelStyle)
-            }
+    val yAxisLabels = remember(maxRevenue, labelStyle) {
+        (0..ySteps).map { i ->
+            val ratio = i / ySteps.toFloat()
+            val labelStr = (maxRevenue * ratio).toLong().toCompactRupiah()
+            textMeasurer.measure(labelStr, labelStyle)
         }
+    }
+
     Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
-        Column {
+        // Padding dipindah ke dalam Column ini
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.AutoMirrored.Rounded.ShowChart,
@@ -1236,10 +1232,9 @@ private fun RevenueTrendChart(
             }
             Spacer(Modifier.height(12.dp))
             Canvas(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(160.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
             ) {
                 val leftAxisWidth = 44.dp.toPx()
                 val bottomAxisHeight = 18.dp.toPx()
@@ -1259,6 +1254,7 @@ private fun RevenueTrendChart(
                     val ratio = value.toFloat() / maxRevenue.toFloat()
                     return plotBottom - ratio.coerceIn(0f, 1f) * plotHeight
                 }
+                
                 for (i in 0..ySteps) {
                     val ratio = i / ySteps.toFloat()
                     val y = plotBottom - ratio * plotHeight
@@ -1266,16 +1262,10 @@ private fun RevenueTrendChart(
                     val measured = yAxisLabels.getOrElse(i) { textMeasurer.measure("0", labelStyle) }
                     drawText(
                         textLayoutResult = measured,
-                        topLeft =
-                            Offset(
-                                0f,
-                                (y - measured.size.height / 2f).coerceIn(
-                                    0f,
-                                    plotBottom - measured.size.height,
-                                ),
-                            ),
+                        topLeft = Offset(0f, (y - measured.size.height / 2f).coerceIn(0f, plotBottom - measured.size.height)),
                     )
                 }
+                
                 listOf(0, 6, 12, 18, 24).forEach { hour ->
                     val time = (dayStartMillis + hour.toLong() * 3_600_000L).coerceAtMost(dayEndMillis)
                     val x = xFor(time)
@@ -1293,6 +1283,7 @@ private fun RevenueTrendChart(
                         topLeft = Offset(labelX.coerceIn(0f, size.width - measured.size.width), plotBottom + 4.dp.toPx()),
                     )
                 }
+                
                 if (points.size >= 2) {
                     val linePath = Path()
                     val areaPath = Path()
@@ -1315,12 +1306,11 @@ private fun RevenueTrendChart(
                     areaPath.close()
                     drawPath(
                         path = areaPath,
-                        brush =
-                            Brush.verticalGradient(
-                                colors = listOf(primary.copy(alpha = 0.28f), primary.copy(alpha = 0.02f)),
-                                startY = plotTop,
-                                endY = plotBottom,
-                            ),
+                        brush = Brush.verticalGradient(
+                            colors = listOf(primary.copy(alpha = 0.28f), primary.copy(alpha = 0.02f)),
+                            startY = plotTop,
+                            endY = plotBottom,
+                        ),
                     )
                     drawPath(path = linePath, color = primary, style = Stroke(width = 2.dp.toPx()))
                     for (i in 1 until points.size - 1) {
