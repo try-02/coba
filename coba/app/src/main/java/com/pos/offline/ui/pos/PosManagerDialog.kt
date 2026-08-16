@@ -402,8 +402,6 @@ internal fun ManageShiftsDialog(
     }
 }
 
-import androidx.compose.foundation.BorderStroke // Pastikan ini di-import
-
 @Composable
 private fun OpenShiftRow(
     shift: ShiftEntity,
