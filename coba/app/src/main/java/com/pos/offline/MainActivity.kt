@@ -39,6 +39,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Assessment
@@ -333,55 +335,43 @@ private fun AppRoot() {
                         )
                     }
                 },
+                // MASUKKAN SEMUA TOMBOL KE DALAM FLOWROW
+                @OptIn(ExperimentalLayoutApi::class)
                 confirmButton = {
-                    Button(
-                        onClick = {
-                            showExitDialog = false
-                            goTo(Dest.POS)
-                        },
-                    ) {
-                        Text(
-                            text = "Tutup Shift Dulu",
-                            fontSize = 13.sp,
-                        )
-                    }
-                },
-                dismissButton = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
                     ) {
                         TextButton(
                             onClick = {
                                 showExitDialog = false
-
-                                (context as? android.app.Activity)
-                                    ?.finishAndRemoveTask()
+                                (context as? android.app.Activity)?.finishAndRemoveTask()
                             },
-                            colors =
-                                ButtonDefaults.textButtonColors(
-                                    contentColor =
-                                        MaterialTheme.colorScheme.error,
-                                ),
-                        ) {
-                            Text(
-                                text = "Tetap Keluar",
-                                fontSize = 13.sp,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
                             )
+                        ) {
+                            Text(text = "Tetap Keluar", fontSize = 13.sp)
                         }
 
                         OutlinedButton(
+                            onClick = { showExitDialog = false }
+                        ) {
+                            Text(text = "Batal", fontSize = 13.sp)
+                        }
+
+                        Button(
                             onClick = {
                                 showExitDialog = false
-                            },
+                                goTo(Dest.POS)
+                            }
                         ) {
-                            Text(
-                                text = "Batal",
-                                fontSize = 13.sp,
-                            )
+                            Text(text = "Tutup Shift Dulu", fontSize = 13.sp)
                         }
                     }
                 },
+                dismissButton = {} // Biarkan kosong agar semua kontrol dipegang oleh FlowRow di atas
             )
         } else {
             AlertDialog(

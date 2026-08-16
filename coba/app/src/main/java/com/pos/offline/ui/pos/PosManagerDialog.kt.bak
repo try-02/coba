@@ -188,7 +188,7 @@ fun PosDialogManager(
     }
 
     if (shift.showStartShiftDialog) {
-        StartShiftBottomSheet(
+        StartShiftDialog(
             cashiers = shift.activeCashiers,
             isProcessing = shift.isStartingShift,
             onDismiss = { onAction(PosAction.DismissStartShiftDialog) },

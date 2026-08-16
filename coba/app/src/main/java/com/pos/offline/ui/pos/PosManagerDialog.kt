@@ -65,6 +65,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 @Composable
 fun PosDialogManager(
@@ -266,61 +269,135 @@ internal fun ManageShiftsDialog(
     onStartNewShift: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("Kelola Shift") },
-        text = {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 380.dp)
-                        .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(vertical = 24.dp),
+                shape = RoundedCornerShape(24.dp), // Konsisten dengan dialog lain
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
             ) {
-                if (shifts.isEmpty()) {
-                    Text(
-                        "Tidak ada shift yang sedang berjalan.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    )
-                } else {
-                    Text(
-                        "Ketuk shift untuk menutupnya. Semua kasir bisa menutup shift siapa pun.",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    )
-                    if (shifts.size > 1) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Header Dialog
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.CheckCircle, // Bisa diganti sesuai kebutuhan
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
                         Text(
-                            "Gunakan \"Jadikan Aktif\" untuk memilih kasir yang bertugas di " +
-                                "terminal ini (tanpa menutup shift).",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = MaterialTheme.colorScheme.primary,
+                            text = "Kelola Shift",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    shifts.forEach { shift ->
-                        OpenShiftRow(
-                            shift = shift,
-                            isDesignatedActive = shift.id == activeShiftId,
-                            showDesignateButton = shifts.size > 1,
-                            onCloseClick = { onCloseShift(shift) },
-                            onDesignateActiveClick = { onDesignateActive(shift) },
-                        )
+
+                    // Konten List Shift
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 380.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (shifts.isEmpty()) {
+                            Text(
+                                text = "Tidak ada shift yang sedang berjalan.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            )
+                        } else {
+                            Text(
+                                text = "Ketuk shift untuk menutupnya. Semua kasir bisa menutup shift siapa pun.",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            )
+                            if (shifts.size > 1) {
+                                Text(
+                                    text = "Gunakan \"Jadikan Aktif\" untuk memilih kasir yang bertugas di terminal ini (tanpa menutup shift).",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            shifts.forEach { shift ->
+                                OpenShiftRow(
+                                    shift = shift,
+                                    isDesignatedActive = shift.id == activeShiftId,
+                                    showDesignateButton = shifts.size > 1,
+                                    onCloseClick = { onCloseShift(shift) },
+                                    onDesignateActiveClick = { onDesignateActive(shift) },
+                                )
+                            }
+                        }
+                    }
+
+                    // Tombol Aksi Bawah
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = "Tutup",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Button(
+                            onClick = onStartNewShift,
+                            modifier = Modifier
+                                .weight(1.3f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Shift Baru",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = onStartNewShift) {
-                Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Mulai Shift Baru")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Tutup") }
-        },
-    )
+        }
+    }
 }
 
 @Composable
