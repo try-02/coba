@@ -68,6 +68,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize // Pastikan Anda meng-import ini
+import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -205,52 +207,66 @@ LaunchedEffect(viewModel, globalMessage) {
                         }
                     }
 
-                    // Search & Action Controls Bar
-                    Row(
-                        modifier =
-                            Modifier
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        Row(
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CompactInventorySearchBar(
-                            query = query,
-                            onQueryChange = viewModel::search,
-                            modifier = Modifier.weight(1f).height(44.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        if (hasCamera) {
-                            ScanIconButton(onClick = launchMainScanner)
-                            Spacer(Modifier.width(6.dp))
-                        }
-                        ExcelIconButton(
-                            icon = Icons.Rounded.FileUpload,
-                            desc = "Import Excel",
-                            loading = excelState.isImporting,
-                            onClick = {
-                                excelImportLauncher.launch(
-                                    arrayOf(
-                                        "application/vnd.ms-excel",
-                                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    ),
-                                )
-                            },
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        ExcelIconButton(
-                            icon = Icons.Rounded.FileDownload,
-                            desc = "Export Excel",
-                            loading = excelState.isExporting,
-                            onClick = { excelExportLauncher.launch(ExcelManager.suggestedExportFileName()) },
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        SortMenuButton(current = sortOption, onSelect = viewModel::setSortOption)
-                        if (sortOption == ProductSortOption.TERLARIS) {
-                            Spacer(Modifier.width(6.dp))
-                            TopSalesRangePicker(
-                                selected = topSalesRange,
-                                onSelect = viewModel::setTopSalesRange,
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp) // Jarak antar tombol diatur di sini
+                        ) {
+                            CompactInventorySearchBar(
+                                query = query,
+                                onQueryChange = viewModel::search,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(34.dp), // Disamakan dengan tinggi di menu POS
                             )
+                            
+                            // 1. Tombol Tambah Produk Pindah Kesini
+                            CompactActionSurface(
+                                icon = Icons.Rounded.Add,
+                                desc = "Tambah Produk",
+                                onClick = viewModel::startAdd
+                            )
+                            
+                            if (hasCamera) {
+                                CompactActionSurface(
+                                    icon = Icons.Rounded.QrCodeScanner,
+                                    desc = "Scan barcode",
+                                    onClick = launchMainScanner
+                                )
+                            }
+                            
+                            ExcelIconButton(
+                                icon = Icons.Rounded.FileUpload,
+                                desc = "Import Excel",
+                                loading = excelState.isImporting,
+                                onClick = {
+                                    excelImportLauncher.launch(
+                                        arrayOf(
+                                            "application/vnd.ms-excel",
+                                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                        ),
+                                    )
+                                }
+                            )
+                            
+                            ExcelIconButton(
+                                icon = Icons.Rounded.FileDownload,
+                                desc = "Export Excel",
+                                loading = excelState.isExporting,
+                                onClick = { excelExportLauncher.launch(ExcelManager.suggestedExportFileName()) }
+                            )
+                            
+                            SortMenuButton(current = sortOption, onSelect = viewModel::setSortOption)
+                            
+                            if (sortOption == ProductSortOption.TERLARIS) {
+                                TopSalesRangePicker(
+                                    selected = topSalesRange,
+                                    onSelect = viewModel::setTopSalesRange,
+                                )
+                            }
                         }
                     }
                 }
@@ -302,21 +318,6 @@ LaunchedEffect(viewModel, globalMessage) {
                     }
                 }
             }
-        }
-
-        // Thumb Zone FAB
-        FloatingActionButton(
-            onClick = viewModel::startAdd,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            modifier =
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp)
-                    .navigationBarsPadding()
-                    .imePadding(),
-        ) {
-            Icon(Icons.Rounded.Add, contentDescription = "Tambah Produk", modifier = Modifier.size(24.dp))
         }
     }
 
@@ -411,31 +412,55 @@ LaunchedEffect(viewModel, globalMessage) {
 }
 
 @Composable
+private fun CompactActionSurface(
+    icon: ImageVector,
+    desc: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.size(34.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = desc,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
 private fun ExcelIconButton(
     icon: ImageVector,
     desc: String,
     loading: Boolean,
     onClick: () -> Unit,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .size(44.dp) // Touch Target Size Standard
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .clickable(enabled = !loading, role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
+    Surface(
+        onClick = onClick,
+        enabled = !loading,
+        shape = RoundedCornerShape(8.dp), // Radius disesuaikan untuk kotak 34.dp
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.size(34.dp)
     ) {
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Icon(
-                icon,
-                contentDescription = desc,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+        Box(contentAlignment = Alignment.Center) {
+            if (loading) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    icon,
+                    contentDescription = desc,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -848,18 +873,24 @@ private fun CompactInventorySearchBar(
                 }
                 if (query.isNotEmpty()) {
                     Spacer(Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Hapus Pencarian",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape) // Efek ripple bulat saat ditekan
-                            .clickable {
-                                onQueryChange("") // Kosongkan teks
-                                focusManager.clearFocus() // Tutup keyboard
-                            }
-                    )
+                    Surface(
+                        onClick = {
+                            onQueryChange("")
+                            focusManager.clearFocus()
+                        },
+                        shape = CircleShape,
+                        color = Color.Transparent,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "Hapus Pencarian",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
             }
         },
@@ -874,22 +905,21 @@ private fun SortMenuButton(
     var expanded by remember { mutableStateOf(false) }
     Box {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            onClick = { expanded = true },
+            shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            modifier = Modifier
-                .height(44.dp)
-                .clickable(role = Role.Button) { expanded = true }
+            modifier = Modifier.height(34.dp)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = "Urutkan", modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
+                Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = "Urutkan", modifier = Modifier.size(16.dp))
                 Text(
                     current.label,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                 )
@@ -917,27 +947,6 @@ private fun SortMenuButton(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ScanIconButton(onClick: () -> Unit) {
-    Box(
-        modifier =
-            Modifier
-                .size(44.dp) // Accessible Touch Target
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .clickable(role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            Icons.Rounded.QrCodeScanner,
-            contentDescription = "Scan barcode produk",
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
     }
 }
 
@@ -1333,7 +1342,7 @@ private fun CategoryField(
     value: String,
     suggestions: List<String>,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier, // Tambahan parameter modifier
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val filtered =
@@ -1347,10 +1356,8 @@ private fun CategoryField(
     Box(Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = value,
-            onValueChange = {
-                onValueChange(it)
-                expanded = suggestions.isNotEmpty()
-            },
+            // 1. HAPUS pemicu 'expanded' otomatis saat mengetik
+            onValueChange = { onValueChange(it) }, 
             label = { Text("Kategori (opsional)") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -1367,9 +1374,8 @@ private fun CategoryField(
                     }
                 }
             },
-            modifier = modifier
-                .fillMaxWidth()
-                .onFocusChanged { if (it.isFocused) expanded = suggestions.isNotEmpty() },
+            // 2. HAPUS onFocusChanged yang memicu dropdown otomatis
+            modifier = modifier.fillMaxWidth() 
         )
         DropdownMenu(
             expanded = expanded && filtered.isNotEmpty(),
@@ -1418,13 +1424,13 @@ private fun TopSalesRangePicker(
     onSelect: (TopSalesRange) -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        modifier = Modifier.height(44.dp),
+        modifier = Modifier.height(34.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
@@ -1445,21 +1451,23 @@ private fun TopSalesChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center,
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(6.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        modifier = Modifier.fillMaxHeight()
     ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-        )
+        Box(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            )
+        }
     }
 }
 
