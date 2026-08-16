@@ -754,71 +754,64 @@ private fun SalesReportResultCard(
     uiState: SalesReportUiState,
     onPrint: () -> Unit,
     onExportPdf: () -> Unit,
+    modifier: Modifier = Modifier // 1. TAMBAHKAN PARAMETER INI DI SINI
 ) {
     Surface(
+        // 2. SEKARANG KITA BISA MENGGUNAKAN modifier (huruf kecil) DENGAN AMAN
         modifier = modifier
-        .animateContentSize(
-                    animationSpec =
-                        spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessLow,
-                        ),
-                ),
-        shape = RoundedCornerShape(14.dp),
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .animateContentSize(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
-        when (uiState) {
-            is SalesReportUiState.Loading -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text("Memuat laporan...", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
-            is SalesReportUiState.Loaded -> {
-                val data = uiState.data
-                val periodLabel = if (uiState.periodType == ReportPeriodType.MONTHLY) "Bulanan" else "Harian"
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SummaryLine("Jumlah Transaksi", "${data.summary.transactionCount}x")
-                    SummaryLine("Penjualan Kotor", data.summary.subtotalSum.toRupiah())
-                    SummaryLine("Pendapatan Bersih", data.pendapatanBersih.toRupiah(), emphasize = true)
-                    if (data.biayaGaransi > 0) {
-                        SummaryLine(
-                            "Biaya Klaim Garansi",
-                            "- ${data.biayaGaransi.toRupiah()}",
-                            color = MaterialTheme.colorScheme.error,
-                        )
+        // Padding dibungkus pada Box ini
+        Box(modifier = Modifier.padding(14.dp)) {
+            when (uiState) {
+                is SalesReportUiState.Loading -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Memuat laporan...", style = MaterialTheme.typography.bodyMedium)
                     }
-                    SummaryLine("Laba Bersih", data.labaBersih.toRupiah(), color = MaterialTheme.colorScheme.primary)
-                    if (data.diskon > 0) SummaryLine("Diskon", "- ${data.diskon.toRupiah()}")
-                    if (data.summary.taxSum > 0) SummaryLine("Pajak", data.summary.taxSum.toRupiah())
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(
-                            onClick = onPrint, 
-                            modifier = Modifier.weight(1f).height(44.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) { 
-                            Text("Cetak $periodLabel") 
+                }
+
+                is SalesReportUiState.Loaded -> {
+                    val data = uiState.data
+                    val periodLabel = if (uiState.periodType == ReportPeriodType.MONTHLY) "Bulanan" else "Harian"
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SummaryLine("Jumlah Transaksi", "${data.summary.transactionCount}x")
+                        SummaryLine("Penjualan Kotor", data.summary.subtotalSum.toRupiah())
+                        SummaryLine("Pendapatan Bersih", data.pendapatanBersih.toRupiah(), emphasize = true)
+                        if (data.biayaGaransi > 0) {
+                            SummaryLine("Biaya Klaim Garansi", "- ${data.biayaGaransi.toRupiah()}", color = MaterialTheme.colorScheme.error)
                         }
-                        OutlinedButton(
-                            onClick = onExportPdf, 
-                            modifier = Modifier.weight(1f).height(44.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) { 
-                            Text("PDF $periodLabel") 
+                        SummaryLine("Laba Bersih", data.labaBersih.toRupiah(), color = MaterialTheme.colorScheme.primary)
+                        if (data.diskon > 0) SummaryLine("Diskon", "- ${data.diskon.toRupiah()}")
+                        if (data.summary.taxSum > 0) SummaryLine("Pajak", data.summary.taxSum.toRupiah())
+                        Spacer(Modifier.height(10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(
+                                onClick = onPrint, 
+                                modifier = Modifier.weight(1f).height(44.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text("Cetak $periodLabel") }
+                            OutlinedButton(
+                                onClick = onExportPdf, 
+                                modifier = Modifier.weight(1f).height(44.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text("PDF $periodLabel") }
                         }
                     }
                 }
-            }
 
-            SalesReportUiState.Hidden -> {}
+                SalesReportUiState.Hidden -> {}
+            }
         }
     }
 }
