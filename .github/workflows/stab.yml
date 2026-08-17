@@ -21,15 +21,16 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: Enhanced
-          gradle-version: wrapper
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-          add-job-summary: on-failure
-          # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
-          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+    # PERBAIKAN: Indentasi disamakan (sejajar 4 spasi dari kiri)
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-provider: Enhanced
+        gradle-version: wrapper
+        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+        add-job-summary: on-failure
+        # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
+        cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
     - name: Grant Execute Permission for Gradle
       run: chmod +x ./gradlew
@@ -45,4 +46,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: compose-stability-reports
-        path: 'coba/build/reports/compose-stability/**'
+        # PERBAIKAN: Karena upload-artifact berjalan di luar scope 'defaults.run', 
+        # kita harus memastikan lokasinya relatif dari root repository.
+        path: 'coba/**/build/reports/compose-stability/**'
