@@ -270,7 +270,7 @@ LaunchedEffect(viewModel, globalMessage) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = tooltipContainerColor,
+                            color = MaterialTheme.colorScheme.primaryContainer,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
