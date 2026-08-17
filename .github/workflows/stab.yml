@@ -1,4 +1,4 @@
-name: Compose Stability Analysis
+name: Compose Stability & Lint Analysis
 
 on:
   workflow_dispatch:
@@ -16,33 +16,38 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
+      uses: gradle/actions/setup-gradle@v5
       with:
         gradle-version: wrapper
         cache-read-only: ${{ github.ref != 'refs/heads/main' }}
         add-job-summary: on-failure
-        # KRUSIAL UNTUK 9.6.1: Kunci enkripsi wajib ada agar Configuration Cache tersimpan di GitHub Actions
         cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
     - name: Grant Execute Permission for Gradle
       run: chmod +x ./gradlew
 
-    # stabilityCheck membandingkan status kode saat ini dengan baseline snapshot.
-    # Jika stabilitas menurun, build otomatis gagal di langkah ini.
+    # LANGKAH BARU: Menjalankan Android Lint dengan aturan Slack yang sudah dipasang
+    # Opsi --continue memastikan CI tetap menjalankan task berikutnya walaupun langkah ini menemukan eror
+    - name: Run Slack Compose Lint Checks
+      run: ./gradlew lintDebug --continue --no-daemon
+
+    # Validasi kestabilan Compose menggunakan plugin Skydoves Anda sebelumnya
     - name: Run Compose Stability Check
       run: ./gradlew stabilityDump --no-daemon
 
-    # Mengunggah hasil file analisis stabilitas .stability ke halaman ringkasan GitHub Actions
-    - name: Upload Stability Reports
+    # Mengunggah seluruh dokumen laporan (Hasil Lint & Stabilitas Skydoves) ke Ringkasan GitHub Actions
+    - name: Upload Analysis Reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: compose-stability-reports
-        # PERBAIKAN: Menyesuaikan jalur relatif dari root repositori agar file .stability terdeteksi
-        path: 'coba/app/stability/*.stability'
+        name: compose-analysis-reports
+        path: |
+          coba/app/stability/*.stability
+          coba/app/build/reports/lint-results-*.html
+          coba/app/build/reports/lint-results-*.xml
