@@ -270,7 +270,7 @@ LaunchedEffect(viewModel, globalMessage) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                            color = tooltipContainerColor,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -1273,7 +1273,7 @@ private fun RevenueTrendChart(
     val ySteps = 4
     val hourSpacing = 64.dp
     val yAxisWidth = 54.dp
-    val chartWidth = 24 * hourSpacing + 16.dp
+    val chartWidth = hourSpacing * 24f + 16.dp
     val chartHeight = 190.dp
     val plotBottom = 154.dp
 
@@ -1521,7 +1521,7 @@ private fun RevenueTrendChart(
                             val amountText = point.value.toRupiah()
                             val idText = point.transaction.id
                             val tooltipStyle = TextStyle(
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = tooltipTextColor,
                                 fontSize = 10.sp,
                                 fontFamily = FontFamily.Monospace,
                             )
@@ -1543,7 +1543,7 @@ private fun RevenueTrendChart(
                                 .coerceAtLeast(4.dp.toPx())
 
                             drawRoundRect(
-                                color = MaterialTheme.colorScheme.primaryContainer,
+                                color = tooltipContainerColor,
                                 topLeft = Offset(tooltipX, tooltipY),
                                 size = androidx.compose.ui.geometry.Size(tooltipWidth, tooltipHeight),
                                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(10.dp.toPx()),
@@ -3296,7 +3296,7 @@ private fun MonthGroupCard(
                     }
 
                     Icon(
-                        imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = if (expanded) "Ciutkan" else "Buka",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
