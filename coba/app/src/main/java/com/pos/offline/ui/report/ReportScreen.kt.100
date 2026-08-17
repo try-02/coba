@@ -279,7 +279,7 @@ LaunchedEffect(viewModel, globalMessage) {
                         }
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            "Laporan",
+                            "Laporan Harian",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f),
@@ -317,7 +317,7 @@ LaunchedEffect(viewModel, globalMessage) {
                                         viewModel.searchProductHistory(query)
                                         viewModel.searchInvoice(query)
                                     },
-                                    modifier = Modifier.weight(1f).height(48.dp)
+                                    modifier = Modifier.weight(1f).height(34.dp), // Disamakan ukurannya (34dp)
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 CompactSquareIconButton(
@@ -339,7 +339,7 @@ LaunchedEffect(viewModel, globalMessage) {
                         is SearchUiState.ProductHistoryResults -> {
                             item(key = "product_history_header") {
                                 Text(
-                                    "Hasil Pencarian Produk · 1 Tahun",
+                                    "Hasil Pencarian Produk Lintas 1 Tahun",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -409,17 +409,6 @@ LaunchedEffect(viewModel, globalMessage) {
                                     onCalendarClick = { showDatePicker = true },
                                 )
                             }
-                            item(key = "summary") { SummarySection(report = report) }
-                            if (report.transactionCount > 0) {
-                                item(key = "revenue_trend_chart") {
-                                    RevenueTrendChart(
-                                        date = report.date,
-                                        transactions = report.transactions.filterNot { it.isVoid },
-                                        totalRevenue = report.totalRevenue,
-                                        hourly = report.hourlyRevenue,
-                                    )
-                                }
-                            }
                             item(key = "sales_report_generator") {
                                 val periodType by viewModel.selectedPeriodType.collectAsStateWithLifecycle()
                                 val includeSalesSummary by viewModel.includeSalesSummary.collectAsStateWithLifecycle()
@@ -429,21 +418,22 @@ LaunchedEffect(viewModel, globalMessage) {
                                 val scope = rememberCoroutineScope()
                                 val context = LocalContext.current
                                 
+                                // HAPUS GlassCard, GANTI dengan Surface datar
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .animateContentSize(spring(stiffness = Spring.StiffnessLow)),
-                                    shape = RoundedCornerShape(18.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.12f)),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Text(
-                                            "Generator Laporan",
-                                            style = MaterialTheme.typography.titleMedium,
+                                            "Generator Laporan Penjualan",
+                                            style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                         )
                                         
@@ -453,7 +443,7 @@ LaunchedEffect(viewModel, globalMessage) {
                                             onSelect = viewModel::toggleReportPeriod,
                                         )
                                         
-                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                             ReportOptionRow(
                                                 label = "Ringkasan Penjualan & Keuangan",
                                                 checked = includeSalesSummary,
@@ -491,6 +481,17 @@ LaunchedEffect(viewModel, globalMessage) {
                                             )
                                         }
                                     }
+                                }
+                            }
+                            item(key = "summary") { SummarySection(report = report) }
+                            if (report.transactionCount > 0) {
+                                item(key = "revenue_trend_chart") {
+                                    RevenueTrendChart(
+                                        date = report.date,
+                                        transactions = report.transactions.filterNot { it.isVoid },
+                                        totalRevenue = report.totalRevenue,
+                                        hourly = report.hourlyRevenue,
+                                    )
                                 }
                             }
                             item(key = "tab_switcher") {
@@ -753,87 +754,64 @@ private fun SalesReportResultCard(
     uiState: SalesReportUiState,
     onPrint: () -> Unit,
     onExportPdf: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier // 1. TAMBAHKAN PARAMETER INI DI SINI
 ) {
     Surface(
+        // 2. SEKARANG KITA BISA MENGGUNAKAN modifier (huruf kecil) DENGAN AMAN
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 2.dp)
-            .animateContentSize(
-                spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow,
-                ),
-            ),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+            .padding(top = 4.dp)
+            .animateContentSize(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
-        when (uiState) {
-            is SalesReportUiState.Loading -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text("Memuat laporan...", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
-            is SalesReportUiState.Loaded -> {
-                val data = uiState.data
-                val periodLabel = if (uiState.periodType == ReportPeriodType.MONTHLY) "Bulanan" else "Harian"
-                Column(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    Text(
-                        "Hasil $periodLabel",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    SummaryLine("Jumlah Transaksi", "${data.summary.transactionCount}x")
-                    SummaryLine("Penjualan Kotor", data.summary.subtotalSum.toRupiah())
-                    SummaryLine("Pendapatan Bersih", data.pendapatanBersih.toRupiah(), emphasize = true)
-                    if (data.biayaGaransi > 0) {
-                        SummaryLine(
-                            "Biaya Klaim Garansi",
-                            "- ${data.biayaGaransi.toRupiah()}",
-                            color = MaterialTheme.colorScheme.error,
-                        )
+        // Padding dibungkus pada Box ini
+        Box(modifier = Modifier.padding(14.dp)) {
+            when (uiState) {
+                is SalesReportUiState.Loading -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Memuat laporan...", style = MaterialTheme.typography.bodyMedium)
                     }
-                    SummaryLine("Laba Bersih", data.labaBersih.toRupiah(), color = MaterialTheme.colorScheme.primary)
-                    if (data.diskon > 0) SummaryLine("Diskon", "- ${data.diskon.toRupiah()}")
-                    if (data.summary.taxSum > 0) SummaryLine("Pajak", data.summary.taxSum.toRupiah())
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = onPrint,
-                            modifier = Modifier.weight(1f).height(42.dp),
-                            shape = RoundedCornerShape(11.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp),
-                        ) {
-                            Icon(Icons.Rounded.Print, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Cetak")
+                }
+
+                is SalesReportUiState.Loaded -> {
+                    val data = uiState.data
+                    val periodLabel = if (uiState.periodType == ReportPeriodType.MONTHLY) "Bulanan" else "Harian"
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SummaryLine("Jumlah Transaksi", "${data.summary.transactionCount}x")
+                        SummaryLine("Penjualan Kotor", data.summary.subtotalSum.toRupiah())
+                        SummaryLine("Pendapatan Bersih", data.pendapatanBersih.toRupiah(), emphasize = true)
+                        if (data.biayaGaransi > 0) {
+                            SummaryLine("Biaya Klaim Garansi", "- ${data.biayaGaransi.toRupiah()}", color = MaterialTheme.colorScheme.error)
                         }
-                        OutlinedButton(
-                            onClick = onExportPdf,
-                            modifier = Modifier.weight(1f).height(42.dp),
-                            shape = RoundedCornerShape(11.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp),
-                        ) {
-                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("PDF")
+                        SummaryLine("Laba Bersih", data.labaBersih.toRupiah(), color = MaterialTheme.colorScheme.primary)
+                        if (data.diskon > 0) SummaryLine("Diskon", "- ${data.diskon.toRupiah()}")
+                        if (data.summary.taxSum > 0) SummaryLine("Pajak", data.summary.taxSum.toRupiah())
+                        Spacer(Modifier.height(10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(
+                                onClick = onPrint, 
+                                modifier = Modifier.weight(1f).height(44.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text("Cetak $periodLabel") }
+                            OutlinedButton(
+                                onClick = onExportPdf, 
+                                modifier = Modifier.weight(1f).height(44.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text("PDF $periodLabel") }
                         }
                     }
                 }
-            }
 
-            SalesReportUiState.Hidden -> Unit
+                SalesReportUiState.Hidden -> {}
+            }
         }
     }
 }
@@ -848,12 +826,11 @@ private fun DateNavigator(
     onCalendarClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CompactNavIcon(
                     icon = Icons.Rounded.ChevronLeft,
@@ -867,8 +844,8 @@ private fun DateNavigator(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Rounded.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(19.dp),
+                            contentDescription = "Pilih Tanggal Kalender",
+                            modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.width(6.dp))
@@ -881,9 +858,9 @@ private fun DateNavigator(
                         )
                     }
                     Text(
-                        if (isToday) "Hari ini · ketuk untuk kalender" else "Ketuk untuk pilih kalender",
+                        if (isToday) "Hari ini (Ketuk untuk pilih kalender)" else "Ketuk untuk pilih kalender",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     )
                 }
                 CompactNavIcon(
@@ -894,10 +871,7 @@ private fun DateNavigator(
                 )
             }
             if (!isToday) {
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.Center,
-                ) {
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
                     TodayPillButton(onClick = onToday)
                 }
             }
@@ -911,57 +885,43 @@ private fun MonthExpandableCard(
     onTransactionClick: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val monthLabel = monthGroup.yearMonth.format(
-        DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("id-ID")),
-    )
-
-    Surface(
+    val monthLabel =
+        monthGroup.yearMonth.format(
+            DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("id-ID")),
+        )
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)),
+        cornerRadius = 12.dp,
+        contentPadding = PaddingValues(12.dp),
     ) {
         Column {
-            Surface(
-                onClick = { expanded = !expanded },
-                color = Color.Transparent,
-                modifier = Modifier.fillMaxWidth(),
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Rounded.CalendarMonth,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(9.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            monthLabel,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            "${monthGroup.totalTransactions} transaksi",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(
-                        if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Ciutkan" else "Tampilkan transaksi",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icon(
+                    Icons.Rounded.CalendarMonth,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(monthLabel, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp)) {
+                    Text(
+                        "${monthGroup.totalTransactions} Transaksi",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
+                Spacer(Modifier.width(4.dp))
+                Icon(if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, contentDescription = null)
             }
             AnimatedVisibility(visible = expanded) {
-                Column(
-                    modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     monthGroup.days.forEach { dayGroup ->
                         DayExpandableSection(
                             dayGroup = dayGroup,
@@ -980,45 +940,36 @@ private fun DayExpandableSection(
     onTransactionClick: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val dateLabel = dayGroup.date.format(
-        DateTimeFormatter.ofPattern("EEEE, dd MMMM", Locale.forLanguageTag("id-ID")),
-    )
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Surface(
-            onClick = { expanded = !expanded },
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-            modifier = Modifier.fillMaxWidth(),
+    val dateLabel =
+        dayGroup.date.format(
+            DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy", Locale.forLanguageTag("id-ID")),
+        )
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 8.dp)) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    dateLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    "${dayGroup.transactions.size} transaksi",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.width(3.dp))
-                Icon(
-                    if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(dateLabel, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text(
+                "${dayGroup.transactions.size} Nota",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
         }
         AnimatedVisibility(visible = expanded) {
-            Column(
-                modifier = Modifier.padding(top = 5.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
+            Column(modifier = Modifier.padding(start = 8.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 dayGroup.transactions.forEach { tx ->
                     TransactionRow(
                         tx = tx,
@@ -1091,17 +1042,18 @@ private fun SummarySection(report: DailyReport) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
         ) {
+            // Padding dipindah ke dalam Column ini
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Pendapatan Bersih",
+                    "Total Pendapatan",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     report.totalRevenue.toRupiah(),
                     style = MaterialTheme.typography.headlineMedium,
@@ -1109,14 +1061,19 @@ private fun SummarySection(report: DailyReport) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(Modifier.height(5.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    buildString {
-                        append("${report.transactionCount} transaksi")
-                        if (report.voidedCount > 0) append(" · ${report.voidedCount} dibatalkan")
-                    },
+                    "${report.transactionCount} transaksi" +
+                        (
+                            if (report.totalDiscount > 0 || report.totalTax > 0) {
+                                " · diskon ${report.totalDiscount.toRupiah()} · pajak ${report.totalTax.toRupiah()}"
+                            } else {
+                                ""
+                            }
+                        ) +
+                        (if (report.voidedCount > 0) " · ${report.voidedCount} dibatalkan" else ""),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 )
             }
         }
@@ -1146,9 +1103,9 @@ private fun StatCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(15.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Icon(
@@ -1157,7 +1114,7 @@ private fun StatCard(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp),
             )
-            Spacer(Modifier.height(5.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
                 value,
                 style = MaterialTheme.typography.titleMedium,
@@ -1261,7 +1218,7 @@ private fun RevenueTrendChart(
             if (totalRevenue > 0L) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Jam ramai: ${"%02d".format(peakHour)}.00–${"%02d".format((peakHour + 1).coerceAtMost(24))}.00 · ${peakValue.toRupiah()}",
+                    "Jam ramai: ${"%02d".format(peakHour)}.00 · ${peakValue.toRupiah()}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2959,7 +2916,7 @@ private fun CompactReportSearchBar(
                 Box(Modifier.weight(1f)) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Cari struk, produk, SKU, kategori...",
+                            text = "Cari struk / produk...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             maxLines = 1,
@@ -3006,16 +2963,16 @@ private fun CompactSquareIconButton(
     
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(13.dp),
+        shape = RoundedCornerShape(8.dp), // Radius dipertajam karena ukuran lebih kecil (34dp)
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier.size(48.dp)
+        modifier = Modifier.size(34.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(16.dp),
                 tint = color,
             )
         }
@@ -3026,31 +2983,29 @@ private fun CompactSquareIconButton(
 private fun ReportOptionRow(
     label: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    onCheckedChange: (Boolean) -> Unit
 ) {
     Surface(
         onClick = { onCheckedChange(!checked) },
-        shape = RoundedCornerShape(11.dp),
-        color = if (checked) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent,
-        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = if (checked) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), // Padding vertikal lebih tipis
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Normal,
-                modifier = Modifier.weight(1f),
+                color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Medium
             )
-            Spacer(Modifier.width(8.dp))
             Switch(
                 checked = checked,
-                onCheckedChange = null,
-                modifier = Modifier.scale(0.72f),
+                onCheckedChange = null, // Disable internal click, di-handle oleh Surface
+                modifier = Modifier.scale(0.7f) // Mengecilkan ukuran Switch agar proporsional
             )
         }
     }
