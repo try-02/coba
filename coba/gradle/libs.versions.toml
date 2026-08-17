@@ -19,6 +19,7 @@ fastexcel = "0.20.2"
 aaltoXml = "1.4.0"
 staxApi = "1.0-2"
 flinger = "2.1.0"
+slack-compose-lint = "1.5.4"
 
 # ===== Testing =====
 junit = "4.13.2"
@@ -74,6 +75,7 @@ androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+slack-compose-lints = { module = "com.slack.lint.compose:compose-lint-checks", version.ref = "slack-compose-lint" }
 
 [bundles]
 compose-ui = [
