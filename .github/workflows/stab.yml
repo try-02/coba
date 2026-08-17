@@ -40,12 +40,11 @@ jobs:
     - name: Run Compose Stability Check
       run: ./gradlew stabilityDump --no-daemon
 
-    # Mengunggah html/json laporan stabilitas ke halaman ringkasan GitHub Actions jika build gagal/sukses
+    # Mengunggah hasil file analisis stabilitas .stability ke halaman ringkasan GitHub Actions
     - name: Upload Stability Reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: compose-stability-reports
-        # PERBAIKAN: Karena upload-artifact berjalan di luar scope 'defaults.run', 
-        # kita harus memastikan lokasinya relatif dari root repository.
-        path: 'coba/**/build/reports/compose-stability/**'
+        # PERBAIKAN: Menyesuaikan jalur relatif dari root repositori agar file .stability terdeteksi
+        path: 'coba/app/stability/*.stability'

@@ -1273,7 +1273,7 @@ private fun RevenueTrendChart(
     val ySteps = 4
     val hourSpacing = 64.dp
     val yAxisWidth = 54.dp
-    val chartWidth = 24 * hourSpacing + 16.dp
+    val chartWidth = hourSpacing * 24f + 16.dp
     val chartHeight = 190.dp
     val plotBottom = 154.dp
 
@@ -1284,9 +1284,14 @@ private fun RevenueTrendChart(
             fontFamily = FontFamily.Monospace,
         )
     }
+    // Capture theme colors outside the Canvas draw scope because MaterialTheme
+    // is a @Composable API and cannot be invoked from DrawScope.
+    val tooltipContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val tooltipTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+
     val yLabels = remember(maxRevenue, labelStyle) {
         (0..ySteps).map { step ->
-            val value = maxRevenue * step / ySteps.toLong()
+            val value = (maxRevenue * (ySteps - step) / ySteps.toLong())
             textMeasurer.measure(value.toCompactRupiah(), labelStyle)
         }
     }
@@ -1521,7 +1526,7 @@ private fun RevenueTrendChart(
                             val amountText = point.value.toRupiah()
                             val idText = point.transaction.id
                             val tooltipStyle = TextStyle(
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = tooltipTextColor,
                                 fontSize = 10.sp,
                                 fontFamily = FontFamily.Monospace,
                             )
@@ -1543,7 +1548,7 @@ private fun RevenueTrendChart(
                                 .coerceAtLeast(4.dp.toPx())
 
                             drawRoundRect(
-                                color = MaterialTheme.colorScheme.primaryContainer,
+                                color = tooltipContainerColor,
                                 topLeft = Offset(tooltipX, tooltipY),
                                 size = androidx.compose.ui.geometry.Size(tooltipWidth, tooltipHeight),
                                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(10.dp.toPx()),
@@ -1921,118 +1926,64 @@ private fun TransactionRow(
     onClick: () -> Unit,
 ) {
     val isVoid = tx.isVoid
-    val isReturned = tx.hasReturn
-    val muted = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
-
+    val dimmedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
     Surface(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
-        color = if (isVoid) {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isVoid) 0.06f else 0.10f),
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f),
         ),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
         ) {
-            Column(
-                modifier = Modifier.width(52.dp),
-                horizontalAlignment = Alignment.Start,
-            ) {
+            Text(
+                ReportViewModel.timeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isVoid) dimmedColor else MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        tx.id,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isVoid) dimmedColor else Color.Unspecified,
+                    )
+                    if (isVoid) {
+                        Spacer(Modifier.width(6.dp))
+                        VoidBadge()
+                    }
+                }
                 Text(
-                    ReportViewModel.timeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isVoid) muted else MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    tx.createdAt.let {
-                        Instant.ofEpochMilli(it)
-                            .atZone(ZoneId.systemDefault())
-                            .dayOfMonth
-                            .toString()
-                    },
+                    "Dibayar ${tx.paidAmount.toRupiah()} · ${paymentMethodLabel(tx.paymentMethod)}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isVoid) muted else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            Spacer(Modifier.width(10.dp))
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Text(
-                    tx.id,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isVoid) muted else MaterialTheme.colorScheme.onSurface,
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    Text(
-                        paymentMethodLabel(tx.paymentMethod),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isVoid) muted else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        "·",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    )
-                    Text(
-                        "Bayar ${tx.paidAmount.toRupiah()}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = if (isVoid) muted else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (isVoid) VoidBadge()
-                    if (isReturned) ReturnedBadge()
-                }
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    tx.total.toRupiah(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isVoid) muted else MaterialTheme.colorScheme.onSurface,
-                )
-                Icon(
-                    Icons.Rounded.ChevronRight,
-                    contentDescription = "Lihat detail transaksi",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
+            Text(
+                tx.total.toRupiah(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = if (isVoid) dimmedColor else Color.Unspecified,
+            )
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                Icons.Rounded.ChevronRight,
+                contentDescription = "Lihat detail transaksi",
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -2153,300 +2104,208 @@ private fun TransactionDetailDialog(
     val tx = result.transaction
     val isVoid = tx.isVoid
     val hasReturn = tx.hasReturn
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    "Detail Transaksi",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    ReportViewModel.dateTimeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
+        title = { Text("Detail Transaksi", fontWeight = FontWeight.Bold) },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 banner?.let { msg ->
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (msg.isError) {
-                            MaterialTheme.colorScheme.errorContainer
-                        } else {
-                            MaterialTheme.colorScheme.primaryContainer
-                        },
+                        shape = RoundedCornerShape(10.dp),
+                        color =
+                            if (msg.isError) {
+                                MaterialTheme.colorScheme.errorContainer
+                            } else {
+                                MaterialTheme.colorScheme.primaryContainer
+                            },
                     ) {
                         Text(
                             msg.text,
                             modifier = Modifier.padding(12.dp),
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (msg.isError) {
-                                MaterialTheme.colorScheme.onErrorContainer
-                            } else {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            },
+                            color =
+                                if (msg.isError) {
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                },
                         )
                     }
+                    Spacer(Modifier.height(6.dp))
                 }
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                tx.id,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                tx.cashierName.ifBlank { "Tanpa kasir" },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            if (isVoid) VoidBadge()
-                            else if (hasReturn) ReturnedBadge()
-                        }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        tx.id,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (isVoid) {
+                        Spacer(Modifier.width(8.dp))
+                        VoidBadge()
+                    }
+                    if (hasReturn) {
+                        Spacer(Modifier.width(8.dp))
+                        ReturnedBadge()
                     }
                 }
-
+                Text(
+                    ReportViewModel.dateTimeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (isVoid && tx.voidedAt != null) {
+                    Text(
+                        "Dibatalkan pada ${ReportViewModel.dateTimeFmt.format(Instant.ofEpochMilli(tx.voidedAt))}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
                 ReceiptActionsRow(
                     onPrint = onPrint,
                     onExport = onExport,
                     onShare = onShare,
                     printEnabled = printUiState !is PrintUiState.Printing,
                 )
-
                 ReprintResultBanner(
                     printUiState = printUiState,
                     onSharePdfFile = onSharePdfFile,
                     onNavigateToSettings = onNavigateToSettings,
                 )
-
+                Spacer(Modifier.height(10.dp))
                 Text(
                     "Item Pembelian",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                 )
+                HorizontalDivider(Modifier.padding(vertical = 2.dp))
+                result.items.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp),
+                        ) {
+                            Text(
+                                item.productName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "${item.quantity.formatQuantity()} x ${item.unitPrice.toRupiah()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            item.lineTotal.toRupiah(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(Modifier.padding(vertical = 2.dp))
+                SummaryLine("Subtotal", tx.subtotal.toRupiah())
+                tx.discountRowLabel()?.let { label ->
+                    SummaryLine(label, "- ${tx.discount.toRupiah()}")
+                }
+                if (tx.tax > 0) SummaryLine("Pajak", tx.tax.toRupiah())
+                HorizontalDivider(Modifier.padding(vertical = 2.dp))
+                SummaryLine("Total", tx.total.toRupiah(), emphasize = true)
+                SummaryLine("Bayar", tx.paidAmount.toRupiah())
+                when {
+                    tx.change < 0L -> {
+                        SummaryLine(
+                            "Kurang Bayar",
+                            kotlin.math.abs(tx.change).toRupiah(),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f),
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        result.items.forEachIndexed { index, item ->
-                            if (index > 0) {
-                                HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f),
+                    tx.change == 0L -> {
+                        SummaryLine("Kembali", tx.change.toRupiah(), color = MaterialTheme.colorScheme.primary)
+                    }
+
+                    else -> {
+                        val isQrisCashOut = tx.paymentMethod == PaymentMethod.QRIS.name && tx.changeGivenInCash
+                        SummaryLine(
+                            if (isQrisCashOut) "Kembali (Tunai Laci)" else "Kembali",
+                            tx.changeGiven.toRupiah(),
+                            color = if (isQrisCashOut) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                        )
+                        val tip = (tx.change - tx.changeGiven).coerceAtLeast(0L)
+                        if (tip > 0L) {
+                            SummaryLine("Tip/Donasi", tip.toRupiah(), color = MaterialTheme.colorScheme.tertiary)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(Modifier.padding(vertical = 2.dp))
+                SummaryLine("Metode Bayar", paymentMethodLabel(tx.paymentMethod))
+                SummaryLine("Kasir", tx.cashierName.ifBlank { "Tanpa kasir" })
+                tx.shiftId?.let { id ->
+                    SummaryLine("Shift", "#$id")
+                }
+
+                if (!isVoid) {
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    if (!hasReturn) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            TextButton(
+                                onClick = onReturnClick,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(
+                                    "Retur Item",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
                                 )
                             }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 9.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.Top,
+                            TextButton(
+                                onClick = onVoidClick,
+                                modifier = Modifier.weight(1f),
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        item.productName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        "${item.quantity.formatQuantity()} × ${item.unitPrice.toRupiah()}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
                                 Text(
-                                    item.lineTotal.toRupiah(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontFamily = FontFamily.Monospace,
+                                    "Batalkan Transaksi",
+                                    color = MaterialTheme.colorScheme.error,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
                         }
-                    }
-                }
-
-                Text(
-                    "Ringkasan Pembayaran",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(7.dp),
-                    ) {
-                        SummaryLine("Subtotal", tx.subtotal.toRupiah())
-
-                        tx.discountRowLabel()?.let { label ->
-                            SummaryLine(label, "- ${tx.discount.toRupiah()}")
-                        }
-
-                        if (tx.tax > 0) {
-                            SummaryLine("Pajak", tx.tax.toRupiah())
-                        }
-
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
+                    } else {
+                        Text(
+                            "Transaksi ini sudah memiliki riwayat retur, sehingga tidak dapat dibatalkan.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
                         )
-
-                        SummaryLine(
-                            "Total",
-                            tx.total.toRupiah(),
-                            emphasize = true,
-                        )
-                        SummaryLine("Bayar", tx.paidAmount.toRupiah())
-
-                        when {
-                            tx.change < 0L -> {
-                                SummaryLine(
-                                    "Kurang Bayar",
-                                    kotlin.math.abs(tx.change).toRupiah(),
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            }
-
-                            tx.change == 0L -> {
-                                SummaryLine(
-                                    "Kembali",
-                                    tx.change.toRupiah(),
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-
-                            else -> {
-                                val isQrisCashOut =
-                                    tx.paymentMethod == PaymentMethod.QRIS.name && tx.changeGivenInCash
-
-                                SummaryLine(
-                                    if (isQrisCashOut) "Kembali (Tunai Laci)" else "Kembali",
-                                    tx.changeGiven.toRupiah(),
-                                    color = if (isQrisCashOut) {
-                                        MaterialTheme.colorScheme.tertiary
-                                    } else {
-                                        MaterialTheme.colorScheme.primary
-                                    },
-                                )
-
-                                val tip = (tx.change - tx.changeGiven).coerceAtLeast(0L)
-                                if (tip > 0L) {
-                                    SummaryLine(
-                                        "Tip/Donasi",
-                                        tip.toRupiah(),
-                                        color = MaterialTheme.colorScheme.tertiary,
-                                    )
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
-                        )
-
-                        SummaryLine("Metode Bayar", paymentMethodLabel(tx.paymentMethod))
-                        SummaryLine("Kasir", tx.cashierName.ifBlank { "Tanpa kasir" })
-                        tx.shiftId?.let { id ->
-                            SummaryLine("Shift", "#$id")
-                        }
-
-                        if (isVoid && tx.voidedAt != null) {
-                            SummaryLine(
-                                "Dibatalkan",
-                                ReportViewModel.dateTimeFmt.format(
-                                    Instant.ofEpochMilli(tx.voidedAt),
-                                ),
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                }
-
-                if (!isVoid) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
-                    ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            if (!hasReturn) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    TextButton(
-                                        onClick = onReturnClick,
-                                        modifier = Modifier.weight(1f),
-                                    ) {
-                                        Text(
-                                            "Retur Item",
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-
-                                    TextButton(
-                                        onClick = onVoidClick,
-                                        modifier = Modifier.weight(1f),
-                                    ) {
-                                        Text(
-                                            "Batalkan",
-                                            color = MaterialTheme.colorScheme.error,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                }
-                            } else {
-                                Text(
-                                    "Transaksi ini sudah memiliki riwayat retur, sehingga tidak dapat dibatalkan.",
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Tutup")
-            }
+            TextButton(onClick = onDismiss) { Text("Tutup") }
         },
     )
 }
@@ -3246,94 +3105,69 @@ private fun MonthGroupCard(
     onTransactionClick: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(true) }
-
-    Surface(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f),
-        ),
+        shape = RoundedCornerShape(12.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            ),
     ) {
-        Column(modifier = Modifier.padding(vertical = 4.dp)) {
-            Surface(
-                onClick = { expanded = !expanded },
-                color = Color.Transparent,
-                modifier = Modifier.fillMaxWidth(),
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = !expanded }
+                        .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Rounded.CalendarMonth,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = monthGroup.yearMonth.toString(),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "${monthGroup.totalTransactions} transaksi",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    Icon(
-                        imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                        contentDescription = if (expanded) "Ciutkan" else "Buka",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = "📅 ${monthGroup.yearMonth}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${monthGroup.totalTransactions} Transaksi >",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                )
             }
-
-            AnimatedVisibility(visible = expanded) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    monthGroup.days.forEach { dayGroup ->
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
+            if (expanded) {
+                Spacer(Modifier.height(8.dp))
+                monthGroup.days.forEach { dayGroup ->
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 8.dp, top = 6.dp),
+                    ) {
+                        Text(
+                            text = "📌 Tanggal ${dayGroup.date}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                        dayGroup.transactions.forEach { tx ->
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onTransactionClick(tx.id) }
+                                        .padding(vertical = 6.dp, horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    text = dayGroup.date.toString(),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    text = "Struk #${tx.id.takeLast(6)}",
+                                    style = MaterialTheme.typography.bodyMedium,
                                 )
-                                Spacer(Modifier.width(8.dp))
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f),
-                                )
-                            }
-
-                            dayGroup.transactions.forEach { tx ->
-                                TransactionRow(
-                                    tx = tx,
-                                    onClick = { onTransactionClick(tx.id) },
+                                Text(
+                                    text = tx.total.toRupiah(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
                                 )
                             }
                         }
