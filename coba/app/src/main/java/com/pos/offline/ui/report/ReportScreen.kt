@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -42,6 +43,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.automirrored.rounded.ShowChart
@@ -102,6 +105,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -148,6 +152,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 import androidx.compose.material3.Switch
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.input.ImeAction
@@ -415,7 +420,6 @@ LaunchedEffect(viewModel, globalMessage) {
                                     RevenueTrendChart(
                                         date = report.date,
                                         transactions = report.transactions.filterNot { it.isVoid },
-                                        totalRevenue = report.totalRevenue,
                                         hourly = report.hourlyRevenue,
                                     )
                                 }
@@ -1207,51 +1211,119 @@ private fun Long.toCompactRupiah(): String {
 private fun RevenueTrendChart(
     date: LocalDate,
     transactions: List<TransactionEntity>,
-    totalRevenue: Long,
     hourly: List<Long>,
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
     val gridColor = onSurface.copy(alpha = 0.08f)
-    val axisTextColor = onSurface.copy(alpha = 0.6f)
+    val axisTextColor = onSurface.copy(alpha = 0.58f)
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    var selectedPointIndex by remember { mutableStateOf<Int?>(null) }
     val textMeasurer = rememberTextMeasurer()
     val zone = remember { ZoneId.systemDefault() }
-    val dayStartMillis = remember(date) { date.atStartOfDay(zone).toInstant().toEpochMilli() }
-    val dayEndMillis = remember(date) { date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() }
-    val peakHour = remember(hourly) { hourly.indices.maxByOrNull { hourly[it] } ?: 0 }
-    val peakValue = remember(hourly) { hourly.getOrElse(peakHour) { 0L } }
-    
-    val points = remember(transactions, dayStartMillis, dayEndMillis) {
-        val sorted = transactions.sortedBy { it.createdAt }
-        val list = mutableListOf(dayStartMillis to 0L)
-        var running = 0L
-        for (tx in sorted) {
-            running += tx.total
-            list.add(tx.createdAt.coerceIn(dayStartMillis, dayEndMillis) to running)
-        }
-        list.add(dayEndMillis to running)
-        list
+    val dayStartMillis = remember(date) {
+        date.atStartOfDay(zone).toInstant().toEpochMilli()
     }
-    
-    val labelStyle = remember(axisTextColor) { TextStyle(color = axisTextColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace) }
-    val maxRevenue = totalRevenue.coerceAtLeast(1L)
+    val dayEndMillis = remember(date) {
+        date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+    }
+
+    // Hanya transaksi aktif yang benar-benar digambar. Void tidak masuk grafik.
+    val points = remember(transactions, dayStartMillis, dayEndMillis) {
+        transactions
+            .asSequence()
+            .filter { it.createdAt in dayStartMillis until dayEndMillis }
+            .sortedBy { it.createdAt }
+            .map { tx ->
+                RevenuePoint(
+                    transaction = tx,
+                    timeMillis = tx.createdAt,
+                    value = tx.total.coerceAtLeast(0L),
+                )
+            }
+            .toList()
+    }
+
+    val peakHour = remember(points) {
+        points
+            .groupBy { tx ->
+                ((tx.timeMillis - dayStartMillis) / 3_600_000L).toInt().coerceIn(0, 23)
+            }
+            .maxWithOrNull(
+                compareBy<Map.Entry<Int, List<RevenuePoint>>> { it.value.size }
+                    .thenBy { it.key },
+            )
+            ?.key ?: 0
+    }
+    val peakTransactionCount = remember(points, peakHour) {
+        points.count {
+            ((it.timeMillis - dayStartMillis) / 3_600_000L).toInt().coerceIn(0, 23) == peakHour
+        }
+    }
+    val peakRevenueHour = remember(hourly) {
+        hourly.indices.maxByOrNull { hourly[it] } ?: 0
+    }
+    val peakRevenue = remember(hourly, peakRevenueHour) {
+        hourly.getOrElse(peakRevenueHour) { 0L }
+    }
+
+    val maxPointValue = points.maxOfOrNull { it.value } ?: 0L
+    val maxRevenue = maxOf(maxPointValue, 1L)
     val ySteps = 4
-    val yAxisLabels = remember(maxRevenue, labelStyle) {
-        (0..ySteps).map { i ->
-            val ratio = i / ySteps.toFloat()
-            val labelStr = (maxRevenue * ratio).toLong().toCompactRupiah()
-            textMeasurer.measure(labelStr, labelStyle)
+    val hourSpacing = 64.dp
+    val yAxisWidth = 54.dp
+    val chartWidth = 24 * hourSpacing + 16.dp
+    val chartHeight = 190.dp
+    val plotBottom = 154.dp
+
+    val labelStyle = remember(axisTextColor) {
+        TextStyle(
+            color = axisTextColor,
+            fontSize = 9.sp,
+            fontFamily = FontFamily.Monospace,
+        )
+    }
+    val yLabels = remember(maxRevenue, labelStyle) {
+        (0..ySteps).map { step ->
+            val value = (maxRevenue * (ySteps - step) / ySteps.toLong())
+            textMeasurer.measure(value.toCompactRupiah(), labelStyle)
+        }
+    }
+
+    // Reset selection when the underlying dataset changes.
+    LaunchedEffect(points) {
+        selectedPointIndex = null
+    }
+
+    // Saat dibuka, arahkan viewport ke sekitar transaksi terakhir. Ini tidak
+    // mengubah HorizontalPager karena scrollState hanya dimiliki chart ini.
+    LaunchedEffect(points, chartWidth) {
+        if (points.isNotEmpty()) {
+            val latestHour = ((points.last().timeMillis - dayStartMillis) / 3_600_000L)
+                .toInt()
+                .coerceIn(0, 23)
+            val target = with(density) {
+                (latestHour - 2).coerceAtLeast(0) * hourSpacing.toPx()
+            }
+            // Menunggu satu frame memberi kesempatan LazyColumn/Canvas mengukur maxValue.
+            kotlinx.coroutines.yield()
+            scrollState.scrollTo(target.roundToInt().coerceIn(0, scrollState.maxValue))
+        } else {
+            scrollState.scrollTo(0)
         }
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f),
+        ),
     ) {
-        // Padding dipindah ke dalam Column ini
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.AutoMirrored.Rounded.ShowChart,
@@ -1266,106 +1338,252 @@ private fun RevenueTrendChart(
                     fontWeight = FontWeight.Bold,
                 )
             }
-            if (totalRevenue > 0L) {
-                Spacer(Modifier.height(4.dp))
+
+            if (points.isNotEmpty()) {
+                Spacer(Modifier.height(5.dp))
                 Text(
-                    "Jam ramai · ${"%02d".format(peakHour)}.00–${"%02d".format((peakHour + 1).coerceAtMost(24))}.00 · ${peakValue.toRupiah()}",
+                    "Jam teramai · ${"%02d:00–%02d:00".format(peakHour, peakHour + 1)} · " +
+                        "$peakTransactionCount transaksi",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (peakRevenue > 0L) {
+                    Text(
+                        "Pendapatan tertinggi · ${"%02d:00–%02d:00".format(peakRevenueHour, peakRevenueHour + 1)} · ${peakRevenue.toRupiah()}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    "Belum ada transaksi pada hari ini",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.height(12.dp))
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp),
+
+            Spacer(Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth().height(chartHeight),
+                verticalAlignment = Alignment.Top,
             ) {
-                val leftAxisWidth = 44.dp.toPx()
-                val bottomAxisHeight = 18.dp.toPx()
-                val plotLeft = leftAxisWidth
-                val plotRight = size.width
-                val plotTop = 0f
-                val plotBottom = size.height - bottomAxisHeight
-                val plotWidth = plotRight - plotLeft
-                val plotHeight = plotBottom - plotTop
-
-                fun xFor(time: Long): Float {
-                    val ratio = (time - dayStartMillis).toFloat() / (dayEndMillis - dayStartMillis).toFloat()
-                    return plotLeft + ratio.coerceIn(0f, 1f) * plotWidth
-                }
-
-                fun yFor(value: Long): Float {
-                    val ratio = value.toFloat() / maxRevenue.toFloat()
-                    return plotBottom - ratio.coerceIn(0f, 1f) * plotHeight
-                }
-                
-                for (i in 0..ySteps) {
-                    val ratio = i / ySteps.toFloat()
-                    val y = plotBottom - ratio * plotHeight
-                    drawLine(gridColor, Offset(plotLeft, y), Offset(plotRight, y), strokeWidth = 1.dp.toPx())
-                    val measured = yAxisLabels.getOrElse(i) { textMeasurer.measure("0", labelStyle) }
-                    drawText(
-                        textLayoutResult = measured,
-                        topLeft = Offset(0f, (y - measured.size.height / 2f).coerceIn(0f, plotBottom - measured.size.height)),
-                    )
-                }
-                
-                listOf(0, 6, 12, 18, 24).forEach { hour ->
-                    val time = (dayStartMillis + hour.toLong() * 3_600_000L).coerceAtMost(dayEndMillis)
-                    val x = xFor(time)
-                    drawLine(gridColor, Offset(x, plotTop), Offset(x, plotBottom), strokeWidth = 1.dp.toPx())
-                    val label = if (hour == 24) "24.00" else "%02d.00".format(hour)
-                    val measured = textMeasurer.measure(label, labelStyle, density = this)
-                    val labelX =
-                        when (hour) {
-                            0 -> x
-                            24 -> x - measured.size.width
-                            else -> x - measured.size.width / 2f
+                // Sumbu Y tetap terlihat ketika grafik digeser horizontal.
+                Canvas(
+                    modifier = Modifier.width(yAxisWidth).height(chartHeight),
+                ) {
+                    val plotBottomPx = plotBottom.toPx()
+                    val plotHeight = plotBottomPx
+                    for (step in 0..ySteps) {
+                        val ratio = step / ySteps.toFloat()
+                        val y = plotBottomPx - ratio * plotHeight
+                        val measured = yLabels.getOrElse(step) {
+                            textMeasurer.measure("Rp0", labelStyle)
                         }
-                    drawText(
-                        textLayoutResult = measured,
-                        topLeft = Offset(labelX.coerceIn(0f, size.width - measured.size.width), plotBottom + 4.dp.toPx()),
-                    )
-                }
-                
-                if (points.size >= 2) {
-                    val linePath = Path()
-                    val areaPath = Path()
-                    points.forEachIndexed { index, (time, value) ->
-                        val x = xFor(time)
-                        val y = yFor(value)
-                        if (index == 0) {
-                            linePath.moveTo(x, y)
-                            areaPath.moveTo(x, plotBottom)
-                            areaPath.lineTo(x, y)
-                        } else {
-                            val prevY = yFor(points[index - 1].second)
-                            linePath.lineTo(x, prevY)
-                            linePath.lineTo(x, y)
-                            areaPath.lineTo(x, prevY)
-                            areaPath.lineTo(x, y)
-                        }
-                    }
-                    areaPath.lineTo(xFor(points.last().first), plotBottom)
-                    areaPath.close()
-                    drawPath(
-                        path = areaPath,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(primary.copy(alpha = 0.28f), primary.copy(alpha = 0.02f)),
-                            startY = plotTop,
-                            endY = plotBottom,
-                        ),
-                    )
-                    drawPath(path = linePath, color = primary, style = Stroke(width = 2.dp.toPx()))
-                    for (i in 1 until points.size - 1) {
-                        val (time, value) = points[i]
-                        drawCircle(color = primary, radius = 3.dp.toPx(), center = Offset(xFor(time), yFor(value)))
+                        drawText(
+                            textLayoutResult = measured,
+                            topLeft = Offset(
+                                0f,
+                                (y - measured.size.height / 2f)
+                                    .coerceIn(0f, plotBottomPx - measured.size.height),
+                            ),
+                        )
                     }
                 }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(chartHeight)
+                        .horizontalScroll(scrollState),
+                ) {
+                    Canvas(
+                        modifier = Modifier
+                            .width(chartWidth)
+                            .height(chartHeight)
+                            .pointerInput(points, maxRevenue, dayStartMillis) {
+                                detectTapGestures { position ->
+                                    if (points.isEmpty()) {
+                                        selectedPointIndex = null
+                                    } else {
+                                        val plotLeft = 8.dp.toPx()
+                                        val plotWidth = 24f * hourSpacing.toPx()
+                                        val plotHeightPx = plotBottom.toPx()
+                                        val x = position.x
+                                        val y = position.y
+
+                                        fun xFor(time: Long): Float {
+                                            val ratio = (time - dayStartMillis).toFloat() /
+                                                (dayEndMillis - dayStartMillis).toFloat()
+                                            return plotLeft + ratio.coerceIn(0f, 1f) * plotWidth
+                                        }
+
+                                        fun yFor(value: Long): Float {
+                                            val ratio = value.toFloat() / maxRevenue.toFloat()
+                                            return plotHeightPx - ratio.coerceIn(0f, 1f) * plotHeightPx
+                                        }
+
+                                        val nearest = points
+                                            .mapIndexed { index, point ->
+                                                val dx = x - xFor(point.timeMillis)
+                                                val dy = y - yFor(point.value)
+                                                index to (dx * dx + dy * dy)
+                                            }
+                                            .minByOrNull { it.second }
+
+                                        selectedPointIndex = nearest
+                                            ?.takeIf { it.second <= 28.dp.toPx() * 28.dp.toPx() }
+                                            ?.first
+                                    }
+                                }
+                            },
+                    ) {
+                        val plotLeft = 8.dp.toPx()
+                        val plotRight = size.width
+                        val plotTop = 0f
+                        val plotBottomPx = plotBottom.toPx()
+                        val plotWidth = 24f * hourSpacing.toPx()
+                        val plotHeight = plotBottomPx
+
+                        fun xFor(time: Long): Float {
+                            val ratio = (time - dayStartMillis).toFloat() /
+                                (dayEndMillis - dayStartMillis).toFloat()
+                            return plotLeft + ratio.coerceIn(0f, 1f) * plotWidth
+                        }
+
+                        fun yFor(value: Long): Float {
+                            val ratio = value.toFloat() / maxRevenue.toFloat()
+                            return plotBottomPx - ratio.coerceIn(0f, 1f) * plotHeight
+                        }
+
+                        // Grid horizontal: membantu membaca nominal tanpa membuat
+                        // grafik terasa berat.
+                        for (step in 0..ySteps) {
+                            val ratio = step / ySteps.toFloat()
+                            val y = plotBottomPx - ratio * plotHeight
+                            drawLine(
+                                color = gridColor,
+                                start = Offset(plotLeft, y),
+                                end = Offset(plotRight, y),
+                                strokeWidth = 1.dp.toPx(),
+                            )
+                        }
+
+                        // Grid vertikal dan label setiap jam: 00 sampai 24.
+                        for (hour in 0..24) {
+                            val x = plotLeft + hour * hourSpacing.toPx()
+                            drawLine(
+                                color = gridColor,
+                                start = Offset(x, plotTop),
+                                end = Offset(x, plotBottomPx),
+                                strokeWidth = 1.dp.toPx(),
+                            )
+                            val label = "%02d".format(hour)
+                            val measured = textMeasurer.measure(label, labelStyle)
+                            val labelX = (x - measured.size.width / 2f)
+                                .coerceIn(0f, size.width - measured.size.width)
+                            drawText(
+                                textLayoutResult = measured,
+                                topLeft = Offset(labelX, plotBottomPx + 6.dp.toPx()),
+                            )
+                        }
+
+                        // Satu transaksi = satu titik. Tidak ada garis, area fill,
+                        // interpolasi, atau akumulasi visual.
+                        points.forEachIndexed { index, point ->
+                            val center = Offset(
+                                xFor(point.timeMillis),
+                                yFor(point.value),
+                            )
+                            val selected = selectedPointIndex == index
+                            if (selected) {
+                                drawCircle(
+                                    color = primary.copy(alpha = 0.18f),
+                                    radius = 9.dp.toPx(),
+                                    center = center,
+                                )
+                            }
+                            drawCircle(
+                                color = primary,
+                                radius = if (selected) 4.5.dp.toPx() else 3.5.dp.toPx(),
+                                center = center,
+                            )
+                        }
+
+                        selectedPointIndex?.let { index ->
+                            val point = points.getOrNull(index) ?: return@let
+                            val pointX = xFor(point.timeMillis)
+                            val pointY = yFor(point.value)
+                            val timeText = ReportViewModel.timeFmt.format(
+                                Instant.ofEpochMilli(point.timeMillis),
+                            )
+                            val amountText = point.value.toRupiah()
+                            val idText = point.transaction.id
+                            val tooltipStyle = TextStyle(
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                            val timeLayout = textMeasurer.measure(timeText, tooltipStyle)
+                            val amountLayout = textMeasurer.measure(amountText, tooltipStyle.copy(fontWeight = FontWeight.Bold))
+                            val idLayout = textMeasurer.measure(
+                                idText.take(22).let { if (idText.length > 22) "$it…" else it },
+                                tooltipStyle,
+                            )
+                            val tooltipWidth = maxOf(
+                                timeLayout.size.width,
+                                amountLayout.size.width,
+                                idLayout.size.width,
+                            ) + 20.dp.toPx()
+                            val tooltipHeight = 58.dp.toPx()
+                            val tooltipX = (pointX - tooltipWidth / 2f)
+                                .coerceIn(4.dp.toPx(), size.width - tooltipWidth - 4.dp.toPx())
+                            val tooltipY = (pointY - tooltipHeight - 10.dp.toPx())
+                                .coerceAtLeast(4.dp.toPx())
+
+                            drawRoundRect(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                topLeft = Offset(tooltipX, tooltipY),
+                                size = androidx.compose.ui.geometry.Size(tooltipWidth, tooltipHeight),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(10.dp.toPx()),
+                            )
+                            drawText(
+                                textLayoutResult = timeLayout,
+                                topLeft = Offset(tooltipX + 10.dp.toPx(), tooltipY + 7.dp.toPx()),
+                            )
+                            drawText(
+                                textLayoutResult = amountLayout,
+                                topLeft = Offset(tooltipX + 10.dp.toPx(), tooltipY + 22.dp.toPx()),
+                            )
+                            drawText(
+                                textLayoutResult = idLayout,
+                                topLeft = Offset(tooltipX + 10.dp.toPx(), tooltipY + 39.dp.toPx()),
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (points.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Geser grafik untuk melihat 00–24 · Ketuk titik untuk detail transaksi",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                    modifier = Modifier.padding(start = yAxisWidth),
+                )
             }
         }
     }
 }
+
+private data class RevenuePoint(
+    val transaction: TransactionEntity,
+    val timeMillis: Long,
+    val value: Long,
+)
+
 
 @Composable
 private fun ReportTabSwitcher(
