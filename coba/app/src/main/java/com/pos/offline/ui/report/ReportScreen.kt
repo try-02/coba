@@ -270,7 +270,7 @@ LaunchedEffect(viewModel, globalMessage) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = tooltipContainerColor,
+                            color = MaterialTheme.colorScheme.primaryContainer,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -1290,6 +1290,11 @@ private fun RevenueTrendChart(
             textMeasurer.measure(value.toCompactRupiah(), labelStyle)
         }
     }
+    // Capture theme colors in the composable scope; Canvas/DrawScope cannot
+    // invoke MaterialTheme directly.
+    val tooltipContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val tooltipTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+
 
     // Reset selection when the underlying dataset changes.
     LaunchedEffect(points) {
@@ -3296,7 +3301,7 @@ private fun MonthGroupCard(
                     }
 
                     Icon(
-                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        imageVector = if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
                         contentDescription = if (expanded) "Ciutkan" else "Buka",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
