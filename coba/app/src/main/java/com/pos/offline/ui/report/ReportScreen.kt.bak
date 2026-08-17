@@ -1093,14 +1093,11 @@ private fun SummarySection(report: DailyReport) {
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-            border = BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f),
-            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Total Pendapatan",
+                    "Pendapatan Bersih",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1112,13 +1109,11 @@ private fun SummarySection(report: DailyReport) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(5.dp))
                 Text(
                     buildString {
                         append("${report.transactionCount} transaksi")
-                        if (report.voidedCount > 0) {
-                            append(" · ${report.voidedCount} dibatalkan")
-                        }
+                        if (report.voidedCount > 0) append(" · ${report.voidedCount} dibatalkan")
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1152,13 +1147,10 @@ private fun StatCard(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(15.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.08f),
-        ),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Icon(
                 icon,
                 contentDescription = null,
@@ -1269,7 +1261,7 @@ private fun RevenueTrendChart(
             if (totalRevenue > 0L) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Jam ramai · ${"%02d".format(peakHour)}.00–${"%02d".format((peakHour + 1).coerceAtMost(24))}.00 · ${peakValue.toRupiah()}",
+                    "Jam ramai: ${"%02d".format(peakHour)}.00–${"%02d".format((peakHour + 1).coerceAtMost(24))}.00 · ${peakValue.toRupiah()}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1707,16 +1699,13 @@ private fun TransactionRow(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f),
-        ),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Text(
                 ReportViewModel.timeFmt.format(Instant.ofEpochMilli(tx.createdAt)),
@@ -1956,12 +1945,32 @@ private fun TransactionDetailDialog(
                     onSharePdfFile = onSharePdfFile,
                     onNavigateToSettings = onNavigateToSettings,
                 )
+                if (!isVoid) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (!hasReturn) {
+                            TextButton(onClick = onReturnClick, modifier = Modifier.weight(1f)) {
+                                Text("Retur Item", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            }
+                            TextButton(onClick = onVoidClick, modifier = Modifier.weight(1f)) {
+                                Text("Batalkan Transaksi", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Text(
+                                "Transaksi ini sudah memiliki riwayat retur, sehingga tidak dapat dibatalkan.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(10.dp))
-                Text(
-                    "Item Pembelian",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
+                Text("Item Pembelian", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 result.items.forEach { item ->
                     Row(
@@ -2036,48 +2045,6 @@ private fun TransactionDetailDialog(
                 SummaryLine("Kasir", tx.cashierName.ifBlank { "Tanpa kasir" })
                 tx.shiftId?.let { id ->
                     SummaryLine("Shift", "#$id")
-                }
-
-                if (!isVoid) {
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    if (!hasReturn) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            TextButton(
-                                onClick = onReturnClick,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(
-                                    "Retur Item",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                            TextButton(
-                                onClick = onVoidClick,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(
-                                    "Batalkan Transaksi",
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        }
-                    } else {
-                        Text(
-                            "Transaksi ini sudah memiliki riwayat retur, sehingga tidak dapat dibatalkan.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
                 }
             }
         },
