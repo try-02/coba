@@ -329,6 +329,7 @@ LaunchedEffect(viewModel, globalMessage) {
     pendingDelete?.let { target ->
         AlertDialog(
             onDismissRequest = viewModel::cancelDelete,
+            containerColor = MaterialTheme.colorScheme.surface,
             confirmButton = {
                 Button(
                     onClick = viewModel::confirmDelete,
@@ -349,6 +350,7 @@ LaunchedEffect(viewModel, globalMessage) {
     scanNotFound?.let { state ->
         AlertDialog(
             onDismissRequest = viewModel::dismissScanNotFound,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Produk Tidak Ditemukan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
                 Text("Barcode \"${state.barcode}\" belum terdaftar di katalog produk.", style = MaterialTheme.typography.bodyMedium)
@@ -372,6 +374,7 @@ LaunchedEffect(viewModel, globalMessage) {
     deletedProductFound?.let { state ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDeletedProductFound,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Produk Pernah Dihapus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
@@ -469,6 +472,7 @@ private fun ImportReviewDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isCommitting) onDismiss() },
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("Tinjau Impor Produk", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
         text = {
             Column(
@@ -1018,6 +1022,7 @@ private fun ProductFormDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
                 if (state.isNew) "Tambah Produk" else "Edit Produk",
@@ -1241,6 +1246,7 @@ private fun ProductFormDialog(
         var returnQtyStr by remember { mutableStateOf(state.damagedStock.formatQuantity()) }
         AlertDialog(
             onDismissRequest = { showReturnDamagedDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Retur ke Pabrik/Supplier", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
