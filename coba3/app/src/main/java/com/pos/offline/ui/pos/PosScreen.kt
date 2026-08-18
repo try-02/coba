@@ -53,6 +53,7 @@ import com.pos.offline.ui.components.LocalGlobalMessage
 import com.pos.offline.ui.components.rememberBarcodeScanner
 import java.io.File
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pos.offline.data.di.ServiceLocator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

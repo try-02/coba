@@ -176,6 +176,7 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pos.offline.data.di.ServiceLocator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

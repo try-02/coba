@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pos.offline.data.di.ServiceLocator
 
 @Composable
 fun StoreProfileDialog(

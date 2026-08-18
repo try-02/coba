@@ -82,6 +82,7 @@ import com.pos.offline.util.VibrationLevel
 import com.pos.offline.util.bouncyOverscroll
 import com.pos.offline.util.iosGlideFlingBehavior
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pos.offline.data.di.ServiceLocator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
