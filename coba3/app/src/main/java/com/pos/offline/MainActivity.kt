@@ -90,6 +90,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pos.offline.data.di.ServiceLocator
 import com.pos.offline.ui.components.GlobalMessageController
+import com.pos.offline.ui.components.LocalGlobalMessage
 import com.pos.offline.ui.components.TopAlignedMessagePill
 import com.pos.offline.ui.inventory.InventoryScreen
 import com.pos.offline.ui.inventory.InventoryViewModel
@@ -431,7 +432,9 @@ val openShift by
                     currentDest == Dest.POS &&
                     isCartExpanded
             )
-
+    CompositionLocalProvider(
+        LocalGlobalMessage provides messageController
+    ) {
     Box(
         modifier =
             modifier
@@ -687,6 +690,7 @@ val openShift by
                 messageController.dismiss()
             },
         )
+    }
     }
 }
 
