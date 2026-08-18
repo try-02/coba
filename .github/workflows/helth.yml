@@ -50,5 +50,5 @@ jobs:
       with:
         name: compose-doctor-report
         path: |
-          coba3/app/build/reports/compose-doctor/*.json
-          coba3/app/build/reports/detekt/*.sarif 
+          coba3/app/build/reports/compose-doctor/*.*
+          coba3/app/build/reports/detekt/*.*
