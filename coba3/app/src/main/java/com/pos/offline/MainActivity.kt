@@ -158,6 +158,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun AppRoot(
     modifier: Modifier = Modifier,
+    storeProfileViewModel: StoreProfileViewModel = viewModel(factory = ServiceLocator.storeProfileViewModelFactory()),
+    settingsViewModel: SettingsViewModel = viewModel(factory = ServiceLocator.settingsViewModelFactory()),
+    posViewModel: PosViewModel = viewModel(factory = ServiceLocator.posViewModelFactory())
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -178,18 +181,8 @@ private fun AppRoot(
 
     val currentDest = Dest.entries[pagerState.currentPage]
 
-val storeProfileViewModel: StoreProfileViewModel =
-    viewModel(
-        factory = ServiceLocator.storeProfileViewModelFactory(),
-    )
-
 val storeProfile by
     storeProfileViewModel.profile.collectAsStateWithLifecycle()
-
-val settingsViewModel: SettingsViewModel =
-    viewModel(
-        factory = ServiceLocator.settingsViewModelFactory(),
-    )
 
 val settingsUiState by
     settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -227,11 +220,6 @@ val settingsUiState by
             isJumping = false
         }
     }
-
-val posViewModel: PosViewModel =
-    viewModel(
-        factory = ServiceLocator.posViewModelFactory(),
-    )
 
 val openShift by
     posViewModel.openShift.collectAsStateWithLifecycle()
