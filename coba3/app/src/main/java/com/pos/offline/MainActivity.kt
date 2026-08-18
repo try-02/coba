@@ -109,6 +109,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.MutableState
 
 private enum class Dest(
     val label: String,
@@ -118,7 +119,7 @@ private enum class Dest(
     REPORT("Laporan"),
     SETTINGS("Pengaturan"),
 }
-val LocalActiveFocusBounds = staticCompositionLocalOf<mutableStateOf<Rect?>> {
+val LocalActiveFocusBounds = staticCompositionLocalOf<MutableState<Rect?>> {
     error("LocalActiveFocusBounds belum disediakan")
 }
 class MainActivity : ComponentActivity() {
