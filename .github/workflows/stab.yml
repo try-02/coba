@@ -5,7 +5,7 @@ on:
 
 defaults:
   run:
-    working-directory: ./coba
+    working-directory: ./coba3
 
 jobs:
   analyze-stability:
@@ -41,13 +41,12 @@ jobs:
     - name: Run Compose Stability Check
       run: ./gradlew stabilityDump --no-daemon
 
-    # Mengunggah seluruh dokumen laporan (Hasil Lint & Stabilitas Skydoves) ke Ringkasan GitHub Actions
+    # Mengunggah seluruh dokumen laporan (Hasil Lint & Stabilitas Skydoves)
     - name: Upload Analysis Reports
-      if: always()
+      if: always() # Tetap unggah laporan meskipun langkah sebelumnya gagal/sukses
       uses: actions/upload-artifact@v4
       with:
         name: compose-analysis-reports
         path: |
-          coba/app/stability/*.stability
-          coba/app/build/reports/lint-results-*.html
-          coba/app/build/reports/lint-results-*.xml
+          coba3/app/stability/*.stability
+          coba3/app/build/reports/lint-results-*.*
