@@ -59,12 +59,11 @@ import com.pos.offline.data.di.ServiceLocator
 fun StoreProfileDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-) {
-    val viewModel: StoreProfileViewModel =
+    viewModel: StoreProfileViewModel =
         viewModel(
             factory = ServiceLocator.storeProfileViewModelFactory(),
-        )
-
+        ),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val form = uiState.formState
 

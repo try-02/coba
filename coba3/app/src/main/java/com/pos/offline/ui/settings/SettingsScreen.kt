@@ -89,21 +89,19 @@ import com.pos.offline.data.di.ServiceLocator
 fun SettingsScreen(
     onExitClick: () -> Unit,
     modifier: Modifier = Modifier,
-) {
-    val viewModel: SettingsViewModel =
+    viewModel: SettingsViewModel =
         viewModel(
             factory = ServiceLocator.settingsViewModelFactory(),
-        )
-
-    val printerViewModel: PrinterViewModel =
+        ),
+    printerViewModel: PrinterViewModel =
         viewModel(
             factory = ServiceLocator.printerViewModelFactory(),
-        )
-
-    val storeProfileViewModel: StoreProfileViewModel =
+        ),
+    storeProfileViewModel: StoreProfileViewModel =
         viewModel(
             factory = ServiceLocator.storeProfileViewModelFactory(),
-        )
+        ),
+) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val cashiers by viewModel.cashiers.collectAsStateWithLifecycle()

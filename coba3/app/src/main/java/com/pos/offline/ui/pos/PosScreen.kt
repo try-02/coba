@@ -65,12 +65,11 @@ fun PosScreen(
     forceWideLayout: Boolean = false,
     isCartExpanded: Boolean = false,
     onCartExpandedChange: (Boolean) -> Unit = {},
-) {
-    val viewModel: PosViewModel =
+    viewModel: PosViewModel =
         viewModel(
             factory = ServiceLocator.posViewModelFactory(),
-        )
-
+        ),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localState = rememberPosLocalState()
     val globalMessage = LocalGlobalMessage.current

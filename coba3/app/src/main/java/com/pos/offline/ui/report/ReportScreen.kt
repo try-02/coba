@@ -186,17 +186,15 @@ fun ReportScreen(
     onExportPdf: (CheckoutResult) -> Unit,
     onShare: (CheckoutResult) -> Unit,
     modifier: Modifier = Modifier,
-) {
-    val viewModel: ReportViewModel =
+    viewModel: ReportViewModel =
         viewModel(
             factory = ServiceLocator.reportViewModelFactory(),
-        )
-
-    val inventoryViewModel: InventoryViewModel =
+        ),
+    inventoryViewModel: InventoryViewModel =
         viewModel(
             factory = ServiceLocator.inventoryViewModelFactory(),
-        )
-
+        ),
+) {
     val report by viewModel.report.collectAsStateWithLifecycle()
     val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
     val isToday by viewModel.isToday.collectAsStateWithLifecycle()

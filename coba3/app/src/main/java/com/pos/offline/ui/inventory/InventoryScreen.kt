@@ -125,12 +125,11 @@ import com.pos.offline.data.di.ServiceLocator
 @Composable
 fun InventoryScreen(
     modifier: Modifier = Modifier,
-) {
-    val viewModel: InventoryViewModel =
+    viewModel: InventoryViewModel =
         viewModel(
             factory = ServiceLocator.inventoryViewModelFactory(),
-        )
-
+        ),
+) {
     val products by viewModel.products.collectAsStateWithLifecycle()
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
