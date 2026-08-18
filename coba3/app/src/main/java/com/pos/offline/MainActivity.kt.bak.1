@@ -158,6 +158,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun AppRoot(
     modifier: Modifier = Modifier,
+    posViewModel: PosViewModel = viewModel(factory = ServiceLocator.posViewModelFactory()),
+    inventoryViewModel: InventoryViewModel = viewModel(factory = ServiceLocator.inventoryViewModelFactory()),
+    reportViewModel: ReportViewModel = viewModel(factory = ServiceLocator.reportViewModelFactory()),
+    settingsViewModel: SettingsViewModel = viewModel(factory = ServiceLocator.settingsViewModelFactory()),
+    printerViewModel: PrinterViewModel = viewModel(factory = ServiceLocator.printerViewModelFactory()),
+    storeProfileViewModel: StoreProfileViewModel = viewModel(factory = ServiceLocator.storeProfileViewModelFactory()),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -178,21 +184,11 @@ private fun AppRoot(
 
     val currentDest = Dest.entries[pagerState.currentPage]
 
-val storeProfileViewModel: StoreProfileViewModel =
-    viewModel(
-        factory = ServiceLocator.storeProfileViewModelFactory(),
-    )
+    val storeProfile by
+        storeProfileViewModel.profile.collectAsStateWithLifecycle()
 
-val storeProfile by
-    storeProfileViewModel.profile.collectAsStateWithLifecycle()
-
-val settingsViewModel: SettingsViewModel =
-    viewModel(
-        factory = ServiceLocator.settingsViewModelFactory(),
-    )
-
-val settingsUiState by
-    settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val settingsUiState by
+        settingsViewModel.uiState.collectAsStateWithLifecycle()
 
     val isRestoringDatabase = settingsUiState.isImporting
 
@@ -228,13 +224,8 @@ val settingsUiState by
         }
     }
 
-val posViewModel: PosViewModel =
-    viewModel(
-        factory = ServiceLocator.posViewModelFactory(),
-    )
-
-val openShift by
-    posViewModel.openShift.collectAsStateWithLifecycle()
+    val openShift by
+        posViewModel.openShift.collectAsStateWithLifecycle()
 
     var showExitDialog by rememberSaveable {
         mutableStateOf(false)
@@ -483,6 +474,7 @@ val openShift by
                 when (dest) {
                     Dest.POS -> {
                         PosScreen(
+                            viewModel = posViewModel,
                             forceWideLayout = isLandscape,
                             onNavigateToSettings = {
                                 goTo(Dest.SETTINGS)
@@ -529,11 +521,15 @@ val openShift by
                     }
 
                     Dest.INVENTORY -> {
-                        InventoryScreen()
+                        InventoryScreen(
+                            viewModel = inventoryViewModel,
+                        )
                     }
 
                     Dest.REPORT -> {
                         ReportScreen(
+                            viewModel = reportViewModel,
+                            inventoryViewModel = inventoryViewModel,
                             onNavigateToSettings = {
                                 goTo(Dest.SETTINGS)
                             },
@@ -574,6 +570,9 @@ val openShift by
 
                     Dest.SETTINGS -> {
                         SettingsScreen(
+                            viewModel = settingsViewModel,
+                            printerViewModel = printerViewModel,
+                            storeProfileViewModel = storeProfileViewModel,
                             onExitClick = {
                                 showExitDialog = true
                             },

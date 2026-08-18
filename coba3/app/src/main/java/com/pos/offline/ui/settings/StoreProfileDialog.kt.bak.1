@@ -52,18 +52,13 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun StoreProfileDialog(
+    viewModel: StoreProfileViewModel,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel: StoreProfileViewModel =
-        viewModel(
-            factory = ServiceLocator.storeProfileViewModelFactory(),
-        )
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val form = uiState.formState
 

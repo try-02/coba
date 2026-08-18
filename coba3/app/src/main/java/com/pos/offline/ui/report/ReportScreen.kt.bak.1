@@ -175,27 +175,18 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.MutableState
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
+    viewModel: ReportViewModel,
+    inventoryViewModel: InventoryViewModel,
     onNavigateToSettings: () -> Unit,
     onSharePdfFile: (File) -> Unit,
     onExportPdf: (CheckoutResult) -> Unit,
     onShare: (CheckoutResult) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel: ReportViewModel =
-        viewModel(
-            factory = ServiceLocator.reportViewModelFactory(),
-        )
-
-    val inventoryViewModel: InventoryViewModel =
-        viewModel(
-            factory = ServiceLocator.inventoryViewModelFactory(),
-        )
-
     val report by viewModel.report.collectAsStateWithLifecycle()
     val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
     val isToday by viewModel.isToday.collectAsStateWithLifecycle()

@@ -483,6 +483,7 @@ val openShift by
                 when (dest) {
                     Dest.POS -> {
                         PosScreen(
+                            viewModel = posViewModel,
                             forceWideLayout = isLandscape,
                             onNavigateToSettings = {
                                 goTo(Dest.SETTINGS)
@@ -529,11 +530,15 @@ val openShift by
                     }
 
                     Dest.INVENTORY -> {
-                        InventoryScreen()
+                        InventoryScreen(
+                            viewModel = inventoryViewModel,
+                        )
                     }
 
                     Dest.REPORT -> {
                         ReportScreen(
+                            viewModel = reportViewModel,
+                            inventoryViewModel = inventoryViewModel,
                             onNavigateToSettings = {
                                 goTo(Dest.SETTINGS)
                             },
@@ -574,6 +579,9 @@ val openShift by
 
                     Dest.SETTINGS -> {
                         SettingsScreen(
+                            viewModel = settingsViewModel,
+                            printerViewModel = printerViewModel,
+                            storeProfileViewModel = storeProfileViewModel,
                             onExitClick = {
                                 showExitDialog = true
                             },

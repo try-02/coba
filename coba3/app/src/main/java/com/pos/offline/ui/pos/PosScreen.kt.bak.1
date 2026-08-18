@@ -52,11 +52,11 @@ import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.ui.components.LocalGlobalMessage
 import com.pos.offline.ui.components.rememberBarcodeScanner
 import java.io.File
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PosScreen(
+    viewModel: PosViewModel,
     onNavigateToSettings: () -> Unit,
     onSharePdfFile: (File) -> Unit,
     onExportPdf: (CheckoutResult) -> Unit,
@@ -65,11 +65,6 @@ fun PosScreen(
     isCartExpanded: Boolean = false,
     onCartExpandedChange: (Boolean) -> Unit = {},
 ) {
-    val viewModel: PosViewModel =
-        viewModel(
-            factory = ServiceLocator.posViewModelFactory(),
-        )
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localState = rememberPosLocalState()
     val globalMessage = LocalGlobalMessage.current

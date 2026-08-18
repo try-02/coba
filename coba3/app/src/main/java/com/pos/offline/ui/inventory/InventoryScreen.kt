@@ -118,13 +118,18 @@ import com.pos.offline.util.toRupiah
 import kotlinx.coroutines.delay
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.MutableState
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryScreen(
-    viewModel: InventoryViewModel,
     modifier: Modifier = Modifier,
 ) {
+    val viewModel: InventoryViewModel =
+        viewModel(
+            factory = ServiceLocator.inventoryViewModelFactory(),
+        )
+
     val products by viewModel.products.collectAsStateWithLifecycle()
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
