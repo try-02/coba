@@ -145,6 +145,7 @@ dependencies {
 }
 
 composeCompiler {
-    // Arahkan ke file yang baru saja kita buat di root project
-    stabilityConfigurationFile = rootProject.file("compose_compiler_config.conf")
+    stabilityConfigurationFiles.add(
+        rootProject.layout.projectDirectory.file("compose_compiler_config.conf")
+    )
 }
