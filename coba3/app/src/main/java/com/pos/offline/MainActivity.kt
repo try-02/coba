@@ -118,7 +118,7 @@ private enum class Dest(
     REPORT("Laporan"),
     SETTINGS("Pengaturan"),
 }
-val LocalActiveFocusBounds = staticCompositionLocalOf<MutableStateOf<Rect?>> {
+val LocalActiveFocusBounds = staticCompositionLocalOf<mutableStateOf<Rect?>> {
     error("LocalActiveFocusBounds belum disediakan")
 }
 class MainActivity : ComponentActivity() {
