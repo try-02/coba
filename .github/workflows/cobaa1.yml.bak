@@ -5,7 +5,7 @@ on:
 
 defaults:
   run:
-    working-directory: ./coba3
+    working-directory: ./coba
 
 jobs:
   build:
@@ -75,7 +75,7 @@ jobs:
           name: pos-offline-release-signed-apk
           path: |
             ${{steps.sign_app.outputs.signedReleaseFile}}
-            coba3/app/**/*.json
+            coba/app/**/*.json
           retention-days: 1
           if-no-files-found: error
 
