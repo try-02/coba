@@ -433,7 +433,8 @@ val openShift by
                     isCartExpanded
             )
     CompositionLocalProvider(
-        LocalGlobalMessage provides messageController
+        LocalGlobalMessage provides messageController,
+        LocalActiveFocusBounds provides activeFocusBounds
     ) {
     Box(
         modifier =
