@@ -107,7 +107,20 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        
+        // TAMBAHAN WAJIB: Memaksa task seperti stabilityDump untuk membaca file config
+        val stabilityConfigFile = rootProject.file("compose_compiler_config.conf").absolutePath
+        freeCompilerArgs.addAll(
+            "-P",
+            "plugin:androidx.compose.compiler.plugins.kotlin:stabilityConfigurationPath=$stabilityConfigFile"
+        )
     }
+}
+
+// UBAH FORMATNYA MENJADI SEPERTI INI:
+composeCompiler {
+    // Menggunakan .set() lebih disarankan untuk Kotlin 2.0+ jika hanya ada 1 file konfigurasi
+    stabilityConfigurationFile.set(rootProject.file("compose_compiler_config.conf"))
 }
 
 dependencies {
@@ -142,10 +155,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     lintChecks(libs.slack.compose.lints)
-}
-
-composeCompiler {
-    stabilityConfigurationFiles.add(
-        rootProject.layout.projectDirectory.file("compose_compiler_config.conf")
-    )
 }
