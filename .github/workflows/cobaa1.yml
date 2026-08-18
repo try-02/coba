@@ -62,7 +62,7 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
         with:
-          releaseDirectory: coba/app/build/outputs/apk/release
+          releaseDirectory: coba3/app/build/outputs/apk/release
           signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
