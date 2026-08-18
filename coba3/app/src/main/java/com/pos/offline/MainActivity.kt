@@ -116,7 +116,9 @@ private enum class Dest(
     REPORT("Laporan"),
     SETTINGS("Pengaturan"),
 }
-
+val LocalActiveFocusBounds = staticCompositionLocalOf<MutableState<Rect?>> {
+    error("LocalActiveFocusBounds belum disediakan")
+}
 class MainActivity : ComponentActivity() {
 
     private val posViewModel: PosViewModel by viewModels {

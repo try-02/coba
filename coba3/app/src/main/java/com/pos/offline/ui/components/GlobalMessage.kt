@@ -64,6 +64,10 @@ class GlobalMessageController(
     }
 }
 
+val LocalGlobalMessage = staticCompositionLocalOf<GlobalMessageController> {
+    error("GlobalMessageController belum disediakan")
+}
+
 @Composable
 fun TopAlignedMessagePill(
     message: String?,
