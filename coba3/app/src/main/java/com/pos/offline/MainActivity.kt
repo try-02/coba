@@ -171,6 +171,7 @@ private fun AppRoot(
             GlobalMessageController(scope)
         }
 
+    val activeFocusBounds = remember { mutableStateOf<Rect?>(null) }
     val focusManager = LocalFocusManager.current
 
     val pagerState =
