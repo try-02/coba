@@ -543,10 +543,10 @@ internal fun EndShiftDialog(
 private fun DetailRow(
     label: String,
     value: String,
+    modifier: Modifier = Modifier,
     isBold: Boolean = false,
     valueSize: TextUnit = 14.sp,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),

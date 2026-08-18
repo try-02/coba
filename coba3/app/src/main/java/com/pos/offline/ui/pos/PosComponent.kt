@@ -385,10 +385,10 @@ private fun CategoryChip(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ProductPane(
-    modifier: Modifier = Modifier,
     products: List<ProductEntity>,
     cartQtyByProductId: Map<Long, Double>,
     cartItems: List<CartItemEntity>,
+    modifier: Modifier = Modifier,
     onAction: (PosAction) -> Unit,
 ) {
     var selectedProductForDetails by remember { mutableStateOf<ProductEntity?>(null) }
@@ -675,13 +675,13 @@ private fun QuantityDragStepper(
 
 @Composable
 internal fun CartPaneContent(
-    modifier: Modifier = Modifier,
     cart: CartState,
     payment: PaymentState,
     catalog: CatalogState,
     checkout: CheckoutState,
     localState: PosLocalStateHolder,
     onAction: (PosAction) -> Unit,
+    modifier: Modifier = Modifier,
     collapsible: Boolean = false,
 ) {
     val expanded = localState.isCartExpanded
@@ -1927,17 +1927,21 @@ private class TrackFocusBoundsNode :
     FocusEventModifierNode,
     GlobalPositionAwareModifierNode {
 
-    private var isFocused: Boolean = false
+    private var isFocused = false
     private var lastCoordinates: LayoutCoordinates? = null
+    private var activeBoundsState: MutableState<Rect?>? = null
 
     override fun onFocusEvent(focusState: FocusState) {
         val wasFocused = isFocused
         isFocused = focusState.isFocused
+
         val activeBounds = currentValueOf(LocalActiveFocusBounds)
+        activeBoundsState = activeBounds
+
         if (isFocused) {
-            lastCoordinates?.let { coords ->
-                if (coords.isAttached) {
-                    activeBounds.value = coords.boundsInRoot()
+            lastCoordinates?.let { coordinates ->
+                if (coordinates.isAttached) {
+                    activeBounds.value = coordinates.boundsInRoot()
                 }
             }
         } else if (wasFocused) {
@@ -1947,26 +1951,31 @@ private class TrackFocusBoundsNode :
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         lastCoordinates = coordinates
+
         if (isFocused && coordinates.isAttached) {
-            currentValueOf(LocalActiveFocusBounds).value = coordinates.boundsInRoot()
+            val activeBounds = currentValueOf(LocalActiveFocusBounds)
+            activeBoundsState = activeBounds
+            activeBounds.value = coordinates.boundsInRoot()
         }
     }
 
     override fun onReset() {
-        super.onReset()
-        if (isFocused) {
-            currentValueOf(LocalActiveFocusBounds).value = null
-        }
+        activeBoundsState?.value = null
+
         isFocused = false
         lastCoordinates = null
+        activeBoundsState = null
+
+        super.onReset()
     }
 
     override fun onDetach() {
-        super.onDetach()
-        if (isFocused) {
-            currentValueOf(LocalActiveFocusBounds).value = null
-        }
+        activeBoundsState?.value = null
+
         isFocused = false
         lastCoordinates = null
+        activeBoundsState = null
+
+        super.onDetach()
     }
 }
