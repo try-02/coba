@@ -55,9 +55,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
-import androidx.compose.runtime.Immutable
 
-@Immutable
 data class DailyReport(
     val date: LocalDate,
     val transactions: List<TransactionEntity>,
@@ -118,13 +116,11 @@ data class PendingPrintTarget(
     val availablePrinters: List<PrinterEntity>,
 )
 
-@Immutable
 data class DaySalesGroup(
     val date: LocalDate,
     val transactions: List<TransactionEntity>,
 )
 
-@Immutable
 data class MonthSalesGroup(
     val yearMonth: java.time.YearMonth,
     val days: List<DaySalesGroup>,

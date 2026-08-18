@@ -143,3 +143,8 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     lintChecks(libs.slack.compose.lints)
 }
+
+composeCompiler {
+    // Arahkan ke file yang baru saja kita buat di root project
+    stabilityConfigurationFile = rootProject.file("compose_compiler_config.conf")
+}

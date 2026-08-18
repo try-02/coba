@@ -8,9 +8,7 @@ import com.pos.offline.data.local.entity.ShiftEntity
 import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.receipt.PrintUiState
-import androidx.compose.runtime.Immutable
 
-@Immutable
 data class PosUiState(
     val catalog: CatalogState = CatalogState(),
     val cart: CartState = CartState(),
@@ -19,7 +17,6 @@ data class PosUiState(
     val shift: ShiftState = ShiftState(),
 )
 
-@Immutable
 data class CatalogState(
     val products: List<ProductEntity> = emptyList(),
     val categories: List<String> = emptyList(),
@@ -29,14 +26,12 @@ data class CatalogState(
     val stockByProductId: Map<Long, Double> = emptyMap(),
 )
 
-@Immutable
 data class CartState(
     val items: List<CartItemEntity> = emptyList(),
     val totals: Totals = Totals(),
     val isEmpty: Boolean = true,
 )
 
-@Immutable
 data class PaymentState(
     val method: PaymentMethod = PaymentMethod.CASH,
     val discountType: DiscountType = DiscountType.NOMINAL,
@@ -48,7 +43,6 @@ data class PaymentState(
     val changeGivenInCash: Boolean = true,
 )
 
-@Immutable
 data class CheckoutState(
     val flow: CheckoutFlow = CheckoutFlow.Idle,
     val printUiState: PrintUiState = PrintUiState.Idle,
@@ -70,7 +64,6 @@ sealed interface CheckoutFlow {
     ) : CheckoutFlow
 }
 
-@Immutable
 data class ShiftState(
     val activeShift: ShiftEntity? = null,
     val openShifts: List<ShiftEntity> = emptyList(),
