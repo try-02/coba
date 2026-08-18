@@ -107,6 +107,8 @@ import com.pos.offline.util.HardwareScannerInterceptor
 import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.runtime.staticCompositionLocalOf
 
 private enum class Dest(
     val label: String,
@@ -116,7 +118,7 @@ private enum class Dest(
     REPORT("Laporan"),
     SETTINGS("Pengaturan"),
 }
-val LocalActiveFocusBounds = staticCompositionLocalOf<MutableState<Rect?>> {
+val LocalActiveFocusBounds = staticCompositionLocalOf<MutableStateOf<Rect?>> {
     error("LocalActiveFocusBounds belum disediakan")
 }
 class MainActivity : ComponentActivity() {
