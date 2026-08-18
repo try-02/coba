@@ -173,6 +173,8 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.runtime.MutableState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

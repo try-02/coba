@@ -116,6 +116,8 @@ import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.sanitizeScannedCode
 import com.pos.offline.util.toRupiah
 import kotlinx.coroutines.delay
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.runtime.MutableState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
