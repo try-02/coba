@@ -23,7 +23,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '21'
 
     # Setup Gradle dengan caching otomatis & Enkripsi untuk Configuration Cache 9.6.1
     - name: Setup Gradle
