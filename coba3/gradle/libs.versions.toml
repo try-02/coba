@@ -20,6 +20,7 @@ aaltoXml = "1.4.0"
 staxApi = "1.0-2"
 flinger = "2.1.0"
 slack-compose-lint = "1.5.4"
+composeDoctor = "0.1.0"
 
 # ===== Testing =====
 junit = "4.13.2"
@@ -110,3 +111,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version = "0.12.0" }
+composeDoctor = { id = "dev.composedoctor", version.ref = "composeDoctor" }

@@ -1,0 +1,13 @@
+name: Compose Health Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  health:
+    # Memanggil reusable workflow resmi dari rotemmiz/compose-doctor
+    uses: rotemmiz/compose-doctor/.github/workflows/compose-doctor.yml@main
+    with:
+      # -p coba3 memaksa gradle berjalan dari dalam direktori coba3/
+      gradle-args: -p coba3 composeDoctor
+      fail-below: 75

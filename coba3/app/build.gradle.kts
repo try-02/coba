@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.room)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.stability.analyzer)
+    alias(libs.plugins.composeDoctor)
 }
 
 room {
@@ -123,6 +124,10 @@ composeStabilityAnalyzer {
     stabilityConfigurationFiles.add(
         rootProject.layout.projectDirectory.file("compose_compiler_config.conf")
     )
+}
+
+composeDoctor {
+    failBelow.set(75) // Opsional: Gagal jika skor di bawah 75
 }
 
 dependencies {
