@@ -70,7 +70,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.OutlinedButton
-import kotlinx.collections.immutable.ImmutableList
 
 @Composable
 fun PosDialogManager(
@@ -265,7 +264,7 @@ private fun formatElapsedSince(startedAt: Long): String {
 
 @Composable
 internal fun ManageShiftsDialog(
-    shifts: ImmutableList<ShiftEntity>,
+    shifts: List<ShiftEntity>,
     activeShiftId: Long?,
     onCloseShift: (ShiftEntity) -> Unit,
     onDesignateActive: (ShiftEntity) -> Unit,

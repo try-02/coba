@@ -36,11 +36,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toImmutableMap
-import kotlinx.coroutines.flow.map
-
 
 @OptIn(kotlinx.coroutines.FlowPreview::class, ExperimentalCoroutinesApi::class)
 class PosViewModel(
@@ -87,20 +82,15 @@ class PosViewModel(
             searchResults,
             _selectedCategory,
         ) { list, category ->
-            if (category == null) list.toImmutableList() else list.filter { it.category == category }.toImmutableList()
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
-
+            if (category == null) list else list.filter { it.category == category }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private val allCategories =
         productRepository
             .observeCategories()
-            .map { it.toImmutableList() }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
-
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private val cartItems =
         cartRepository.cartItems
-            .map { it.toImmutableList() }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
-
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private val activeCashiersFlow =
         cashierRepository.activeCashiers
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -137,9 +127,8 @@ class PosViewModel(
                     categories = categories,
                     selectedCategory = selectedCategory,
                     searchQuery = searchQuery,
-                    // Tambahkan .toImmutableMap() di akhir
-                    cartQtyByProductId = cart.associate { it.productId to it.quantity }.toImmutableMap(),
-                    stockByProductId = products.associate { it.id to it.stock }.toImmutableMap(),
+                    cartQtyByProductId = cart.associate { it.productId to it.quantity },
+                    stockByProductId = products.associate { it.id to it.stock },
                 )
             },
             combine(cartItems, totalsFlow) { items, totals ->

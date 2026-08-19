@@ -54,7 +54,6 @@ import com.pos.offline.ui.components.rememberBarcodeScanner
 import java.io.File
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pos.offline.data.di.ServiceLocator
-import androidx.compose.runtime.rememberUpdatedState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,13 +80,12 @@ fun PosScreen(
             localState.updateCartExpanded(isCartExpanded)
         }
     }
-val currentOnCartExpandedChange by rememberUpdatedState(onCartExpandedChange)
-
-LaunchedEffect(localState.isCartExpanded) {
-    if (localState.isCartExpanded != isCartExpanded) {
-        currentOnCartExpandedChange(localState.isCartExpanded)
+    LaunchedEffect(localState.isCartExpanded) {
+        if (localState.isCartExpanded != isCartExpanded) {
+            onCartExpandedChange(localState.isCartExpanded)
+        }
     }
-}
+
     LaunchedEffect(viewModel, lifecycleOwner, globalMessage) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.uiEvents.collect { event ->

@@ -58,7 +58,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pos.offline.util.BluetoothDeviceInfo
 import com.pos.offline.util.PermissionUtils
-import androidx.compose.runtime.rememberUpdatedState
 
 @Composable
 fun BluetoothPickerDialog(
@@ -67,7 +66,6 @@ fun BluetoothPickerDialog(
 ) {
     val state by viewModel.bluetoothUiState.collectAsState()
     val context = LocalContext.current
-    val currentOnDismiss by rememberUpdatedState(onDismiss) 
     val lifecycleOwner = LocalLifecycleOwner.current
     var permissionState by remember {
         mutableStateOf(PermissionUtils.currentBluetoothPermissionState(context))
@@ -102,7 +100,7 @@ fun BluetoothPickerDialog(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.pairingSuccess.collect { currentOnDismiss() }
+        viewModel.pairingSuccess.collect { onDismiss() }
     }
 
     DisposableEffect(lifecycleOwner) {

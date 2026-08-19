@@ -1,6 +1,4 @@
 package com.pos.offline.ui.pos
-
-import androidx.compose.runtime.Immutable
 import com.pos.offline.data.local.entity.CartItemEntity
 import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.data.local.entity.DiscountType
@@ -10,10 +8,7 @@ import com.pos.offline.data.local.entity.ShiftEntity
 import com.pos.offline.data.repository.CheckoutResult
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.receipt.PrintUiState
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentMapOf
+import androidx.compose.runtime.Immutable
 
 @Immutable
 data class PosUiState(
@@ -26,17 +21,17 @@ data class PosUiState(
 
 @Immutable
 data class CatalogState(
-    val products: ImmutableList<ProductEntity> = persistentListOf(),
-    val categories: ImmutableList<String> = persistentListOf(),
+    val products: List<ProductEntity> = emptyList(),
+    val categories: List<String> = emptyList(),
     val selectedCategory: String? = null,
     val searchQuery: String = "",
-    val cartQtyByProductId: ImmutableMap<Long, Double> = persistentMapOf(),
-    val stockByProductId: ImmutableMap<Long, Double> = persistentMapOf(),
+    val cartQtyByProductId: Map<Long, Double> = emptyMap(),
+    val stockByProductId: Map<Long, Double> = emptyMap(),
 )
 
 @Immutable
 data class CartState(
-    val items: ImmutableList<CartItemEntity> = persistentListOf(),
+    val items: List<CartItemEntity> = emptyList(),
     val totals: Totals = Totals(),
     val isEmpty: Boolean = true,
 )
@@ -63,16 +58,23 @@ data class CheckoutState(
 
 sealed interface CheckoutFlow {
     data object Idle : CheckoutFlow
+
     data object Processing : CheckoutFlow
-    data class Success(val result: CheckoutResult) : CheckoutFlow
-    data class Error(val message: String) : CheckoutFlow
+
+    data class Success(
+        val result: CheckoutResult,
+    ) : CheckoutFlow
+
+    data class Error(
+        val message: String,
+    ) : CheckoutFlow
 }
 
 @Immutable
 data class ShiftState(
     val activeShift: ShiftEntity? = null,
-    val openShifts: ImmutableList<ShiftEntity> = persistentListOf(),
-    val activeCashiers: ImmutableList<CashierEntity> = persistentListOf(),
+    val openShifts: List<ShiftEntity> = emptyList(),
+    val activeCashiers: List<CashierEntity> = emptyList(),
     val shiftSummary: ShiftSummary? = null,
     val stockWarning: StockWarningInfo? = null,
     val showStartShiftDialog: Boolean = false,
@@ -92,7 +94,9 @@ data class Totals(
 )
 
 sealed interface PosUiEvent {
-    data class ShowMessage(val message: String) : PosUiEvent
+    data class ShowMessage(
+        val message: String,
+    ) : PosUiEvent
 }
 
 data class StockWarningInfo(

@@ -120,8 +120,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pos.offline.data.di.ServiceLocator
-import androidx.compose.runtime.rememberUpdatedState
-import kotlinx.collections.immutable.ImmutableList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -470,8 +468,8 @@ private fun ExcelIconButton(
 
 @Composable
 private fun ImportReviewDialog(
-    reviewItems: ImmutableList<InventoryViewModel.ImportReviewItem>,
-    parseErrors: ImmutableList<String>,
+    reviewItems: List<InventoryViewModel.ImportReviewItem>,
+    parseErrors: List<String>,
     isCommitting: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -970,7 +968,7 @@ private fun SortMenuButton(
 @Composable
 private fun ProductFormDialog(
     state: ProductFormState,
-    categories: ImmutableList<String>,
+    categories: List<String>,
     isSaving: Boolean,
     onSave: (ProductFormState) -> Unit,
     onDismiss: () -> Unit,
@@ -1023,36 +1021,32 @@ private fun ProductFormDialog(
     val density = LocalDensity.current
     val maxContentHeight = with(density) { (windowInfo.containerSize.height * 0.75f).toDp() }
     val scrollState = rememberScrollState()
-    val currentCheckBarcodeConflict by rememberUpdatedState(checkBarcodeConflict)
-    val currentCheckSkuConflict by rememberUpdatedState(checkSkuConflict)
 
-LaunchedEffect(barcode) {
-    val trimmed = barcode.trim()
-    if (trimmed.isBlank()) {
-        barcodeConflict = null
+    LaunchedEffect(barcode) {
+        val trimmed = barcode.trim()
+        if (trimmed.isBlank()) {
+            barcodeConflict = null
+            isCheckingBarcode = false
+            return@LaunchedEffect
+        }
+        isCheckingBarcode = true
+        delay(300)
+        barcodeConflict = checkBarcodeConflict(trimmed, state.id)
         isCheckingBarcode = false
-        return@LaunchedEffect
     }
-    isCheckingBarcode = true
-    delay(300)
-    // Gunakan currentCheckBarcodeConflict
-    barcodeConflict = currentCheckBarcodeConflict(trimmed, state.id) 
-    isCheckingBarcode = false
-}
 
-LaunchedEffect(sku) {
-    val trimmed = sku.trim()
-    if (trimmed.isBlank()) {
-        skuConflict = null
+    LaunchedEffect(sku) {
+        val trimmed = sku.trim()
+        if (trimmed.isBlank()) {
+            skuConflict = null
+            isCheckingSku = false
+            return@LaunchedEffect
+        }
+        isCheckingSku = true
+        delay(300)
+        skuConflict = checkSkuConflict(trimmed, state.id)
         isCheckingSku = false
-        return@LaunchedEffect
     }
-    isCheckingSku = true
-    delay(300)
-    // Gunakan currentCheckSkuConflict
-    skuConflict = currentCheckSkuConflict(trimmed, state.id) 
-    isCheckingSku = false
-}
 
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
@@ -1367,7 +1361,7 @@ private fun DecimalNumberField(
 @Composable
 private fun CategoryField(
     value: String,
-    suggestions: ImmutableList<String>,
+    suggestions: List<String>,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {

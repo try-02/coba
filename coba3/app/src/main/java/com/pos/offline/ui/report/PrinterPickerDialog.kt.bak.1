@@ -36,11 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pos.offline.data.local.entity.PrinterConnectionType
 import com.pos.offline.data.local.entity.PrinterEntity
-import kotlinx.collections.immutable.ImmutableList
 
 @Composable
 fun PrinterPickerDialog(
-    printers: ImmutableList<PrinterEntity>,
+    printers: List<PrinterEntity>,
     onSelect: (PrinterEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {

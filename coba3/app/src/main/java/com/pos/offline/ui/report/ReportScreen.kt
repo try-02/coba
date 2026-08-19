@@ -177,6 +177,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pos.offline.data.di.ServiceLocator
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -437,7 +439,7 @@ LaunchedEffect(viewModel, globalMessage) {
                                 item(key = "revenue_trend_chart") {
                                     RevenueTrendChart(
                                         date = report.date,
-                                        transactions = report.transactions.filterNot { it.isVoid },
+                                        transactions = report.transactions.filterNot { it.isVoid }.toImmutableList(),
                                         hourly = report.hourlyRevenue,
                                     )
                                 }
@@ -1230,8 +1232,8 @@ private fun Long.toCompactRupiah(): String {
 @Composable
 private fun RevenueTrendChart(
     date: LocalDate,
-    transactions: List<TransactionEntity>,
-    hourly: List<Long>,
+    transactions: ImmutableList<TransactionEntity>,
+    hourly: ImmutableList<Long>,
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface

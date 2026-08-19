@@ -40,10 +40,6 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.flow.map
 
 data class ProductFormState(
     val id: Long = 0L,
@@ -106,7 +102,7 @@ class InventoryViewModel(
         _searchQuery
             .debounce { query -> if (query.isBlank()) 0L else 180L }
             .distinctUntilChanged()
-    val products: StateFlow<ImmutableList<ProductEntity>> =
+    val products: StateFlow<List<ProductEntity>> =
         combine(debouncedSearchQuery, _sortOption, _topSalesRange) { query, sort, range -> Triple(query, sort, range) }
             .distinctUntilChanged()
             .flatMapLatest { (query, sort, range) ->
@@ -114,23 +110,22 @@ class InventoryViewModel(
                     val (start, end) = getRangeMillis(range)
                     reportRepository.observeProductsByTopSales(start, end).map { dbList ->
                         if (query.isBlank()) {
-                            dbList.toImmutableList()
+                            dbList
                         } else {
                             dbList.filter {
                                 it.name.contains(query, ignoreCase = true) ||
                                     it.sku.contains(query, ignoreCase = true)
-                            }.toImmutableList()
+                            }
                         }
                     }
                 } else {
-                    productRepository.search(query).map { list -> list.sortedWith(sort.comparator).toImmutableList() }
+                    productRepository.search(query).map { list -> list.sortedWith(sort.comparator) }
                 }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
-    val categories: StateFlow<ImmutableList<String>> =
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val categories: StateFlow<List<String>> =
         productRepository
             .observeCategories()
-            .map { it.toImmutableList() }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _form = MutableStateFlow<ProductFormState?>(null)
     val form: StateFlow<ProductFormState?> = _form.asStateFlow()
     private val _pendingDelete = MutableStateFlow<ProductEntity?>(null)
@@ -167,8 +162,8 @@ class InventoryViewModel(
         val isExporting: Boolean = false,
         val isImporting: Boolean = false,
         val isCommitting: Boolean = false,
-        val reviewItems: ImmutableList<ImportReviewItem> = persistentListOf(),
-        val parseErrors: ImmutableList<String> = persistentListOf(),
+        val reviewItems: List<ImportReviewItem> = emptyList(),
+        val parseErrors: List<String> = emptyList(),
         val showReviewDialog: Boolean = false,
     )
 
@@ -214,11 +209,7 @@ class InventoryViewModel(
     }
 
     fun dismissReviewDialog() {
-        _excelState.value = _excelState.value.copy(
-            showReviewDialog = false, 
-            reviewItems = persistentListOf(), 
-            parseErrors = persistentListOf()
-        )
+        _excelState.value = _excelState.value.copy(showReviewDialog = false, reviewItems = emptyList(), parseErrors = emptyList())
     }
 
     fun exportToExcel(destinationUri: Uri) {
@@ -258,11 +249,7 @@ class InventoryViewModel(
                     return@launch
                 }
                 val reviewItems = validateImportedRows(result.rows)
-                _excelState.value = _excelState.value.copy(
-                    reviewItems = reviewItems.toImmutableList(), 
-                    parseErrors = result.errors.toImmutableList(), 
-                    showReviewDialog = true
-                )
+                _excelState.value = _excelState.value.copy(reviewItems = reviewItems, parseErrors = result.errors, showReviewDialog = true)
             } catch (
                 e: Exception,
             ) {

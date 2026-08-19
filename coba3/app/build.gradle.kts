@@ -162,4 +162,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     lintChecks(libs.slack.compose.lints)
+    implementation(libs.kotlinx.collections.immutable)
 }

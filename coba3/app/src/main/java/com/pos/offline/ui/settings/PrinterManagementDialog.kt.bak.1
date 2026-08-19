@@ -55,13 +55,12 @@ import com.pos.offline.data.local.entity.PaperWidth
 import com.pos.offline.data.local.entity.PrinterConnectionType
 import com.pos.offline.data.local.entity.PrinterEntity
 import com.pos.offline.ui.components.GlassCard
-import kotlinx.collections.immutable.ImmutableList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrinterManagementDialog(
     uiState: PrinterUiState,
-    printers: ImmutableList<PrinterEntity>,
+    printers: List<PrinterEntity>,
     onDismiss: () -> Unit,
     onOpenAdd: () -> Unit,
     onOpenEdit: (PrinterEntity) -> Unit,

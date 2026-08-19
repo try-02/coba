@@ -36,7 +36,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pos.offline.util.UsbDeviceInfo
-import androidx.compose.runtime.rememberUpdatedState
 
 @Composable
 fun UsbPickerDialog(
@@ -44,7 +43,6 @@ fun UsbPickerDialog(
     onDismiss: () -> Unit,
 ) {
     val state by viewModel.usbUiState.collectAsState()
-    val currentOnDismiss by rememberUpdatedState(onDismiss)
 
     LaunchedEffect(Unit) {
         viewModel.refreshUsbDevices()

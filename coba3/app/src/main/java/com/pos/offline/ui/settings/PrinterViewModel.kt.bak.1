@@ -25,10 +25,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.flow.map
 
 data class PrinterFormState(
     val id: Long? = null,
@@ -85,10 +81,9 @@ class PrinterViewModel(
     val pairingSuccess: SharedFlow<BluetoothDeviceInfo> = _pairingSuccess.asSharedFlow()
     private val _usbSelectionSuccess = MutableSharedFlow<UsbDeviceInfo>(extraBufferCapacity = 1)
     val usbSelectionSuccess: SharedFlow<UsbDeviceInfo> = _usbSelectionSuccess.asSharedFlow()
-    val printers: StateFlow<ImmutableList<PrinterEntity>> =
+    val printers: StateFlow<List<PrinterEntity>> =
         printerRepository.allPrinters
-            .map { it.toImmutableList() } // Konversi List dari repository ke ImmutableList
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf()) // Ubah emptyList() ke persistentListOf()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private var discoveryJob: Job? = null
     private var discoveryTimeoutJob: Job? = null
     private var usbAttachmentJob: Job? = null

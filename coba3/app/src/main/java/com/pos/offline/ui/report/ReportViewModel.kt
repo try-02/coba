@@ -56,17 +56,20 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 @Immutable
 data class DailyReport(
     val date: LocalDate,
-    val transactions: List<TransactionEntity>,
+    val transactions: ImmutableList<TransactionEntity>,
     val totalRevenue: Long,
     val transactionCount: Int,
     val averagePerTransaction: Long,
     val totalDiscount: Long,
     val totalTax: Long,
-    val hourlyRevenue: List<Long>,
+    val hourlyRevenue: ImmutableList<Long>,
     val voidedCount: Int,
     val cashRevenue: Long,
     val qrisRevenue: Long,
@@ -75,13 +78,14 @@ data class DailyReport(
         fun empty(date: LocalDate) =
             DailyReport(
                 date = date,
-                transactions = emptyList(),
+                transactions = persistentListOf(),
                 totalRevenue = 0L,
                 transactionCount = 0,
                 averagePerTransaction = 0L,
                 totalDiscount = 0L,
                 totalTax = 0L,
-                hourlyRevenue = List(24) { 0L },
+                // PERBAIKAN DI SINI:
+                hourlyRevenue = List(24) { 0L }.toImmutableList(),
                 voidedCount = 0,
                 cashRevenue = 0L,
                 qrisRevenue = 0L,
@@ -845,7 +849,7 @@ class ReportViewModel(
         val average = if (count > 0) totalRevenue / count else 0L
         return DailyReport(
             date = date,
-            transactions = txs,
+            transactions = txs.toImmutableList(),
             totalRevenue = totalRevenue,
             transactionCount = count,
             averagePerTransaction = average,

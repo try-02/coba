@@ -145,8 +145,6 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.InspectorInfo
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
 
 @Composable
 internal fun ShiftIndicatorBar(
@@ -324,7 +322,7 @@ internal fun CompactSearchBar(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun CategoryChipsRow(
-    categories: ImmutableList<String>,
+    categories: List<String>,
     selected: String?,
     onSelect: (String?) -> Unit,
 ) {
@@ -387,9 +385,9 @@ private fun CategoryChip(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ProductPane(
-    products: ImmutableList<ProductEntity>,
-    cartQtyByProductId: ImmutableMap<Long, Double>,
-    cartItems: ImmutableList<CartItemEntity>,
+    products: List<ProductEntity>,
+    cartQtyByProductId: Map<Long, Double>,
+    cartItems: List<CartItemEntity>,
     modifier: Modifier = Modifier,
     onAction: (PosAction) -> Unit,
 ) {

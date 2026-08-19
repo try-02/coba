@@ -64,11 +64,10 @@ import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.data.repository.ShiftSummary
 import com.pos.offline.ui.components.ThousandsSeparatorTransformation
 import com.pos.offline.util.toRupiah
-import kotlinx.collections.immutable.ImmutableList
 
 @Composable
 internal fun StartShiftDialog(
-    cashiers: ImmutableList<CashierEntity>,
+    cashiers: List<CashierEntity>,
     isProcessing: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (cashierId: Long, startingCash: Long) -> Unit,
@@ -640,7 +639,7 @@ internal fun MoneyField(
 
 @Composable
 internal fun CashierDropdownField(
-    cashiers: ImmutableList<CashierEntity>,
+    cashiers: List<CashierEntity>,
     selected: CashierEntity?,
     onSelect: (CashierEntity) -> Unit,
     modifier: Modifier = Modifier,
