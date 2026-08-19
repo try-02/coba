@@ -93,7 +93,6 @@ data class DailyReport(
     }
 }
 
-@Immutable
 data class ReportMessage(
     val text: String,
     val isError: Boolean = false,
@@ -103,24 +102,21 @@ enum class ReportTab { TRANSACTIONS, SHIFTS }
 
 enum class ReportPeriodType { DAILY, MONTHLY }
 
-@Immutable
 data class ClosedShiftDetail(
     val shift: ShiftEntity,
     val summary: ShiftSummary,
 )
 
-@Immutable
 data class ReturnSummary(
-    val returns: ImmutableList<ReturnEntity> = persistentListOf(),
-    val cashRefundTotal: Long = 0L,
-    val qrisRefundTotal: Long = 0L,
+    val returns: List<ReturnEntity>,
+    val cashRefundTotal: Long,
+    val qrisRefundTotal: Long,
 ) {
     companion object {
-        fun empty() = ReturnSummary(persistentListOf(), 0L, 0L)
+        fun empty() = ReturnSummary(emptyList(), 0L, 0L)
     }
 }
 
-@Immutable
 data class PendingPrintTarget(
     val checkoutResult: CheckoutResult,
     val availablePrinters: ImmutableList<PrinterEntity>,
@@ -129,30 +125,27 @@ data class PendingPrintTarget(
 @Immutable
 data class DaySalesGroup(
     val date: LocalDate,
-    val transactions: ImmutableList<TransactionEntity>,
+    val transactions: List<TransactionEntity>,
 )
 
 @Immutable
 data class MonthSalesGroup(
     val yearMonth: java.time.YearMonth,
-    val days: ImmutableList<DaySalesGroup>,
+    val days: List<DaySalesGroup>,
     val totalTransactions: Int,
 )
 
-@Immutable
-sealed interface SalesReportUiState {
-    data object Hidden : SalesReportUiState
+sealed class SalesReportUiState {
+    object Hidden : SalesReportUiState()
 
-    @Immutable
     data class Loading(
         val periodType: ReportPeriodType,
-    ) : SalesReportUiState
+    ) : SalesReportUiState()
 
-    @Immutable
     data class Loaded(
         val periodType: ReportPeriodType,
         val data: SalesReportData,
-    ) : SalesReportUiState
+    ) : SalesReportUiState()
 }
 
 private data class ReportSelection(
@@ -162,23 +155,19 @@ private data class ReportSelection(
     val includeDeadStock: Boolean,
 )
 
-@Immutable
 sealed interface SearchUiState {
-    data object Idle : SearchUiState
+    object Idle : SearchUiState
 
-    data object Loading : SearchUiState
+    object Loading : SearchUiState
 
-    @Immutable
     data class InvoiceResults(
-        val transactions: ImmutableList<TransactionEntity>,
+        val transactions: List<TransactionEntity>,
     ) : SearchUiState
 
-    @Immutable
     data class ProductHistoryResults(
-        val hierarchy: ImmutableList<MonthSalesGroup>,
+        val hierarchy: List<MonthSalesGroup>,
     ) : SearchUiState
 
-    @Immutable
     data class Empty(
         val query: String,
     ) : SearchUiState
@@ -216,12 +205,12 @@ class ReportViewModel(
         _selectedTab.value = tab
     }
 
-    val closedShifts: StateFlow<ImmutableList<ShiftEntity>> =
+    val closedShifts: StateFlow<List<ShiftEntity>> =
         _selectedDate
             .flatMapLatest { date ->
                 val (start, end) = dayBounds(date)
-                shiftRepository.closedShiftsBetween(start, end).map { it.toImmutableList() }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
+                shiftRepository.closedShiftsBetween(start, end)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val _selectedShiftDetail = MutableStateFlow<ClosedShiftDetail?>(null)
     val selectedShiftDetail: StateFlow<ClosedShiftDetail?> = _selectedShiftDetail.asStateFlow()
 
@@ -436,8 +425,7 @@ class ReportViewModel(
 
                 else -> {
                     _printUiState.value = PrintUiState.Idle
-                    // PERBAIKAN: Konversi ke ImmutableList menggunakan .toImmutableList()
-                    _pendingPrintTarget.value = PendingPrintTarget(result, printers.toImmutableList())
+                    _pendingPrintTarget.value = PendingPrintTarget(result, printers)
                 }
             }
         }
@@ -497,13 +485,13 @@ class ReportViewModel(
 
     private val _productHistoryQuery = MutableStateFlow("")
     val productHistoryQuery: StateFlow<String> = _productHistoryQuery.asStateFlow()
-    val productHistoryHierarchy: StateFlow<ImmutableList<MonthSalesGroup>> =
+    val productHistoryHierarchy: StateFlow<List<MonthSalesGroup>> =
         _productHistoryQuery
             .debounce(300)
             .distinctUntilChanged()
             .flatMapLatest { query ->
                 if (query.isBlank()) {
-                    flowOf(persistentListOf())
+                    flowOf(emptyList())
                 } else {
                     flow {
                         val zone = ZoneId.systemDefault()
@@ -524,18 +512,18 @@ class ReportViewModel(
                                 }.entries
                                 .groupBy(
                                     keySelector = { entry -> entry.key.first },
-                                    valueTransform = { entry -> DaySalesGroup(entry.key.second, entry.value.toImmutableList()) },
+                                    valueTransform = { entry -> DaySalesGroup(entry.key.second, entry.value) },
                                 ).map { (yearMonth, dayGroups) ->
                                     MonthSalesGroup(
                                         yearMonth = yearMonth,
-                                        days = dayGroups.sortedByDescending { it.date }.toImmutableList(),
+                                        days = dayGroups.sortedByDescending { it.date },
                                         totalTransactions = dayGroups.sumOf { it.transactions.size },
                                     )
                                 }.sortedByDescending { it.yearMonth }
-                        emit(grouped.toImmutableList())
+                        emit(grouped)
                     }
                 }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun searchProductHistory(query: String) {
         _productHistoryQuery.value = query
@@ -555,11 +543,11 @@ class ReportViewModel(
                 }
 
                 productQuery.isNotBlank() && productHierarchy.isNotEmpty() -> {
-                    SearchUiState.ProductHistoryResults(productHierarchy.toImmutableList())
+                    SearchUiState.ProductHistoryResults(productHierarchy)
                 }
 
                 invoiceQuery.isNotBlank() && invoices.isNotEmpty() -> {
-                    SearchUiState.InvoiceResults(invoices.toImmutableList())
+                    SearchUiState.InvoiceResults(invoices)
                 }
 
                 else -> {
@@ -883,7 +871,7 @@ class ReportViewModel(
             returns
                 .filter { it.refundMethod == PaymentMethod.QRIS.name }
                 .sumOf { it.refundAmount }
-        return ReturnSummary(returns.toImmutableList(), cashRefundTotal, qrisRefundTotal)
+        return ReturnSummary(returns, cashRefundTotal, qrisRefundTotal)
     }
 
     fun previousDay() {

@@ -1,6 +1,5 @@
 package com.pos.offline.ui.inventory
 import android.content.Context
-import androidx.compose.runtime.Immutable
 import android.database.sqlite.SQLiteConstraintException
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -46,7 +45,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.map
 
-@Immutable
 data class ProductFormState(
     val id: Long = 0L,
     val name: String = "",
@@ -143,7 +141,6 @@ class InventoryViewModel(
     private val _messages = Channel<String>(capacity = Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
 
-    @Immutable
     data class ScanNotFoundState(
         val barcode: String,
     )
@@ -151,7 +148,6 @@ class InventoryViewModel(
     private val _scanNotFound = MutableStateFlow<ScanNotFoundState?>(null)
     val scanNotFound: StateFlow<ScanNotFoundState?> = _scanNotFound.asStateFlow()
 
-    @Immutable
     data class DeletedProductFoundState(
         val product: ProductEntity,
     )
@@ -161,14 +157,12 @@ class InventoryViewModel(
 
     enum class ImportStatus { NEW, CONFLICT, DUPLICATE_IN_FILE }
 
-    @Immutable
     data class ImportReviewItem(
         val row: ImportedProductRow,
         val status: ImportStatus,
         val conflictWith: ProductEntity? = null,
     )
 
-    @Immutable
     data class ExcelUiState(
         val isExporting: Boolean = false,
         val isImporting: Boolean = false,

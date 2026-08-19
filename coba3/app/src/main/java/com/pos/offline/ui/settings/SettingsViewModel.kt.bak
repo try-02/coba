@@ -2,10 +2,6 @@ package com.pos.offline.ui.settings
 
 import android.content.Context
 import android.net.Uri
-import androidx.compose.runtime.Immutable
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.offline.data.backup.BackupManager
@@ -30,7 +26,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-@Immutable
 data class SettingsUiState(
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
@@ -55,10 +50,9 @@ class SettingsViewModel(
     val messages: SharedFlow<String> = _messages.asSharedFlow()
     private val _shareIntent = MutableSharedFlow<android.content.Intent>(extraBufferCapacity = 1)
     val shareIntent: SharedFlow<android.content.Intent> = _shareIntent.asSharedFlow()
-    val cashiers: StateFlow<ImmutableList<CashierEntity>> =
+    val cashiers: StateFlow<List<CashierEntity>> =
         cashierRepository.allCashiers
-            .map { it.toImmutableList() }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val isSoundEnabled: StateFlow<Boolean> = scanPreferencesRepository.isSoundEnabled
     val soundVolume: StateFlow<Int> = scanPreferencesRepository.soundVolume
     val soundDurationMs: StateFlow<Int> = scanPreferencesRepository.soundDurationMs

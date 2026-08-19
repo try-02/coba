@@ -1,7 +1,6 @@
 package com.pos.offline.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
-import kotlinx.collections.immutable.ImmutableList
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -117,6 +116,9 @@ fun SettingsScreen(
     val vibrationDurationMs by viewModel.vibrationDurationMs.collectAsStateWithLifecycle()
     val globalMessage = LocalGlobalMessage.current
 
+    var showPrinterDialog by remember { mutableStateOf(false) }
+    var showStoreProfileDialog by remember { mutableStateOf(false) }
+
     val exportLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
@@ -157,170 +159,21 @@ fun SettingsScreen(
         }
     }
 
-    val onSoundToggle: (Boolean) -> Unit = remember(viewModel) { { viewModel.setSoundEnabled(it) } }
-    val onSoundVolumeChange: (Int) -> Unit = remember(viewModel) { { viewModel.setSoundVolume(it) } }
-    val onSoundDurationChange: (Int) -> Unit = remember(viewModel) { { viewModel.setSoundDurationMs(it) } }
-    val onTestSound: () -> Unit = remember(viewModel) { { viewModel.testSoundPreview() } }
-    val onVibrationToggle: (Boolean) -> Unit = remember(viewModel) { { viewModel.setVibrationEnabled(it) } }
-    val onVibrationLevelChange: (VibrationLevel) -> Unit = remember(viewModel) { { viewModel.setVibrationLevel(it) } }
-    val onVibrationDurationChange: (Int) -> Unit = remember(viewModel) { { viewModel.setVibrationDurationMs(it) } }
-    val onTestVibration: () -> Unit = remember(viewModel) { { viewModel.testVibrationPreview() } }
-    val onExportDatabase: () -> Unit = remember(exportLauncher) { { exportLauncher.launch(BackupManager.suggestedBackupFileName()) } }
-    val onShareDatabase: () -> Unit = remember(viewModel) { { viewModel.shareDatabase() } }
-    val onRequestRestore: () -> Unit = remember(importLauncher) { { importLauncher.launch("*/*") } }
-    val onConfirmRestore: () -> Unit = remember(viewModel, context) {
-        {
-            viewModel.confirmRestore {
-                BackupManager.restartApp(context)
-            }
-        }
-    }
-    val onCancelRestore: () -> Unit = remember(viewModel) { { viewModel.cancelRestore() } }
-    val onToggleCashierActive: (Long, Boolean) -> Unit = remember(viewModel) { { id, active -> viewModel.setCashierActive(id, active) } }
-    val onOpenAddCashier: () -> Unit = remember(viewModel) { { viewModel.openAddCashierDialog() } }
-    val onCloseAddCashier: () -> Unit = remember(viewModel) { { viewModel.closeAddCashierDialog() } }
-    val onAddCashier: (String) -> Unit = remember(viewModel) { { viewModel.addCashier(it) } }
-
-    val onOpenAddPrinter: () -> Unit = remember(printerViewModel) { { printerViewModel.openAddDialog() } }
-    val onOpenEditPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.openEditDialog(it) } }
-    val onClosePrinterForm: () -> Unit = remember(printerViewModel) { { printerViewModel.closeFormDialog() } }
-    val onSavePrinterForm: () -> Unit = remember(printerViewModel) { { printerViewModel.saveForm() } }
-    val onUpdateFormLabel: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormLabel(it) } }
-    val onUpdateFormConnectionType: (com.pos.offline.data.local.entity.PrinterConnectionType) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormConnectionType(it) } }
-    val onUpdateFormPaperWidth: (com.pos.offline.data.local.entity.PaperWidth) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormPaperWidth(it) } }
-    val onUpdateFormCharPerLine: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormCharPerLine(it) } }
-    val onUpdateFormWifiIp: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormWifiIp(it) } }
-    val onUpdateFormWifiPort: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormWifiPort(it) } }
-    val onUpdateFormSupportsStatusQuery: (Boolean) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormSupportsStatusQuery(it) } }
-    val onRequestDeletePrinter: (Long) -> Unit = remember(printerViewModel) { { printerViewModel.requestDelete(it) } }
-    val onConfirmDeletePrinter: () -> Unit = remember(printerViewModel) { { printerViewModel.confirmDelete() } }
-    val onCancelDeletePrinter: () -> Unit = remember(printerViewModel) { { printerViewModel.cancelDelete() } }
-    val onSetDefaultPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.setAsDefault(it) } }
-    val onMovePriorityUp: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.movePriorityUp(it) } }
-    val onMovePriorityDown: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.movePriorityDown(it) } }
-    val onTestPrint: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.testPrint(it) } }
-
-    SettingsScreenContent(
-        uiState = uiState,
-        cashiers = cashiers,
-        printers = printers,
-        printerUiState = printerUiState,
-        storeProfile = storeProfile,
-        isSoundEnabled = isSoundEnabled,
-        soundVolume = soundVolume,
-        soundDurationMs = soundDurationMs,
-        isVibrationEnabled = isVibrationEnabled,
-        vibrationLevel = vibrationLevel,
-        vibrationDurationMs = vibrationDurationMs,
-        onExitClick = onExitClick,
-        onSoundToggle = onSoundToggle,
-        onSoundVolumeChange = onSoundVolumeChange,
-        onSoundDurationChange = onSoundDurationChange,
-        onTestSound = onTestSound,
-        onVibrationToggle = onVibrationToggle,
-        onVibrationLevelChange = onVibrationLevelChange,
-        onVibrationDurationChange = onVibrationDurationChange,
-        onTestVibration = onTestVibration,
-        onExportDatabase = onExportDatabase,
-        onShareDatabase = onShareDatabase,
-        onRequestRestore = onRequestRestore,
-        onConfirmRestore = onConfirmRestore,
-        onCancelRestore = onCancelRestore,
-        onToggleCashierActive = onToggleCashierActive,
-        onOpenAddCashier = onOpenAddCashier,
-        onCloseAddCashier = onCloseAddCashier,
-        onAddCashier = onAddCashier,
-        onOpenAddPrinter = onOpenAddPrinter,
-        onOpenEditPrinter = onOpenEditPrinter,
-        onClosePrinterForm = onClosePrinterForm,
-        onSavePrinterForm = onSavePrinterForm,
-        onUpdateFormLabel = onUpdateFormLabel,
-        onUpdateFormConnectionType = onUpdateFormConnectionType,
-        onUpdateFormPaperWidth = onUpdateFormPaperWidth,
-        onUpdateFormCharPerLine = onUpdateFormCharPerLine,
-        onUpdateFormWifiIp = onUpdateFormWifiIp,
-        onUpdateFormWifiPort = onUpdateFormWifiPort,
-        onUpdateFormSupportsStatusQuery = onUpdateFormSupportsStatusQuery,
-        onRequestDeletePrinter = onRequestDeletePrinter,
-        onConfirmDeletePrinter = onConfirmDeletePrinter,
-        onCancelDeletePrinter = onCancelDeletePrinter,
-        onSetDefaultPrinter = onSetDefaultPrinter,
-        onMovePriorityUp = onMovePriorityUp,
-        onMovePriorityDown = onMovePriorityDown,
-        onTestPrint = onTestPrint,
-        modifier = modifier,
-    )
-}
-
-/**
- * Stateless Composable (UI Level) - 100% STABLE & Skippable
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsScreenContent(
-    uiState: SettingsUiState,
-    cashiers: ImmutableList<CashierEntity>,
-    printers: ImmutableList<com.pos.offline.data.local.entity.PrinterEntity>,
-    printerUiState: PrinterUiState,
-    storeProfile: com.pos.offline.data.local.entity.StoreProfileEntity,
-    isSoundEnabled: Boolean,
-    soundVolume: Int,
-    soundDurationMs: Int,
-    isVibrationEnabled: Boolean,
-    vibrationLevel: VibrationLevel,
-    vibrationDurationMs: Int,
-    onExitClick: () -> Unit,
-    onSoundToggle: (Boolean) -> Unit,
-    onSoundVolumeChange: (Int) -> Unit,
-    onSoundDurationChange: (Int) -> Unit,
-    onTestSound: () -> Unit,
-    onVibrationToggle: (Boolean) -> Unit,
-    onVibrationLevelChange: (VibrationLevel) -> Unit,
-    onVibrationDurationChange: (Int) -> Unit,
-    onTestVibration: () -> Unit,
-    onExportDatabase: () -> Unit,
-    onShareDatabase: () -> Unit,
-    onRequestRestore: () -> Unit,
-    onConfirmRestore: () -> Unit,
-    onCancelRestore: () -> Unit,
-    onToggleCashierActive: (Long, Boolean) -> Unit,
-    onOpenAddCashier: () -> Unit,
-    onCloseAddCashier: () -> Unit,
-    onAddCashier: (String) -> Unit,
-    onOpenAddPrinter: () -> Unit,
-    onOpenEditPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit,
-    onClosePrinterForm: () -> Unit,
-    onSavePrinterForm: () -> Unit,
-    onUpdateFormLabel: (String) -> Unit,
-    onUpdateFormConnectionType: (com.pos.offline.data.local.entity.PrinterConnectionType) -> Unit,
-    onUpdateFormPaperWidth: (com.pos.offline.data.local.entity.PaperWidth) -> Unit,
-    onUpdateFormCharPerLine: (String) -> Unit,
-    onUpdateFormWifiIp: (String) -> Unit,
-    onUpdateFormWifiPort: (String) -> Unit,
-    onUpdateFormSupportsStatusQuery: (Boolean) -> Unit,
-    onRequestDeletePrinter: (Long) -> Unit,
-    onConfirmDeletePrinter: () -> Unit,
-    onCancelDeletePrinter: () -> Unit,
-    onSetDefaultPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit,
-    onMovePriorityUp: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit,
-    onMovePriorityDown: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit,
-    onTestPrint: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var showPrinterDialog by remember { mutableStateOf(false) }
-    var showStoreProfileDialog by remember { mutableStateOf(false) }
-
     if (uiState.pendingRestoreUri != null) {
         RestoreConfirmDialog(
-            onDismiss = onCancelRestore,
-            onConfirm = onConfirmRestore,
+            onDismiss = { viewModel.cancelRestore() },
+            onConfirm = {
+                viewModel.confirmRestore {
+                    BackupManager.restartApp(context)
+                }
+            },
         )
     }
 
     if (uiState.showAddCashierDialog) {
         AddCashierDialog(
-            onDismiss = onCloseAddCashier,
-            onConfirm = onAddCashier,
+            onDismiss = { viewModel.closeAddCashierDialog() },
+            onConfirm = { name -> viewModel.addCashier(name) },
         )
     }
 
@@ -329,24 +182,24 @@ fun SettingsScreenContent(
             uiState = printerUiState,
             printers = printers,
             onDismiss = { showPrinterDialog = false },
-            onOpenAdd = onOpenAddPrinter,
-            onOpenEdit = onOpenEditPrinter,
-            onCloseForm = onClosePrinterForm,
-            onSaveForm = onSavePrinterForm,
-            onUpdateFormLabel = onUpdateFormLabel,
-            onUpdateFormConnectionType = onUpdateFormConnectionType,
-            onUpdateFormPaperWidth = onUpdateFormPaperWidth,
-            onUpdateFormCharPerLine = onUpdateFormCharPerLine,
-            onUpdateFormWifiIp = onUpdateFormWifiIp,
-            onUpdateFormWifiPort = onUpdateFormWifiPort,
-            onUpdateFormSupportsStatusQuery = onUpdateFormSupportsStatusQuery,
-            onRequestDelete = onRequestDeletePrinter,
-            onConfirmDelete = onConfirmDeletePrinter,
-            onCancelDelete = onCancelDeletePrinter,
-            onSetDefault = onSetDefaultPrinter,
-            onMovePriorityUp = onMovePriorityUp,
-            onMovePriorityDown = onMovePriorityDown,
-            onTestPrint = onTestPrint,
+            onOpenAdd = printerViewModel::openAddDialog,
+            onOpenEdit = printerViewModel::openEditDialog,
+            onCloseForm = printerViewModel::closeFormDialog,
+            onSaveForm = printerViewModel::saveForm,
+            onUpdateFormLabel = printerViewModel::updateFormLabel,
+            onUpdateFormConnectionType = printerViewModel::updateFormConnectionType,
+            onUpdateFormPaperWidth = printerViewModel::updateFormPaperWidth,
+            onUpdateFormCharPerLine = printerViewModel::updateFormCharPerLine,
+            onUpdateFormWifiIp = printerViewModel::updateFormWifiIp,
+            onUpdateFormWifiPort = printerViewModel::updateFormWifiPort,
+            onUpdateFormSupportsStatusQuery = printerViewModel::updateFormSupportsStatusQuery,
+            onRequestDelete = printerViewModel::requestDelete,
+            onConfirmDelete = printerViewModel::confirmDelete,
+            onCancelDelete = printerViewModel::cancelDelete,
+            onSetDefault = printerViewModel::setAsDefault,
+            onMovePriorityUp = printerViewModel::movePriorityUp,
+            onMovePriorityDown = printerViewModel::movePriorityDown,
+            onTestPrint = printerViewModel::testPrint,
         )
     }
 
@@ -416,14 +269,14 @@ fun SettingsScreenContent(
                     isVibrationEnabled = isVibrationEnabled,
                     vibrationLevel = vibrationLevel,
                     vibrationDurationMs = vibrationDurationMs,
-                    onSoundToggle = onSoundToggle,
-                    onSoundVolumeChange = onSoundVolumeChange,
-                    onSoundDurationChange = onSoundDurationChange,
-                    onTestSound = onTestSound,
-                    onVibrationToggle = onVibrationToggle,
-                    onVibrationLevelChange = onVibrationLevelChange,
-                    onVibrationDurationChange = onVibrationDurationChange,
-                    onTestVibration = onTestVibration,
+                    onSoundToggle = { viewModel.setSoundEnabled(it) },
+                    onSoundVolumeChange = { viewModel.setSoundVolume(it) },
+                    onSoundDurationChange = { viewModel.setSoundDurationMs(it) },
+                    onTestSound = { viewModel.testSoundPreview() },
+                    onVibrationToggle = { viewModel.setVibrationEnabled(it) },
+                    onVibrationLevelChange = { viewModel.setVibrationLevel(it) },
+                    onVibrationDurationChange = { viewModel.setVibrationDurationMs(it) },
+                    onTestVibration = { viewModel.testVibrationPreview() },
                 )
 
                 SectionLabel("Cadangkan & Pulihkan")
@@ -451,12 +304,12 @@ fun SettingsScreenContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Button(
-                                onClick = onExportDatabase,
+                                onClick = { exportLauncher.launch(BackupManager.suggestedBackupFileName()) },
                                 enabled = !uiState.isBusy,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 if (uiState.isExporting) {
                                     CircularProgressIndicator(
@@ -471,12 +324,12 @@ fun SettingsScreenContent(
                                 }
                             }
                             OutlinedButton(
-                                onClick = onShareDatabase,
+                                onClick = { viewModel.shareDatabase() },
                                 enabled = !uiState.isBusy,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 if (uiState.isSharing) {
                                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -488,12 +341,12 @@ fun SettingsScreenContent(
                             }
                         }
                         OutlinedButton(
-                            onClick = onRequestRestore,
+                            onClick = { importLauncher.launch("*/*") },
                             enabled = !uiState.isBusy,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             if (uiState.isImporting) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -525,17 +378,17 @@ fun SettingsScreenContent(
                                 CashierRow(
                                     cashier = cashier,
                                     onToggleActive = { active ->
-                                        onToggleCashierActive(cashier.id, active)
+                                        viewModel.setCashierActive(cashier.id, active)
                                     },
                                 )
                             }
                         }
                         OutlinedButton(
-                            onClick = onOpenAddCashier,
+                            onClick = { viewModel.openAddCashierDialog() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -584,7 +437,7 @@ fun SettingsScreenContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Rounded.Storefront, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -623,7 +476,7 @@ fun SettingsScreenContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Rounded.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -649,7 +502,7 @@ fun SettingsScreenContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Rounded.Logout,

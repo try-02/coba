@@ -425,7 +425,8 @@ class ReportViewModel(
 
                 else -> {
                     _printUiState.value = PrintUiState.Idle
-                    _pendingPrintTarget.value = PendingPrintTarget(result, printers)
+                    // PERBAIKAN: Konversi ke ImmutableList menggunakan .toImmutableList()
+                    _pendingPrintTarget.value = PendingPrintTarget(result, printers.toImmutableList())
                 }
             }
         }

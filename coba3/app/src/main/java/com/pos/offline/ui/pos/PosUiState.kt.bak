@@ -83,7 +83,6 @@ data class ShiftState(
     val isOpeningDrawer: Boolean = false,
 )
 
-@Immutable
 data class Totals(
     val subtotal: Long = 0L,
     val discount: Long = 0L,
@@ -96,7 +95,6 @@ sealed interface PosUiEvent {
     data class ShowMessage(val message: String) : PosUiEvent
 }
 
-@Immutable
 data class StockWarningInfo(
     val productName: String,
     val currentStock: Double,

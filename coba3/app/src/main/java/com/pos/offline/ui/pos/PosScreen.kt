@@ -56,7 +56,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pos.offline.data.di.ServiceLocator
 import androidx.compose.runtime.rememberUpdatedState
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Stateful Composable (Route Level)
+ * Bertugas mengelola integrasi ViewModel, Lifecycle, dan Event Collection.
+ */
 @Composable
 fun PosScreen(
     onNavigateToSettings: () -> Unit,
@@ -66,10 +69,7 @@ fun PosScreen(
     forceWideLayout: Boolean = false,
     isCartExpanded: Boolean = false,
     onCartExpandedChange: (Boolean) -> Unit = {},
-    viewModel: PosViewModel =
-        viewModel(
-            factory = ServiceLocator.posViewModelFactory(),
-        ),
+    viewModel: PosViewModel = viewModel(factory = ServiceLocator.posViewModelFactory()),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localState = rememberPosLocalState()
@@ -81,36 +81,66 @@ fun PosScreen(
             localState.updateCartExpanded(isCartExpanded)
         }
     }
-val currentOnCartExpandedChange by rememberUpdatedState(onCartExpandedChange)
 
-LaunchedEffect(localState.isCartExpanded) {
-    if (localState.isCartExpanded != isCartExpanded) {
-        currentOnCartExpandedChange(localState.isCartExpanded)
+    val currentOnCartExpandedChange by rememberUpdatedState(onCartExpandedChange)
+    LaunchedEffect(localState.isCartExpanded) {
+        if (localState.isCartExpanded != isCartExpanded) {
+            currentOnCartExpandedChange(localState.isCartExpanded)
+        }
     }
-}
+
     LaunchedEffect(viewModel, lifecycleOwner, globalMessage) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.uiEvents.collect { event ->
                 when (event) {
                     is PosUiEvent.ShowMessage -> {
-                        globalMessage.showMessage(
-                            message = event.message,
-                        )
+                        globalMessage.showMessage(message = event.message)
                     }
                 }
             }
         }
     }
 
-    val launchScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned)
-    val focusManager = LocalFocusManager.current
+    val onAction: (PosAction) -> Unit = remember(viewModel) { { action -> viewModel.onAction(action) } }
+    val onBarcodeScanned: suspend (String) -> String? = remember(viewModel) { { code -> viewModel.onBarcodeScanned(code) } }
+    val launchScanner = rememberBarcodeScanner(onScanned = onBarcodeScanned)
 
+    PosScreenContent(
+        uiState = uiState,
+        localState = localState,
+        onAction = onAction,
+        launchScanner = launchScanner,
+        onNavigateToSettings = onNavigateToSettings,
+        onSharePdfFile = onSharePdfFile,
+        onExportPdf = onExportPdf,
+        modifier = modifier,
+        forceWideLayout = forceWideLayout,
+    )
+}
+
+/**
+ * Stateless Composable (UI Level)
+ * Sepenuhnya bebas dari ViewModel, 100% STABLE, Skippable, dan mudah di-test/preview.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PosScreenContent(
+    uiState: PosUiState,
+    localState: PosLocalStateHolder,
+    onAction: (PosAction) -> Unit,
+    launchScanner: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onSharePdfFile: (File) -> Unit,
+    onExportPdf: (CheckoutResult) -> Unit,
+    modifier: Modifier = Modifier,
+    forceWideLayout: Boolean = false,
+) {
     Scaffold(
         modifier = modifier,
         topBar = {
             PosTopBar(
                 uiState = uiState,
-                onAction = viewModel::onAction,
+                onAction = onAction,
                 launchScanner = launchScanner,
             )
         },
@@ -129,68 +159,69 @@ LaunchedEffect(localState.isCartExpanded) {
             val maxH = with(density) { windowInfo.containerSize.height.toDp() }
             val imeVisible = WindowInsets.ime.getBottom(density) > 0
 
-if (isWide) {
-    Row(Modifier.fillMaxSize()) {
-        ProductPane(
-            products = uiState.catalog.products,
-            cartQtyByProductId = uiState.catalog.cartQtyByProductId,
-            cartItems = uiState.cart.items,
-            onAction = viewModel::onAction,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
-        Spacer(Modifier.width(12.dp))
-        CartPaneContent(
-            cart = uiState.cart,
-            payment = uiState.payment,
-            catalog = uiState.catalog,
-            checkout = uiState.checkout,
-            localState = localState,
-            onAction = viewModel::onAction,
-            collapsible = false,
-            modifier = Modifier
-                .fillMaxHeight()
-                .widthIn(min = 320.dp, max = 420.dp),
-        )
-    }
-} else {
-    Box(Modifier.fillMaxSize()) {
-        ProductPane(
-            products = uiState.catalog.products,
-            cartQtyByProductId = uiState.catalog.cartQtyByProductId,
-            cartItems = uiState.cart.items,
-            onAction = viewModel::onAction,
-            modifier = Modifier.fillMaxSize(),
-        )
-        CartPaneContent(
-            cart = uiState.cart,
-            payment = uiState.payment,
-            catalog = uiState.catalog,
-            checkout = uiState.checkout,
-            localState = localState,
-            onAction = viewModel::onAction,
-            collapsible = true,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .let { base ->
-                    if (imeVisible) {
-                        base
-                    } else {
-                        base.heightIn(max = maxH * 0.65f)
-                    }
-                },
-        )
-    }
-}
+            if (isWide) {
+                Row(Modifier.fillMaxSize()) {
+                    ProductPane(
+                        products = uiState.catalog.products,
+                        cartQtyByProductId = uiState.catalog.cartQtyByProductId,
+                        cartItems = uiState.cart.items,
+                        onAction = onAction,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    CartPaneContent(
+                        cart = uiState.cart,
+                        payment = uiState.payment,
+                        catalog = uiState.catalog,
+                        checkout = uiState.checkout,
+                        localState = localState,
+                        onAction = onAction,
+                        collapsible = false,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .widthIn(min = 320.dp, max = 420.dp),
+                    )
+                }
+            } else {
+                Box(Modifier.fillMaxSize()) {
+                    ProductPane(
+                        products = uiState.catalog.products,
+                        cartQtyByProductId = uiState.catalog.cartQtyByProductId,
+                        cartItems = uiState.cart.items,
+                        onAction = onAction,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    CartPaneContent(
+                        cart = uiState.cart,
+                        payment = uiState.payment,
+                        catalog = uiState.catalog,
+                        checkout = uiState.checkout,
+                        localState = localState,
+                        onAction = onAction,
+                        collapsible = true,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .let { base ->
+                                if (imeVisible) {
+                                    base
+                                } else {
+                                    base.heightIn(max = maxH * 0.65f)
+                                }
+                            },
+                    )
+                }
+            }
         }
     }
+
     PosDialogManager(
         uiState = uiState,
         localState = localState,
-        onAction = viewModel::onAction,
+        onAction = onAction,
         onSharePdfFile = onSharePdfFile,
         onExportPdf = onExportPdf,
         onNavigateToSettings = onNavigateToSettings,

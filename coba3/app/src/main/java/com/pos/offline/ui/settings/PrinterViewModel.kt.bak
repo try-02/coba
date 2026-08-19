@@ -1,11 +1,7 @@
 package com.pos.offline.ui.settings
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.collections.immutable.ImmutableSet
-import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.collections.immutable.toImmutableSet
 import com.pos.offline.data.local.entity.PaperWidth
 import com.pos.offline.data.local.entity.PrinterConnectionType
 import com.pos.offline.data.local.entity.PrinterEntity
@@ -34,7 +30,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.map
 
-@Immutable
 data class PrinterFormState(
     val id: Long? = null,
     val label: String = "",
@@ -50,28 +45,25 @@ data class PrinterFormState(
     val autoDisabledDueToNoResponse: Boolean = false,
 )
 
-@Immutable
 data class PrinterUiState(
     val showFormDialog: Boolean = false,
     val formState: PrinterFormState = PrinterFormState(),
     val isSaving: Boolean = false,
     val pendingDeleteId: Long? = null,
-    val testingPrinterIds: ImmutableSet<Long> = persistentSetOf(),
+    val testingPrinterIds: Set<Long> = emptySet(),
     val isReordering: Boolean = false,
 )
 
-@Immutable
 data class BluetoothUiState(
-    val bondedDevices: ImmutableList<BluetoothDeviceInfo> = persistentListOf(),
-    val discoveredDevices: ImmutableList<BluetoothDeviceInfo> = persistentListOf(),
+    val bondedDevices: List<BluetoothDeviceInfo> = emptyList(),
+    val discoveredDevices: List<BluetoothDeviceInfo> = emptyList(),
     val isScanning: Boolean = false,
     val pairingTarget: BluetoothDeviceInfo? = null,
     val isPairing: Boolean = false,
 )
 
-@Immutable
 data class UsbUiState(
-    val devices: ImmutableList<UsbDeviceInfo> = persistentListOf(),
+    val devices: List<UsbDeviceInfo> = emptyList(),
     val isRequestingPermission: Boolean = false,
 )
 
@@ -327,7 +319,7 @@ class PrinterViewModel(
         viewModelScope.launch {
             _uiState.value =
                 _uiState.value.copy(
-                    testingPrinterIds = (_uiState.value.testingPrinterIds + printer.id).toImmutableSet(),
+                    testingPrinterIds = _uiState.value.testingPrinterIds + printer.id,
                 )
             val resultMessage =
                 try {
@@ -341,7 +333,7 @@ class PrinterViewModel(
             emitMessage(resultMessage)
             _uiState.value =
                 _uiState.value.copy(
-                    testingPrinterIds = (_uiState.value.testingPrinterIds - printer.id).toImmutableSet(),
+                    testingPrinterIds = _uiState.value.testingPrinterIds - printer.id,
                 )
         }
     }
@@ -353,19 +345,19 @@ class PrinterViewModel(
     fun refreshBondedDevices() {
         _bluetoothUiState.value =
             _bluetoothUiState.value.copy(
-                bondedDevices = bluetoothHelper.getBondedDevices().toImmutableList(),
+                bondedDevices = bluetoothHelper.getBondedDevices(),
             )
     }
 
     fun startDiscovery() {
         if (discoveryJob?.isActive == true) return
-        _bluetoothUiState.value = _bluetoothUiState.value.copy(isScanning = true, discoveredDevices = persistentListOf())
+        _bluetoothUiState.value = _bluetoothUiState.value.copy(isScanning = true, discoveredDevices = emptyList())
         discoveryJob =
             viewModelScope.launch {
                 bluetoothHelper.discoverDevices().collect { found ->
                     val current = _bluetoothUiState.value.discoveredDevices
                     if (current.none { it.address == found.address }) {
-                        _bluetoothUiState.value = _bluetoothUiState.value.copy(discoveredDevices = (current + found).toImmutableList())
+                        _bluetoothUiState.value = _bluetoothUiState.value.copy(discoveredDevices = current + found)
                     }
                 }
             }
@@ -435,7 +427,7 @@ class PrinterViewModel(
     }
 
     fun refreshUsbDevices() {
-        _usbUiState.value = _usbUiState.value.copy(devices = usbHelper.getDeviceList().toImmutableList())
+        _usbUiState.value = _usbUiState.value.copy(devices = usbHelper.getDeviceList())
     }
 
     fun startObservingUsbAttachment() {

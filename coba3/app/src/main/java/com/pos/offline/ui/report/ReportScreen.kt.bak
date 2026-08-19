@@ -180,10 +180,6 @@ import com.pos.offline.data.di.ServiceLocator
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 
-/**
- * Stateful Composable (Route Level)
- * Bertugas mengumpulkan StateFlow dari ReportViewModel & InventoryViewModel serta menangani Event & Launchers.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
@@ -204,6 +200,7 @@ fun ReportScreen(
     val report by viewModel.report.collectAsStateWithLifecycle()
     val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
     val isToday by viewModel.isToday.collectAsStateWithLifecycle()
+    val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val selectedTransaction by viewModel.selectedTransaction.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     val closedShifts by viewModel.closedShifts.collectAsStateWithLifecycle()
@@ -215,215 +212,16 @@ fun ReportScreen(
     val returnSubmitting by viewModel.returnSubmitting.collectAsStateWithLifecycle()
     val returnSummary by viewModel.returnSummary.collectAsStateWithLifecycle()
     val selectedReturnDetail by viewModel.selectedReturnDetail.collectAsStateWithLifecycle()
-    val productHistoryQuery by viewModel.productHistoryQuery.collectAsStateWithLifecycle()
-    val searchUiState by viewModel.searchUiState.collectAsStateWithLifecycle()
-    val periodType by viewModel.selectedPeriodType.collectAsStateWithLifecycle()
-    val includeSalesSummary by viewModel.includeSalesSummary.collectAsStateWithLifecycle()
-    val includeProductsSold by viewModel.includeProductsSold.collectAsStateWithLifecycle()
-    val includeDeadStock by viewModel.includeDeadStock.collectAsStateWithLifecycle()
-    val salesReportState by viewModel.salesReportUiState.collectAsStateWithLifecycle()
-    val inventoryProducts by inventoryViewModel.products.collectAsStateWithLifecycle()
-
     var pendingVoidConfirm by remember { mutableStateOf(false) }
     var voidBanner by remember { mutableStateOf<ReportMessage?>(null) }
     val globalMessage = LocalGlobalMessage.current
     val currentSelectedTransaction by rememberUpdatedState(selectedTransaction)
-
-    LaunchedEffect(viewModel, globalMessage) {
-        viewModel.messages.collect { msg ->
-            if (currentSelectedTransaction != null) {
-                voidBanner = msg
-            } else {
-                globalMessage.showMessage(msg.text)
-            }
-        }
-    }
-
-    LaunchedEffect(voidBanner) {
-        if (voidBanner != null) {
-            delay(3000)
-            voidBanner = null
-        }
-    }
-
-    val onSearchQueryChange: (String) -> Unit = remember(viewModel) {
-        { query ->
-            viewModel.searchProductHistory(query)
-            viewModel.searchInvoice(query)
-        }
-    }
-    val onOpenTransactionDetail: (String) -> Unit = remember(viewModel) { { viewModel.openTransactionDetail(it) } }
-    val onCloseTransactionDetail: () -> Unit = remember(viewModel) { { viewModel.closeTransactionDetail() } }
-    val onVoidTransaction: () -> Unit = remember(viewModel) { { viewModel.voidSelectedTransaction() } }
-    val onOpenReturnDialog: () -> Unit = remember(viewModel) { { viewModel.openReturnDialog() } }
-    val onCloseReturnDialog: () -> Unit = remember(viewModel) { { viewModel.closeReturnDialog() } }
-    val onSubmitReturn: (List<ReturnItemInput>, Long, PaymentMethod, String) -> Unit = remember(viewModel) {
-        { items, refundAmount, refundMethod, note ->
-            viewModel.submitReturn(items, refundAmount, refundMethod, note)
-        }
-    }
-    val onPrintReceipt: (CheckoutResult) -> Unit = remember(viewModel) { { viewModel.printReceipt(it) } }
-    val onPrinterPicked: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(viewModel) { { viewModel.onPrinterPicked(it) } }
-    val onCancelPrinterPicker: () -> Unit = remember(viewModel) { { viewModel.cancelPrinterPicker() } }
-    val onSelectTab: (ReportTab) -> Unit = remember(viewModel) { { viewModel.selectTab(it) } }
-    val onOpenShiftDetail: (ShiftEntity) -> Unit = remember(viewModel) { { viewModel.openShiftDetail(it) } }
-    val onCloseShiftDetail: () -> Unit = remember(viewModel) { { viewModel.closeShiftDetail() } }
-    val onOpenReturnDetail: (Long) -> Unit = remember(viewModel) { { viewModel.openReturnDetail(it) } }
-    val onCloseReturnDetail: () -> Unit = remember(viewModel) { { viewModel.closeReturnDetail() } }
-    val onPreviousDay: () -> Unit = remember(viewModel) { { viewModel.previousDay() } }
-    val onNextDay: () -> Unit = remember(viewModel) { { viewModel.nextDay() } }
-    val onGoToday: () -> Unit = remember(viewModel) { { viewModel.goToday() } }
-    val onSelectExactDate: (LocalDate) -> Unit = remember(viewModel) { { viewModel.selectExactDate(it) } }
-    val onToggleReportPeriod: (ReportPeriodType) -> Unit = remember(viewModel) { { viewModel.toggleReportPeriod(it) } }
-    val onToggleIncludeSalesSummary: (Boolean) -> Unit = remember(viewModel) { { viewModel.toggleIncludeSalesSummary(it) } }
-    val onToggleIncludeProductsSold: (Boolean) -> Unit = remember(viewModel) { { viewModel.toggleIncludeProductsSold(it) } }
-    val onToggleIncludeDeadStock: (Boolean) -> Unit = remember(viewModel) { { viewModel.toggleIncludeDeadStock(it) } }
-    val onPrintSalesReport: () -> Unit = remember(viewModel) { { viewModel.printSalesReport() } }
-    val onBuildExportLinesAsync: ((List<com.pos.offline.ui.receipt.ReceiptLine>?) -> Unit) -> Unit = remember(viewModel) {
-        { callback -> viewModel.buildCurrentReportLinesForExportAsync(callback) }
-    }
-    val onNotifyPdfExported: () -> Unit = remember(viewModel) { { viewModel.notifyPdfExported() } }
-    val onProcessDirectWarranty: (com.pos.offline.data.local.entity.ProductEntity, Double, String) -> Unit = remember(viewModel) {
-        { p, q, n -> viewModel.processDirectWarranty(p, q, n) }
-    }
-    val onProcessTukarGuling: (com.pos.offline.data.local.entity.ProductEntity, Double, com.pos.offline.data.local.entity.ProductEntity, Double, String) -> Unit = remember(viewModel) {
-        { b, bq, r, rq, n -> viewModel.prosesTukarGulingGaransi(b, bq, r, rq, n) }
-    }
-
-    ReportScreenContent(
-        report = report,
-        selectedDate = selectedDate,
-        isToday = isToday,
-        selectedTransaction = selectedTransaction,
-        selectedTab = selectedTab,
-        closedShifts = closedShifts,
-        selectedShiftDetail = selectedShiftDetail,
-        showReturnDialog = showReturnDialog,
-        printUiState = printUiState,
-        pendingPrintTarget = pendingPrintTarget,
-        returnMessage = returnMessage,
-        returnSubmitting = returnSubmitting,
-        returnSummary = returnSummary,
-        selectedReturnDetail = selectedReturnDetail,
-        productHistoryQuery = productHistoryQuery,
-        searchUiState = searchUiState,
-        periodType = periodType,
-        includeSalesSummary = includeSalesSummary,
-        includeProductsSold = includeProductsSold,
-        includeDeadStock = includeDeadStock,
-        salesReportState = salesReportState,
-        inventoryProducts = inventoryProducts,
-        pendingVoidConfirm = pendingVoidConfirm,
-        voidBanner = voidBanner,
-        onSearchQueryChange = onSearchQueryChange,
-        onOpenTransactionDetail = onOpenTransactionDetail,
-        onCloseTransactionDetail = onCloseTransactionDetail,
-        onVoidTransaction = onVoidTransaction,
-        onOpenReturnDialog = onOpenReturnDialog,
-        onCloseReturnDialog = onCloseReturnDialog,
-        onSubmitReturn = onSubmitReturn,
-        onPrintReceipt = onPrintReceipt,
-        onPrinterPicked = onPrinterPicked,
-        onCancelPrinterPicker = onCancelPrinterPicker,
-        onSelectTab = onSelectTab,
-        onOpenShiftDetail = onOpenShiftDetail,
-        onCloseShiftDetail = onCloseShiftDetail,
-        onOpenReturnDetail = onOpenReturnDetail,
-        onCloseReturnDetail = onCloseReturnDetail,
-        onPreviousDay = onPreviousDay,
-        onNextDay = onNextDay,
-        onGoToday = onGoToday,
-        onSelectExactDate = onSelectExactDate,
-        onToggleReportPeriod = onToggleReportPeriod,
-        onToggleIncludeSalesSummary = onToggleIncludeSalesSummary,
-        onToggleIncludeProductsSold = onToggleIncludeProductsSold,
-        onToggleIncludeDeadStock = onToggleIncludeDeadStock,
-        onPrintSalesReport = onPrintSalesReport,
-        onBuildExportLinesAsync = onBuildExportLinesAsync,
-        onNotifyPdfExported = onNotifyPdfExported,
-        onProcessDirectWarranty = onProcessDirectWarranty,
-        onProcessTukarGuling = onProcessTukarGuling,
-        onSetPendingVoidConfirm = { pendingVoidConfirm = it },
-        onClearVoidBanner = { voidBanner = null },
-        onNavigateToSettings = onNavigateToSettings,
-        onSharePdfFile = onSharePdfFile,
-        onExportPdf = onExportPdf,
-        onShare = onShare,
-        modifier = modifier,
-    )
-}
-
-/**
- * Stateless Composable (UI Level)
- * Bebas dari ViewModel, seluruh parameter 100% STABLE dan Skippable.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ReportScreenContent(
-    report: DailyReport,
-    selectedDate: LocalDate,
-    isToday: Boolean,
-    selectedTransaction: CheckoutResult?,
-    selectedTab: ReportTab,
-    closedShifts: ImmutableList<ShiftEntity>,
-    selectedShiftDetail: ClosedShiftDetail?,
-    showReturnDialog: Boolean,
-    printUiState: PrintUiState,
-    pendingPrintTarget: PendingPrintTarget?,
-    returnMessage: ReportMessage?,
-    returnSubmitting: Boolean,
-    returnSummary: ReturnSummary,
-    selectedReturnDetail: ReturnDetail?,
-    productHistoryQuery: String,
-    searchUiState: SearchUiState,
-    periodType: ReportPeriodType?,
-    includeSalesSummary: Boolean,
-    includeProductsSold: Boolean,
-    includeDeadStock: Boolean,
-    salesReportState: SalesReportUiState,
-    inventoryProducts: ImmutableList<com.pos.offline.data.local.entity.ProductEntity>,
-    pendingVoidConfirm: Boolean,
-    voidBanner: ReportMessage?,
-    onSearchQueryChange: (String) -> Unit,
-    onOpenTransactionDetail: (String) -> Unit,
-    onCloseTransactionDetail: () -> Unit,
-    onVoidTransaction: () -> Unit,
-    onOpenReturnDialog: () -> Unit,
-    onCloseReturnDialog: () -> Unit,
-    onSubmitReturn: (List<ReturnItemInput>, Long, PaymentMethod, String) -> Unit,
-    onPrintReceipt: (CheckoutResult) -> Unit,
-    onPrinterPicked: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit,
-    onCancelPrinterPicker: () -> Unit,
-    onSelectTab: (ReportTab) -> Unit,
-    onOpenShiftDetail: (ShiftEntity) -> Unit,
-    onCloseShiftDetail: () -> Unit,
-    onOpenReturnDetail: (Long) -> Unit,
-    onCloseReturnDetail: () -> Unit,
-    onPreviousDay: () -> Unit,
-    onNextDay: () -> Unit,
-    onGoToday: () -> Unit,
-    onSelectExactDate: (LocalDate) -> Unit,
-    onToggleReportPeriod: (ReportPeriodType) -> Unit,
-    onToggleIncludeSalesSummary: (Boolean) -> Unit,
-    onToggleIncludeProductsSold: (Boolean) -> Unit,
-    onToggleIncludeDeadStock: (Boolean) -> Unit,
-    onPrintSalesReport: () -> Unit,
-    onBuildExportLinesAsync: ((List<com.pos.offline.ui.receipt.ReceiptLine>?) -> Unit) -> Unit,
-    onNotifyPdfExported: () -> Unit,
-    onProcessDirectWarranty: (com.pos.offline.data.local.entity.ProductEntity, Double, String) -> Unit,
-    onProcessTukarGuling: (com.pos.offline.data.local.entity.ProductEntity, Double, com.pos.offline.data.local.entity.ProductEntity, Double, String) -> Unit,
-    onSetPendingVoidConfirm: (Boolean) -> Unit,
-    onClearVoidBanner: () -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onSharePdfFile: (File) -> Unit,
-    onExportPdf: (CheckoutResult) -> Unit,
-    onShare: (CheckoutResult) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+    val productHistoryQuery by viewModel.productHistoryQuery.collectAsStateWithLifecycle()
+    val productHistoryHierarchy by viewModel.productHistoryHierarchy.collectAsStateWithLifecycle()
+    val searchUiState by viewModel.searchUiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     var showDirectWarrantyScreen by remember { mutableStateOf(false) }
     var warrantySearchQuery by remember { mutableStateOf("") }
-
     val warrantyScanner =
         rememberBarcodeScanner { scannedCode ->
             warrantySearchQuery = scannedCode
@@ -431,10 +229,26 @@ fun ReportScreenContent(
         }
     val openScanner =
         rememberBarcodeScanner { scannedCode ->
-            onSearchQueryChange(scannedCode)
+            viewModel.searchProductHistory(scannedCode)
+            viewModel.searchInvoice(scannedCode)
             scannedCode
         }
-
+// Tetapi sekarang selectedTransaction yang digunakan selalu merupakan nilai terbaru.
+LaunchedEffect(viewModel, globalMessage) {
+    viewModel.messages.collect { msg ->
+        if (currentSelectedTransaction != null) {
+            voidBanner = msg
+        } else {
+            globalMessage.showMessage(msg.text)
+        }
+    }
+}
+    LaunchedEffect(voidBanner) {
+        if (voidBanner != null) {
+            delay(3000)
+            voidBanner = null
+        }
+    }
     if (showDatePicker) {
         val datePickerState =
             rememberDatePickerState(
@@ -447,7 +261,7 @@ fun ReportScreenContent(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             val localDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
-                            onSelectExactDate(localDate)
+                            viewModel.selectExactDate(localDate)
                         }
                         showDatePicker = false
                     },
@@ -460,7 +274,6 @@ fun ReportScreenContent(
             DatePicker(state = datePickerState)
         }
     }
-
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -525,7 +338,10 @@ fun ReportScreenContent(
                             ) {
                                 CompactReportSearchBar(
                                     query = productHistoryQuery,
-                                    onQueryChange = onSearchQueryChange,
+                                    onQueryChange = { query ->
+                                        viewModel.searchProductHistory(query)
+                                        viewModel.searchInvoice(query)
+                                    },
                                     modifier = Modifier.weight(1f).height(48.dp)
                                 )
                                 Spacer(Modifier.width(8.dp))
@@ -544,7 +360,7 @@ fun ReportScreenContent(
                             }
                         }
                     }
-                    when (searchUiState) {
+                    when (val state = searchUiState) {
                         is SearchUiState.ProductHistoryResults -> {
                             item(key = "product_history_header") {
                                 Text(
@@ -555,12 +371,12 @@ fun ReportScreenContent(
                                 )
                             }
                             items(
-                                items = searchUiState.hierarchy,
+                                items = state.hierarchy,
                                 key = { "month_${it.yearMonth}" },
                             ) { monthGroup ->
                                 MonthGroupCard(
                                     monthGroup = monthGroup,
-                                    onTransactionClick = onOpenTransactionDetail,
+                                    onTransactionClick = { txId -> viewModel.openTransactionDetail(txId) },
                                 )
                             }
                         }
@@ -568,19 +384,19 @@ fun ReportScreenContent(
                         is SearchUiState.InvoiceResults -> {
                             item(key = "invoice_search_header") {
                                 Text(
-                                    "Hasil Pencarian Struk (${searchUiState.transactions.size})",
+                                    "Hasil Pencarian Struk (${state.transactions.size})",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
                             }
                             items(
-                                items = searchUiState.transactions,
+                                items = state.transactions,
                                 key = { "invoice_${it.id}" },
                             ) { tx ->
                                 TransactionRow(
                                     tx = tx,
-                                    onClick = { onOpenTransactionDetail(tx.id) },
+                                    onClick = { viewModel.openTransactionDetail(tx.id) },
                                 )
                             }
                         }
@@ -588,7 +404,7 @@ fun ReportScreenContent(
                         is SearchUiState.Empty -> {
                             item(key = "search_empty_state") {
                                 Text(
-                                    "Data \"${searchUiState.query}\" tidak ditemukan dalam 365 hari terakhir.",
+                                    "Data \"${state.query}\" tidak ditemukan dalam 365 hari terakhir.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     modifier = Modifier.padding(vertical = 12.dp),
@@ -612,9 +428,9 @@ fun ReportScreenContent(
                                 DateNavigator(
                                     label = selectedDate.format(ReportViewModel.dateFmt),
                                     isToday = isToday,
-                                    onPrevious = onPreviousDay,
-                                    onNext = onNextDay,
-                                    onToday = onGoToday,
+                                    onPrevious = viewModel::previousDay,
+                                    onNext = viewModel::nextDay,
+                                    onToday = viewModel::goToday,
                                     onCalendarClick = { showDatePicker = true },
                                 )
                             }
@@ -629,6 +445,11 @@ fun ReportScreenContent(
                                 }
                             }
                             item(key = "sales_report_generator") {
+                                val periodType by viewModel.selectedPeriodType.collectAsStateWithLifecycle()
+                                val includeSalesSummary by viewModel.includeSalesSummary.collectAsStateWithLifecycle()
+                                val includeProductsSold by viewModel.includeProductsSold.collectAsStateWithLifecycle()
+                                val includeDeadStock by viewModel.includeDeadStock.collectAsStateWithLifecycle()
+                                val salesReportState by viewModel.salesReportUiState.collectAsStateWithLifecycle()
                                 val scope = rememberCoroutineScope()
                                 val context = LocalContext.current
                                 
@@ -653,39 +474,39 @@ fun ReportScreenContent(
                                         ReportPeriodToggleRow(
                                             selected = periodType,
                                             enabled = true,
-                                            onSelect = onToggleReportPeriod,
+                                            onSelect = viewModel::toggleReportPeriod,
                                         )
                                         
                                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                             ReportOptionRow(
                                                 label = "Ringkasan Penjualan & Keuangan",
                                                 checked = includeSalesSummary,
-                                                onCheckedChange = onToggleIncludeSalesSummary
+                                                onCheckedChange = viewModel::toggleIncludeSalesSummary
                                             )
                                             ReportOptionRow(
                                                 label = "Daftar Produk Terjual",
                                                 checked = includeProductsSold,
-                                                onCheckedChange = onToggleIncludeProductsSold
+                                                onCheckedChange = viewModel::toggleIncludeProductsSold
                                             )
                                             ReportOptionRow(
                                                 label = "Produk Tidak Laku (Dead Stock)",
                                                 checked = includeDeadStock,
-                                                onCheckedChange = onToggleIncludeDeadStock
+                                                onCheckedChange = viewModel::toggleIncludeDeadStock
                                             )
                                         }
                                         
                                         if (periodType != null) {
                                             SalesReportResultCard(
                                                 uiState = salesReportState,
-                                                onPrint = onPrintSalesReport,
+                                                onPrint = viewModel::printSalesReport,
                                                 onExportPdf = {
-                                                    onBuildExportLinesAsync { lines ->
+                                                    viewModel.buildCurrentReportLinesForExportAsync { lines ->
                                                         if (lines != null) {
                                                             scope.launch {
                                                                 val file = ReceiptManager.exportPdfFromLines(
-                                                                        context, lines, "Laporan_${periodType.name}_$selectedDate"
+                                                                        context, lines, "Laporan_${periodType?.name}_$selectedDate"
                                                                     )
-                                                                onNotifyPdfExported()
+                                                                viewModel.notifyPdfExported()
                                                                 onSharePdfFile(file)
                                                             }
                                                         }
@@ -697,7 +518,7 @@ fun ReportScreenContent(
                                 }
                             }
                             item(key = "tab_switcher") {
-                                ReportTabSwitcher(selected = selectedTab, onSelect = onSelectTab)
+                                ReportTabSwitcher(selected = selectedTab, onSelect = viewModel::selectTab)
                             }
                             when (selectedTab) {
                                 ReportTab.TRANSACTIONS -> {
@@ -719,7 +540,7 @@ fun ReportScreenContent(
                                         ) { tx ->
                                             TransactionRow(
                                                 tx = tx,
-                                                onClick = { onOpenTransactionDetail(tx.id) },
+                                                onClick = { viewModel.openTransactionDetail(tx.id) },
                                             )
                                         }
                                     }
@@ -756,7 +577,7 @@ fun ReportScreenContent(
                                         ) { ret ->
                                             ReturnRow(
                                                 ret = ret,
-                                                onClick = { onOpenReturnDetail(ret.id) },
+                                                onClick = { viewModel.openReturnDetail(ret.id) },
                                             )
                                         }
                                     }
@@ -778,7 +599,7 @@ fun ReportScreenContent(
                                         ) { shift ->
                                             ClosedShiftRow(
                                                 shift = shift,
-                                                onClick = { onOpenShiftDetail(shift) },
+                                                onClick = { viewModel.openShiftDetail(shift) },
                                             )
                                         }
                                     }
@@ -794,90 +615,98 @@ fun ReportScreenContent(
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
         ) {
-            DirectWarrantyScreen(
-                products = inventoryProducts,
-                searchQuery = warrantySearchQuery,
-                onQueryChange = { warrantySearchQuery = it },
-                onScanClick = { warrantyScanner() },
-                onNavigateBack = {
-                    showDirectWarrantyScreen = false
-                    warrantySearchQuery = ""
-                },
-                onSubmitWarranty = { product, qty, note ->
-                    onProcessDirectWarranty(product, qty, note)
-                },
-                onSubmitExchange = { broken, brokenQty, replace, replaceQty, note ->
-                    onProcessTukarGuling(broken, brokenQty, replace, replaceQty, note)
-                },
-            )
+val inventoryProducts by inventoryViewModel.products.collectAsStateWithLifecycle()
+
+DirectWarrantyScreen(
+    products = inventoryProducts,
+    searchQuery = warrantySearchQuery,
+    onQueryChange = { warrantySearchQuery = it },
+    onScanClick = { warrantyScanner() },
+    onNavigateBack = {
+        showDirectWarrantyScreen = false
+        warrantySearchQuery = ""
+    },
+    onSubmitWarranty = { product, qty, note ->
+        viewModel.processDirectWarranty(
+            product = product,
+            qty = qty,
+            note = note,
+        )
+    },
+    onSubmitExchange = { broken, brokenQty, replace, replaceQty, note ->
+        viewModel.prosesTukarGulingGaransi(
+            barangRusak = broken,
+            qtyRusak = brokenQty,
+            barangPengganti = replace,
+            qtyPengganti = replaceQty,
+            catatan = note,
+        )
+    },
+)
         }
     }
-
     if (selectedTransaction != null && !pendingVoidConfirm && !showReturnDialog && pendingPrintTarget == null) {
-        val current = selectedTransaction
+        val current = selectedTransaction!!
         TransactionDetailDialog(
             result = current,
             banner = voidBanner,
             printUiState = printUiState.forTransaction(current.transaction.id),
-            onVoidClick = { onSetPendingVoidConfirm(true) },
-            onReturnClick = onOpenReturnDialog,
-            onPrint = { onPrintReceipt(current) },
+            onVoidClick = { pendingVoidConfirm = true },
+            onReturnClick = { viewModel.openReturnDialog() },
+            onPrint = { viewModel.printReceipt(current) },
             onExport = { onExportPdf(current) },
             onShare = { onShare(current) },
             onSharePdfFile = onSharePdfFile,
             onNavigateToSettings = onNavigateToSettings,
             onDismiss = {
-                onSetPendingVoidConfirm(false)
-                onClearVoidBanner()
-                onCloseTransactionDetail()
+                pendingVoidConfirm = false
+                voidBanner = null
+                viewModel.closeTransactionDetail()
             },
         )
     }
-
     pendingPrintTarget?.let { target ->
         PrinterPickerDialog(
             printers = target.availablePrinters,
-            onSelect = onPrinterPicked,
-            onDismiss = onCancelPrinterPicker,
+            onSelect = { printer -> viewModel.onPrinterPicked(printer) },
+            onDismiss = { viewModel.cancelPrinterPicker() },
         )
     }
-
     if (pendingVoidConfirm) {
         VoidConfirmDialog(
             invoiceId = selectedTransaction?.transaction?.id.orEmpty(),
             onConfirm = {
-                onVoidTransaction()
-                onSetPendingVoidConfirm(false)
+                viewModel.voidSelectedTransaction()
+                pendingVoidConfirm = false
             },
-            onDismiss = { onSetPendingVoidConfirm(false) },
+            onDismiss = { pendingVoidConfirm = false },
         )
     }
-
     if (showReturnDialog && selectedTransaction != null) {
         ReturnItemDialog(
-            result = selectedTransaction,
+            result = selectedTransaction!!,
             submitting = returnSubmitting,
             message = returnMessage,
-            onDismiss = onCloseReturnDialog,
-            onSubmit = onSubmitReturn,
+            onDismiss = viewModel::closeReturnDialog,
+            onSubmit = { items, refundAmount, refundMethod, note ->
+                viewModel.submitReturn(items, refundAmount, refundMethod, note)
+            },
         )
     }
-
     selectedShiftDetail?.let { detail ->
         ClosedShiftDetailDialog(
             detail = detail,
-            onDismiss = onCloseShiftDetail,
+            onDismiss = viewModel::closeShiftDetail,
         )
     }
-
     selectedReturnDetail?.let { detail ->
         ReturnDetailDialog(
             detail = detail,
             onViewOriginalTransaction = { invoiceId ->
-                onCloseReturnDetail()
-                onOpenTransactionDetail(invoiceId)
+                viewModel.closeReturnDetail()
+                viewModel.openTransactionDetail(invoiceId)
             },
-            onDismiss = onCloseReturnDetail,
+            onDismiss = viewModel::closeReturnDetail,
         )
     }
 }
@@ -1776,7 +1605,6 @@ private fun RevenueTrendChart(
     }
 }
 
-@Immutable
 private data class RevenuePoint(
     val transaction: TransactionEntity,
     val timeMillis: Long,
@@ -2765,7 +2593,6 @@ private fun VoidConfirmDialog(
     )
 }
 
-@Immutable
 private data class ReturnRowState(
     val transactionItemId: Long,
     val productId: Long?,

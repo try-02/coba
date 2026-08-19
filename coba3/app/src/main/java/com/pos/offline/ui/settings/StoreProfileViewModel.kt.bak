@@ -1,6 +1,5 @@
 package com.pos.offline.ui.settings
 import android.net.Uri
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.offline.data.local.entity.StoreProfileEntity
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-@Immutable
 data class StoreProfileFormState(
     val storeName: String = "",
     val address: String = "",
@@ -45,7 +43,6 @@ data class StoreProfileFormState(
     }
 }
 
-@Immutable
 data class StoreProfileUiState(
     val formState: StoreProfileFormState = StoreProfileFormState(),
     val isProcessingLogo: Boolean = false,

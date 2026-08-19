@@ -60,9 +60,6 @@ import com.pos.offline.util.BluetoothDeviceInfo
 import com.pos.offline.util.PermissionUtils
 import androidx.compose.runtime.rememberUpdatedState
 
-/**
- * Stateful Composable (Route Level)
- */
 @Composable
 fun BluetoothPickerDialog(
     viewModel: PrinterViewModel,
@@ -70,7 +67,7 @@ fun BluetoothPickerDialog(
 ) {
     val state by viewModel.bluetoothUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val currentOnDismiss by rememberUpdatedState(onDismiss) 
     val lifecycleOwner = LocalLifecycleOwner.current
     var permissionState by remember {
         mutableStateOf(PermissionUtils.currentBluetoothPermissionState(context))
@@ -127,72 +124,15 @@ fun BluetoothPickerDialog(
         onDispose { viewModel.resetBluetoothPicker() }
     }
 
-    val onSelectBondedDevice: (BluetoothDeviceInfo) -> Unit = remember(viewModel) {
-        { device ->
-            viewModel.selectBondedDevice(device)
-            onDismiss()
-        }
-    }
-    val onToggleDiscovery: () -> Unit = remember(viewModel) {
-        {
-            if (state.isScanning) viewModel.stopDiscovery() else viewModel.startDiscovery()
-        }
-    }
-    val onRequestPairing: (BluetoothDeviceInfo) -> Unit = remember(viewModel) { { viewModel.requestPairing(it) } }
-    val onCancelPairing: () -> Unit = remember(viewModel) { { viewModel.cancelPairing() } }
-    val onConfirmPairing: (String) -> Unit = remember(viewModel) { { viewModel.confirmPairing(it) } }
-
-    BluetoothPickerDialogContent(
-        state = state,
-        permissionState = permissionState,
-        btEnabled = btEnabled,
-        onDismiss = onDismiss,
-        onOpenAppSettings = {
-            val intent = Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.fromParts("package", context.packageName, null),
-            )
-            context.startActivity(intent)
-        },
-        onRequestPermission = { permissionLauncher.launch(PermissionUtils.requiredBluetoothPermissions()) },
-        onEnableBluetooth = { enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) },
-        onSelectBondedDevice = onSelectBondedDevice,
-        onToggleDiscovery = onToggleDiscovery,
-        onRequestPairing = onRequestPairing,
-        onCancelPairing = onCancelPairing,
-        onConfirmPairing = onConfirmPairing,
-    )
-}
-
-/**
- * Stateless Composable (UI Level) - 100% STABLE & Skippable
- */
-@Composable
-fun BluetoothPickerDialogContent(
-    state: BluetoothUiState,
-    permissionState: PermissionUtils.BluetoothPermissionState,
-    btEnabled: Boolean,
-    onDismiss: () -> Unit,
-    onOpenAppSettings: () -> Unit,
-    onRequestPermission: () -> Unit,
-    onEnableBluetooth: () -> Unit,
-    onSelectBondedDevice: (BluetoothDeviceInfo) -> Unit,
-    onToggleDiscovery: () -> Unit,
-    onRequestPairing: (BluetoothDeviceInfo) -> Unit,
-    onCancelPairing: () -> Unit,
-    onConfirmPairing: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = modifier,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Rounded.Bluetooth,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text("Pilih Printer Bluetooth", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -214,11 +154,17 @@ fun BluetoothPickerDialogContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Button(
-                            onClick = onOpenAppSettings,
+                            onClick = {
+                                val intent = Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", context.packageName, null),
+                                )
+                                context.startActivity(intent)
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Buka Pengaturan Aplikasi", fontWeight = FontWeight.Bold)
                         }
@@ -231,11 +177,11 @@ fun BluetoothPickerDialogContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Button(
-                            onClick = onRequestPermission,
+                            onClick = { permissionLauncher.launch(PermissionUtils.requiredBluetoothPermissions()) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Izinkan Akses Bluetooth", fontWeight = FontWeight.Bold)
                         }
@@ -249,11 +195,11 @@ fun BluetoothPickerDialogContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Button(
-                                onClick = onEnableBluetooth,
+                                onClick = { enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text("Aktifkan Bluetooth", fontWeight = FontWeight.Bold)
                             }
@@ -268,7 +214,8 @@ fun BluetoothPickerDialogContent(
                             } else {
                                 state.bondedDevices.forEach { device ->
                                     DeviceRow(device = device, trailing = null) {
-                                        onSelectBondedDevice(device)
+                                        viewModel.selectBondedDevice(device)
+                                        onDismiss()
                                     }
                                 }
                             }
@@ -280,10 +227,14 @@ fun BluetoothPickerDialogContent(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text("Perangkat Baru", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                                TextButton(onClick = onToggleDiscovery) {
+                                TextButton(
+                                    onClick = {
+                                        if (state.isScanning) viewModel.stopDiscovery() else viewModel.startDiscovery()
+                                    },
+                                ) {
                                     Text(
                                         if (state.isScanning) "Berhenti" else "Cari Perangkat",
-                                        fontWeight = FontWeight.Bold,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
@@ -291,7 +242,7 @@ fun BluetoothPickerDialogContent(
                             if (state.isScanning) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    modifier = Modifier.padding(vertical = 4.dp)
                                 ) {
                                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                                     Spacer(Modifier.width(8.dp))
@@ -304,7 +255,7 @@ fun BluetoothPickerDialogContent(
                             }
                             newDevices.forEach { device ->
                                 DeviceRow(device = device, trailing = "Pasang") {
-                                    onRequestPairing(device)
+                                    viewModel.requestPairing(device)
                                 }
                             }
                         }
@@ -321,8 +272,8 @@ fun BluetoothPickerDialogContent(
         BluetoothPinDialog(
             device = target,
             isPairing = state.isPairing,
-            onDismiss = onCancelPairing,
-            onConfirm = onConfirmPairing,
+            onDismiss = { viewModel.cancelPairing() },
+            onConfirm = { pin -> viewModel.confirmPairing(pin) },
         )
     }
 }

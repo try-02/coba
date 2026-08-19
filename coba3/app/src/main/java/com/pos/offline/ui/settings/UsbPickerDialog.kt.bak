@@ -59,38 +59,15 @@ fun UsbPickerDialog(
         viewModel.usbSelectionSuccess.collect { currentOnDismiss() }
     }
 
-    val onSelectDevice: (UsbDeviceInfo) -> Unit = remember(viewModel) { { viewModel.selectUsbDevice(it) } }
-    val onRefreshDevices: () -> Unit = remember(viewModel) { { viewModel.refreshUsbDevices() } }
-
-    UsbPickerDialogContent(
-        state = state,
-        onDismiss = onDismiss,
-        onSelectDevice = onSelectDevice,
-        onRefreshDevices = onRefreshDevices,
-    )
-}
-
-/**
- * Stateless Composable (UI Level) - 100% STABLE & Skippable
- */
-@Composable
-fun UsbPickerDialogContent(
-    state: UsbUiState,
-    onDismiss: () -> Unit,
-    onSelectDevice: (UsbDeviceInfo) -> Unit,
-    onRefreshDevices: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = modifier,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Rounded.Usb,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text("Pilih Printer USB", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -128,13 +105,13 @@ fun UsbPickerDialogContent(
                         UsbDeviceRow(
                             device = device,
                             enabled = !state.isRequestingPermission,
-                            onClick = { onSelectDevice(device) },
+                            onClick = { viewModel.selectUsbDevice(device) },
                         )
                     }
                 }
 
                 TextButton(
-                    onClick = onRefreshDevices,
+                    onClick = { viewModel.refreshUsbDevices() },
                     enabled = !state.isRequestingPermission,
                 ) {
                     Text("Segarkan Daftar", fontWeight = FontWeight.Bold)
