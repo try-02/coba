@@ -1,6 +1,7 @@
 package com.pos.offline.ui.settings
 
 import android.graphics.BitmapFactory
+import androidx.compose.runtime.remember
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -84,10 +85,10 @@ fun StoreProfileDialog(
         }
     }
 
-    val onUpdateStoreName: (String) -> Unit = remember(viewModel) { { viewModel.updateStoreName(it) } }
-    val onUpdateAddress: (String) -> Unit = remember(viewModel) { { viewModel.updateAddress(it) } }
-    val onUpdateFooterNote: (String) -> Unit = remember(viewModel) { { viewModel.updateFooterNote(it) } }
-    val onUpdateAutoPrintEnabled: (Boolean) -> Unit = remember(viewModel) { { viewModel.updateAutoPrintEnabled(it) } }
+    val onUpdateStoreName: (String) -> Unit = remember(viewModel) { { name: String -> viewModel.updateStoreName(name) } }
+    val onUpdateAddress: (String) -> Unit = remember(viewModel) { { address: String -> viewModel.updateAddress(address) } }
+    val onUpdateFooterNote: (String) -> Unit = remember(viewModel) { { note: String -> viewModel.updateFooterNote(note) } }
+    val onUpdateAutoPrintEnabled: (Boolean) -> Unit = remember(viewModel) { { enabled: Boolean -> viewModel.updateAutoPrintEnabled(enabled) } }
     val onClearLogo: () -> Unit = remember(viewModel) { { viewModel.clearLogo() } }
     val onSave: () -> Unit = remember(viewModel) { { viewModel.save() } }
 

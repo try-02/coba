@@ -157,13 +157,13 @@ fun SettingsScreen(
         }
     }
 
-    val onSoundToggle: (Boolean) -> Unit = remember(viewModel) { { viewModel.setSoundEnabled(it) } }
-    val onSoundVolumeChange: (Int) -> Unit = remember(viewModel) { { viewModel.setSoundVolume(it) } }
-    val onSoundDurationChange: (Int) -> Unit = remember(viewModel) { { viewModel.setSoundDurationMs(it) } }
+    val onSoundToggle: (Boolean) -> Unit = remember(viewModel) { { enabled: Boolean -> viewModel.setSoundEnabled(enabled) } }
+    val onSoundVolumeChange: (Int) -> Unit = remember(viewModel) { { volume: Int -> viewModel.setSoundVolume(volume) } }
+    val onSoundDurationChange: (Int) -> Unit = remember(viewModel) { { duration: Int -> viewModel.setSoundDurationMs(duration) } }
     val onTestSound: () -> Unit = remember(viewModel) { { viewModel.testSoundPreview() } }
-    val onVibrationToggle: (Boolean) -> Unit = remember(viewModel) { { viewModel.setVibrationEnabled(it) } }
-    val onVibrationLevelChange: (VibrationLevel) -> Unit = remember(viewModel) { { viewModel.setVibrationLevel(it) } }
-    val onVibrationDurationChange: (Int) -> Unit = remember(viewModel) { { viewModel.setVibrationDurationMs(it) } }
+    val onVibrationToggle: (Boolean) -> Unit = remember(viewModel) { { enabled: Boolean -> viewModel.setVibrationEnabled(enabled) } }
+    val onVibrationLevelChange: (VibrationLevel) -> Unit = remember(viewModel) { { level: VibrationLevel -> viewModel.setVibrationLevel(level) } }
+    val onVibrationDurationChange: (Int) -> Unit = remember(viewModel) { { duration: Int -> viewModel.setVibrationDurationMs(duration) } }
     val onTestVibration: () -> Unit = remember(viewModel) { { viewModel.testVibrationPreview() } }
     val onExportDatabase: () -> Unit = remember(exportLauncher) { { exportLauncher.launch(BackupManager.suggestedBackupFileName()) } }
     val onShareDatabase: () -> Unit = remember(viewModel) { { viewModel.shareDatabase() } }
@@ -176,29 +176,29 @@ fun SettingsScreen(
         }
     }
     val onCancelRestore: () -> Unit = remember(viewModel) { { viewModel.cancelRestore() } }
-    val onToggleCashierActive: (Long, Boolean) -> Unit = remember(viewModel) { { id, active -> viewModel.setCashierActive(id, active) } }
+    val onToggleCashierActive: (Long, Boolean) -> Unit = remember(viewModel) { { id: Long, active: Boolean -> viewModel.setCashierActive(id, active) } }
     val onOpenAddCashier: () -> Unit = remember(viewModel) { { viewModel.openAddCashierDialog() } }
     val onCloseAddCashier: () -> Unit = remember(viewModel) { { viewModel.closeAddCashierDialog() } }
-    val onAddCashier: (String) -> Unit = remember(viewModel) { { viewModel.addCashier(it) } }
+    val onAddCashier: (String) -> Unit = remember(viewModel) { { name: String -> viewModel.addCashier(name) } }
 
     val onOpenAddPrinter: () -> Unit = remember(printerViewModel) { { printerViewModel.openAddDialog() } }
-    val onOpenEditPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.openEditDialog(it) } }
+    val onOpenEditPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printer: com.pos.offline.data.local.entity.PrinterEntity -> printerViewModel.openEditDialog(printer) } }
     val onClosePrinterForm: () -> Unit = remember(printerViewModel) { { printerViewModel.closeFormDialog() } }
     val onSavePrinterForm: () -> Unit = remember(printerViewModel) { { printerViewModel.saveForm() } }
-    val onUpdateFormLabel: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormLabel(it) } }
-    val onUpdateFormConnectionType: (com.pos.offline.data.local.entity.PrinterConnectionType) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormConnectionType(it) } }
-    val onUpdateFormPaperWidth: (com.pos.offline.data.local.entity.PaperWidth) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormPaperWidth(it) } }
-    val onUpdateFormCharPerLine: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormCharPerLine(it) } }
-    val onUpdateFormWifiIp: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormWifiIp(it) } }
-    val onUpdateFormWifiPort: (String) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormWifiPort(it) } }
-    val onUpdateFormSupportsStatusQuery: (Boolean) -> Unit = remember(printerViewModel) { { printerViewModel.updateFormSupportsStatusQuery(it) } }
-    val onRequestDeletePrinter: (Long) -> Unit = remember(printerViewModel) { { printerViewModel.requestDelete(it) } }
+    val onUpdateFormLabel: (String) -> Unit = remember(printerViewModel) { { label: String -> printerViewModel.updateFormLabel(label) } }
+    val onUpdateFormConnectionType: (com.pos.offline.data.local.entity.PrinterConnectionType) -> Unit = remember(printerViewModel) { { type: com.pos.offline.data.local.entity.PrinterConnectionType -> printerViewModel.updateFormConnectionType(type) } }
+    val onUpdateFormPaperWidth: (com.pos.offline.data.local.entity.PaperWidth) -> Unit = remember(printerViewModel) { { width: com.pos.offline.data.local.entity.PaperWidth -> printerViewModel.updateFormPaperWidth(width) } }
+    val onUpdateFormCharPerLine: (String) -> Unit = remember(printerViewModel) { { chars: String -> printerViewModel.updateFormCharPerLine(chars) } }
+    val onUpdateFormWifiIp: (String) -> Unit = remember(printerViewModel) { { ip: String -> printerViewModel.updateFormWifiIp(ip) } }
+    val onUpdateFormWifiPort: (String) -> Unit = remember(printerViewModel) { { port: String -> printerViewModel.updateFormWifiPort(port) } }
+    val onUpdateFormSupportsStatusQuery: (Boolean) -> Unit = remember(printerViewModel) { { query: Boolean -> printerViewModel.updateFormSupportsStatusQuery(query) } }
+    val onRequestDeletePrinter: (Long) -> Unit = remember(printerViewModel) { { id: Long -> printerViewModel.requestDelete(id) } }
     val onConfirmDeletePrinter: () -> Unit = remember(printerViewModel) { { printerViewModel.confirmDelete() } }
     val onCancelDeletePrinter: () -> Unit = remember(printerViewModel) { { printerViewModel.cancelDelete() } }
-    val onSetDefaultPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.setAsDefault(it) } }
-    val onMovePriorityUp: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.movePriorityUp(it) } }
-    val onMovePriorityDown: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.movePriorityDown(it) } }
-    val onTestPrint: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printerViewModel.testPrint(it) } }
+    val onSetDefaultPrinter: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printer: com.pos.offline.data.local.entity.PrinterEntity -> printerViewModel.setAsDefault(printer) } }
+    val onMovePriorityUp: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printer: com.pos.offline.data.local.entity.PrinterEntity -> printerViewModel.movePriorityUp(printer) } }
+    val onMovePriorityDown: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printer: com.pos.offline.data.local.entity.PrinterEntity -> printerViewModel.movePriorityDown(printer) } }
+    val onTestPrint: (com.pos.offline.data.local.entity.PrinterEntity) -> Unit = remember(printerViewModel) { { printer: com.pos.offline.data.local.entity.PrinterEntity -> printerViewModel.testPrint(printer) } }
 
     SettingsScreenContent(
         uiState = uiState,

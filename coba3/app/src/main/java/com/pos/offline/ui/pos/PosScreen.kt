@@ -1,5 +1,6 @@
 package com.pos.offline.ui.pos
 
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -101,9 +102,8 @@ fun PosScreen(
         }
     }
 
-    val onAction: (PosAction) -> Unit = remember(viewModel) { { action -> viewModel.onAction(action) } }
-    val onBarcodeScanned: suspend (String) -> String? = remember(viewModel) { { code -> viewModel.onBarcodeScanned(code) } }
-    val launchScanner = rememberBarcodeScanner(onScanned = onBarcodeScanned)
+    val onAction: (PosAction) -> Unit = remember(viewModel) { { action: PosAction -> viewModel.onAction(action) } }
+    val launchScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned)
 
     PosScreenContent(
         uiState = uiState,

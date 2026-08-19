@@ -1,5 +1,6 @@
 package com.pos.offline.ui.report
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring

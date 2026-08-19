@@ -138,9 +138,9 @@ fun BluetoothPickerDialog(
             if (state.isScanning) viewModel.stopDiscovery() else viewModel.startDiscovery()
         }
     }
-    val onRequestPairing: (BluetoothDeviceInfo) -> Unit = remember(viewModel) { { viewModel.requestPairing(it) } }
+    val onRequestPairing: (BluetoothDeviceInfo) -> Unit = remember(viewModel) { { device: BluetoothDeviceInfo -> viewModel.requestPairing(device) } }
     val onCancelPairing: () -> Unit = remember(viewModel) { { viewModel.cancelPairing() } }
-    val onConfirmPairing: (String) -> Unit = remember(viewModel) { { viewModel.confirmPairing(it) } }
+    val onConfirmPairing: (String) -> Unit = remember(viewModel) { { pin: String -> viewModel.confirmPairing(pin) } }
 
     BluetoothPickerDialogContent(
         state = state,

@@ -1,5 +1,6 @@
 package com.pos.offline.ui.settings
 
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,7 +60,7 @@ fun UsbPickerDialog(
         viewModel.usbSelectionSuccess.collect { currentOnDismiss() }
     }
 
-    val onSelectDevice: (UsbDeviceInfo) -> Unit = remember(viewModel) { { viewModel.selectUsbDevice(it) } }
+    val onSelectDevice: (UsbDeviceInfo) -> Unit = remember(viewModel) { { device: UsbDeviceInfo -> viewModel.selectUsbDevice(device) } }
     val onRefreshDevices: () -> Unit = remember(viewModel) { { viewModel.refreshUsbDevices() } }
 
     UsbPickerDialogContent(
