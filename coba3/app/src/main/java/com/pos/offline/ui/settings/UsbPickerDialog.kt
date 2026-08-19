@@ -27,7 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +43,7 @@ fun UsbPickerDialog(
     viewModel: PrinterViewModel,
     onDismiss: () -> Unit,
 ) {
-    val state by viewModel.usbUiState.collectAsState()
+    val state by viewModel.usbUiState.collectAsStateWithLifecycle()
     val currentOnDismiss by rememberUpdatedState(onDismiss)
 
     LaunchedEffect(Unit) {
@@ -56,7 +56,7 @@ fun UsbPickerDialog(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.usbSelectionSuccess.collect { onDismiss() }
+        viewModel.usbSelectionSuccess.collect { currentOnDismiss() }
     }
 
     AlertDialog(

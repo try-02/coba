@@ -390,8 +390,8 @@ internal fun ProductPane(
     products: ImmutableList<ProductEntity>,
     cartQtyByProductId: ImmutableMap<Long, Double>,
     cartItems: ImmutableList<CartItemEntity>,
-    onAction: (PosAction) -> Unit,
     modifier: Modifier = Modifier,
+    onAction: (PosAction) -> Unit,
 ) {
     var selectedProductForDetails by remember { mutableStateOf<ProductEntity?>(null) }
     

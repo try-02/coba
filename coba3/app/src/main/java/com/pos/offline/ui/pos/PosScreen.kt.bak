@@ -129,62 +129,65 @@ LaunchedEffect(localState.isCartExpanded) {
             val maxH = with(density) { windowInfo.containerSize.height.toDp() }
             val imeVisible = WindowInsets.ime.getBottom(density) > 0
 
-if (isWide) {
-    Row(Modifier.fillMaxSize()) {
-        ProductPane(
-            products = uiState.catalog.products,
-            cartQtyByProductId = uiState.catalog.cartQtyByProductId,
-            cartItems = uiState.cart.items,
-            onAction = viewModel::onAction,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
-        Spacer(Modifier.width(12.dp))
-        CartPaneContent(
-            cart = uiState.cart,
-            payment = uiState.payment,
-            catalog = uiState.catalog,
-            checkout = uiState.checkout,
-            localState = localState,
-            onAction = viewModel::onAction,
-            collapsible = false,
-            modifier = Modifier
-                .fillMaxHeight()
-                .widthIn(min = 320.dp, max = 420.dp),
-        )
-    }
-} else {
-    Box(Modifier.fillMaxSize()) {
-        ProductPane(
-            products = uiState.catalog.products,
-            cartQtyByProductId = uiState.catalog.cartQtyByProductId,
-            cartItems = uiState.cart.items,
-            onAction = viewModel::onAction,
-            modifier = Modifier.fillMaxSize(),
-        )
-        CartPaneContent(
-            cart = uiState.cart,
-            payment = uiState.payment,
-            catalog = uiState.catalog,
-            checkout = uiState.checkout,
-            localState = localState,
-            onAction = viewModel::onAction,
-            collapsible = true,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .let { base ->
-                    if (imeVisible) {
-                        base
-                    } else {
-                        base.heightIn(max = maxH * 0.65f)
-                    }
-                },
-        )
-    }
-}
+            if (isWide) {
+                Row(Modifier.fillMaxSize()) {
+                    ProductPane(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        products = uiState.catalog.products,
+                        cartQtyByProductId = uiState.catalog.cartQtyByProductId,
+                        cartItems = uiState.cart.items,
+                        onAction = viewModel::onAction,
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    CartPaneContent(
+                        modifier =
+                            Modifier
+                                .fillMaxHeight()
+                                .widthIn(min = 320.dp, max = 420.dp),
+                        cart = uiState.cart,
+                        payment = uiState.payment,
+                        catalog = uiState.catalog,
+                        checkout = uiState.checkout,
+                        localState = localState,
+                        onAction = viewModel::onAction,
+                        collapsible = false,
+                    )
+                }
+            } else {
+                Box(Modifier.fillMaxSize()) {
+                    ProductPane(
+                        modifier = Modifier.fillMaxSize(),
+                        products = uiState.catalog.products,
+                        cartQtyByProductId = uiState.catalog.cartQtyByProductId,
+                        cartItems = uiState.cart.items,
+                        onAction = viewModel::onAction,
+                    )
+                    CartPaneContent(
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .let { base ->
+                                    if (imeVisible) {
+                                        base
+                                    } else {
+                                        base.heightIn(max = maxH * 0.65f)
+                                    }
+                                },
+                        cart = uiState.cart,
+                        payment = uiState.payment,
+                        catalog = uiState.catalog,
+                        checkout = uiState.checkout,
+                        localState = localState,
+                        onAction = viewModel::onAction,
+                        collapsible = true,
+                    )
+                }
+            }
         }
     }
     PosDialogManager(

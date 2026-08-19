@@ -39,7 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,7 +65,7 @@ fun BluetoothPickerDialog(
     viewModel: PrinterViewModel,
     onDismiss: () -> Unit,
 ) {
-    val state by viewModel.bluetoothUiState.collectAsState()
+    val state by viewModel.bluetoothUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val currentOnDismiss by rememberUpdatedState(onDismiss) 
     val lifecycleOwner = LocalLifecycleOwner.current
