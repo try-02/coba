@@ -119,7 +119,7 @@ data class ReturnSummary(
 
 data class PendingPrintTarget(
     val checkoutResult: CheckoutResult,
-    val availablePrinters: ImmutableList<PrinterEntity>,
+    val availablePrinters: List<PrinterEntity>,
 )
 
 @Immutable

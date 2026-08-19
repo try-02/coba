@@ -6,6 +6,7 @@ import com.pos.offline.data.local.entity.DiscountType
 import com.pos.offline.data.local.entity.PaymentMethod
 import com.pos.offline.data.local.entity.ProductEntity
 import com.pos.offline.data.local.entity.ShiftEntity
+import com.pos.offline.data.local.entity.CashierEntity
 import com.pos.offline.data.repository.CartRepository
 import com.pos.offline.data.repository.CashierRepository
 import com.pos.offline.data.repository.CheckoutResult
@@ -203,8 +204,8 @@ class PosViewModel(
                 @Suppress("UNCHECKED_CAST")
                 ShiftState(
                     activeShift = args[0] as ShiftEntity?,
-                    openShifts = args[1] as List<ShiftEntity>,
-                    activeCashiers = args[2] as List<com.pos.offline.data.local.entity.CashierEntity>,
+                    openShifts = (args[1] as List<ShiftEntity>).toImmutableList(),
+                    activeCashiers = (args[2] as List<CashierEntity>).toImmutableList(),
                     shiftSummary = args[3] as com.pos.offline.data.repository.ShiftSummary?,
                     stockWarning = args[4] as StockWarningInfo?,
                     showStartShiftDialog = args[5] as Boolean,
