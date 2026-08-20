@@ -106,12 +106,7 @@ suspend fun exportProducts(
                 )
             }
 
-            AppLogger.measure(
-                AppLogger.TAG_IO,
-                "2. Export: Generate Workbook & Zip Deflate (size=${products.size})",
-            ) {
-                writeWorkbook(outputStream!!, products)
-            }
+            writeWorkbook(outputStream!!, products)
 
             ExcelOutcome.Success
         } catch (e: Exception) {
@@ -124,32 +119,59 @@ suspend fun exportProducts(
         }
     }
 
-    private fun writeWorkbook(
-        outputStream: OutputStream,
-        products: List<ProductEntity>,
-    ) {
-        Workbook(outputStream, "POS Offline", "1.0").use { wb ->
+private fun writeWorkbook(
+    outputStream: OutputStream,
+    products: List<ProductEntity>,
+) {
+    val wb = Workbook(outputStream, "POS Offline", "1.0")
+
+    try {
+        AppLogger.measure(
+            AppLogger.TAG_IO,
+            "2a. Export: Build & Style Rows (${products.size} rows)",
+        ) {
             val ws = wb.newWorksheet("Produk")
+
             COLUMN_WIDTHS.forEachIndexed { col, width ->
                 ws.width(col, width)
             }
+
             ws.freezePane(0, 2)
             writeTitleRow(ws, products.size)
             writeHeaderRow(ws)
+
             var totalPrice = 0L
             var totalCost = 0L
             var totalStock = 0.0
             var totalStockValue = 0.0
+
             products.forEachIndexed { idx, p ->
-                val margin = if (p.price > 0) p.price - p.cost else 0L
+                val margin =
+                    if (p.price > 0) {
+                        p.price - p.cost
+                    } else {
+                        0L
+                    }
+
                 val stockValue = p.stock * p.cost
+
                 totalPrice += p.price
                 totalCost += p.cost
                 totalStock += p.stock
                 totalStockValue += stockValue
-                writeDataRow(ws, idx + 2, idx + 1, p, margin, stockValue)
+
+                writeDataRow(
+                    ws,
+                    idx + 2,
+                    idx + 1,
+                    p,
+                    margin,
+                    stockValue,
+                )
             }
+
             val summaryRow = products.size + 2
+
             writeSummaryRow(
                 ws,
                 summaryRow,
@@ -160,7 +182,20 @@ suspend fun exportProducts(
                 totalStockValue,
             )
         }
+
+        AppLogger.measure(
+            AppLogger.TAG_IO,
+            "2b. Export: FastExcel Finish & Zip Deflate",
+        ) {
+            wb.finish()
+        }
+    } finally {
+        try {
+            wb.close()
+        } catch (_: Exception) {
+        }
     }
+}
 
     private fun writeTitleRow(
         ws: Worksheet,
@@ -417,12 +452,7 @@ suspend fun importProducts(
                 )
             }
 
-            AppLogger.measureSuspend(
-                AppLogger.TAG_IO,
-                "2. Import: FastExcel Unzip & Stream XML Parse",
-            ) {
-                readWorkbook(inputStream!!)
-            }
+            readWorkbook(inputStream!!)
         } catch (e: Exception) {
             ExcelImportResult(
                 emptyList(),
@@ -436,30 +466,53 @@ suspend fun importProducts(
         }
     }
 
-    private suspend fun readWorkbook(inputStream: InputStream): ExcelImportResult {
-        val rows = ArrayList<ImportedProductRow>(256)
-        val errors = mutableListOf<String>()
-        ReadableWorkbook(inputStream).use { wb ->
-            val sheet = wb.firstSheet
+private suspend fun readWorkbook(
+    inputStream: InputStream,
+): ExcelImportResult {
+    val rows = ArrayList<ImportedProductRow>(256)
+    val errors = mutableListOf<String>()
+
+    val wb =
+        AppLogger.measure(
+            AppLogger.TAG_IO,
+            "2a. Import: Open Zip & Load Workbook Metadata",
+        ) {
+            ReadableWorkbook(inputStream)
+        }
+
+    wb.use {
+        val sheet = wb.firstSheet
+
+        AppLogger.measureSuspend(
+            AppLogger.TAG_IO,
+            "2b. Import: Stream XML & Parse Rows",
+        ) {
             sheet.openStream().use { rowStream ->
                 var rowIndex = 0
                 var skipOffset = 0
                 var headerFound = false
+
                 val iterator = rowStream.iterator()
+
                 while (iterator.hasNext()) {
                     coroutineContext.ensureActive()
+
                     val row = iterator.next()
+
                     if (!headerFound) {
                         val detection = detectHeader(row)
+
                         if (detection != null) {
                             headerFound = true
                             skipOffset = detection
                             rowIndex++
                             continue
                         }
+
                         rowIndex++
                         continue
                     }
+
                     if (rows.size >= MAX_IMPORT_ROWS) {
                         errors.add(
                             "Import dibatasi $MAX_IMPORT_ROWS baris. " +
@@ -467,15 +520,24 @@ suspend fun importProducts(
                         )
                         break
                     }
-                    val parsed = parseRow(row, rowIndex, skipOffset)
+
+                    val parsed =
+                        parseRow(
+                            row,
+                            rowIndex,
+                            skipOffset,
+                        )
+
                     if (parsed != null) {
                         parsed.first?.let { rows.add(it) }
                         parsed.second?.let { errors.add(it) }
                     }
+
                     rowIndex++
                 }
+
                 if (!headerFound) {
-                    return ExcelImportResult(
+                    return@measureSuspend ExcelImportResult(
                         emptyList(),
                         listOf(
                             "Header tidak ditemukan. " +
@@ -486,9 +548,15 @@ suspend fun importProducts(
                 }
             }
         }
-        rows.trimToSize()
-        return ExcelImportResult(rows, errors)
     }
+
+    rows.trimToSize()
+
+    return ExcelImportResult(
+        rows,
+        errors,
+    )
+}
 
     private fun detectHeader(row: org.dhatim.fastexcel.reader.Row): Int? {
         if (row.cellCount < REQUIRED_IMPORT_COLUMNS) return null
