@@ -65,8 +65,7 @@ android {
     }
 
     buildFeatures { 
-        compose = true
-        buildConfig = true
+        compose = true 
     }
 
     sourceSets {
