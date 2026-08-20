@@ -102,11 +102,11 @@ object AppLogger {
         }
     }
 
-    inline suspend fun <T> measureSuspend(
-        tag: String,
-        operationName: String,
-        crossinline block: suspend () -> T,
-    ): T {
+suspend fun <T> measureSuspend(
+    tag: String,
+    operationName: String,
+    block: suspend () -> T,
+): T {
         if (!BuildConfig.DEBUG) {
             return block()
         }

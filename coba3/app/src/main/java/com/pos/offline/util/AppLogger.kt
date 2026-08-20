@@ -62,7 +62,7 @@ object AppLogger {
         }
     }
 
-    inline fun <T> measure(
+    fun <T> measure(
         tag: String,
         operationName: String,
         block: () -> T,
