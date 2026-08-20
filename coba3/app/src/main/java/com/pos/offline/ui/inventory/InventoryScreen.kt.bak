@@ -123,7 +123,10 @@ import com.pos.offline.data.di.ServiceLocator
 import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.collections.immutable.ImmutableList
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Stateful Composable (Route Level)
+ * Mengelola interaksi ViewModel, Lifecycle, Event Collection, dan System Activity Launchers.
+ */
 @Composable
 fun InventoryScreen(
     modifier: Modifier = Modifier,
@@ -141,15 +144,19 @@ fun InventoryScreen(
     val deletedProductFound by viewModel.deletedProductFound.collectAsStateWithLifecycle()
     val excelState by viewModel.excelState.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
-    val globalMessage = LocalGlobalMessage.current
     val sortOption by viewModel.sortOption.collectAsStateWithLifecycle()
     val topSalesRange by viewModel.topSalesRange.collectAsStateWithLifecycle()
+    val globalMessage = LocalGlobalMessage.current
     val context = LocalContext.current
+
     val hasCamera =
         remember {
             context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
         }
-    val launchMainScanner = rememberBarcodeScanner(onScanned = viewModel::onBarcodeScanned)
+
+    val onBarcodeScanned: suspend (String?) -> String? = remember(viewModel) { { code -> viewModel.onBarcodeScanned(code) } }
+    val launchMainScanner = rememberBarcodeScanner(onScanned = onBarcodeScanned)
+
     val excelExportLauncher =
         rememberLauncherForActivityResult(
             contract =
@@ -157,6 +164,7 @@ fun InventoryScreen(
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 ),
         ) { uri -> if (uri != null) viewModel.exportToExcel(uri) }
+
     val excelImportLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -168,6 +176,117 @@ fun InventoryScreen(
         }
     }
 
+    val onSearch: (String) -> Unit = remember(viewModel) { { viewModel.search(it) } }
+    val onStartAdd: () -> Unit = remember(viewModel) { { viewModel.startAdd() } }
+    val onSortSelect: (ProductSortOption) -> Unit = remember(viewModel) { { viewModel.setSortOption(it) } }
+    val onTopSalesRangeSelect: (TopSalesRange) -> Unit = remember(viewModel) { { viewModel.setTopSalesRange(it) } }
+    val onEditProduct: (ProductEntity) -> Unit = remember(viewModel) { { viewModel.startEdit(it) } }
+    val onSaveForm: (ProductFormState) -> Unit = remember(viewModel) { { viewModel.save(it) } }
+    val onDismissForm: () -> Unit = remember(viewModel) { { viewModel.dismissForm() } }
+    val checkBarcodeConflict: suspend (String, Long) -> String? = remember(viewModel) { { b, id -> viewModel.checkBarcodeConflict(b, id) } }
+    val checkSkuConflict: suspend (String, Long) -> String? = remember(viewModel) { { s, id -> viewModel.checkSkuConflict(s, id) } }
+    val onDeleteRequest: (Long) -> Unit = remember(viewModel) { { viewModel.requestDeleteFromForm(it) } }
+    val onReturnDamaged: (Long, Double) -> Unit = remember(viewModel) { { id, qty -> viewModel.returnDamagedItemToSupplier(id, qty) } }
+    val onConfirmDelete: () -> Unit = remember(viewModel) { { viewModel.confirmDelete() } }
+    val onCancelDelete: () -> Unit = remember(viewModel) { { viewModel.cancelDelete() } }
+    val onDismissScanNotFound: () -> Unit = remember(viewModel) { { viewModel.dismissScanNotFound() } }
+    val onStartAddFromScanned: () -> Unit = remember(viewModel) { { viewModel.startAddFromScanned() } }
+    val onDismissDeletedFound: () -> Unit = remember(viewModel) { { viewModel.dismissDeletedProductFound() } }
+    val onRestoreDeleted: () -> Unit = remember(viewModel) { { viewModel.restoreDeletedProduct() } }
+    val onCommitImport: () -> Unit = remember(viewModel) { { viewModel.commitImport() } }
+    val onDismissReviewDialog: () -> Unit = remember(viewModel) { { viewModel.dismissReviewDialog() } }
+
+    InventoryScreenContent(
+        products = products,
+        query = query,
+        form = form,
+        categories = categories,
+        pendingDelete = pendingDelete,
+        scanNotFound = scanNotFound,
+        deletedProductFound = deletedProductFound,
+        excelState = excelState,
+        isSaving = isSaving,
+        sortOption = sortOption,
+        topSalesRange = topSalesRange,
+        hasCamera = hasCamera,
+        onSearch = onSearch,
+        onStartAdd = onStartAdd,
+        onScanBarcode = launchMainScanner,
+        onImportExcel = {
+            excelImportLauncher.launch(
+                arrayOf(
+                    "application/vnd.ms-excel",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ),
+            )
+        },
+        onExportExcel = { excelExportLauncher.launch(ExcelManager.suggestedExportFileName()) },
+        onSortSelect = onSortSelect,
+        onTopSalesRangeSelect = onTopSalesRangeSelect,
+        onEditProduct = onEditProduct,
+        onSaveForm = onSaveForm,
+        onDismissForm = onDismissForm,
+        checkBarcodeConflict = checkBarcodeConflict,
+        checkSkuConflict = checkSkuConflict,
+        onDeleteRequest = onDeleteRequest,
+        onReturnDamaged = onReturnDamaged,
+        onConfirmDelete = onConfirmDelete,
+        onCancelDelete = onCancelDelete,
+        onDismissScanNotFound = onDismissScanNotFound,
+        onStartAddFromScanned = onStartAddFromScanned,
+        onDismissDeletedFound = onDismissDeletedFound,
+        onRestoreDeleted = onRestoreDeleted,
+        onCommitImport = onCommitImport,
+        onDismissReviewDialog = onDismissReviewDialog,
+        onShowMessage = { globalMessage.showMessage(it) },
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless Composable (UI Level)
+ * Sepenuhnya bebas dari ViewModel, 100% STABLE, Skippable, dan siap diuji/preview secara independen.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InventoryScreenContent(
+    products: ImmutableList<ProductEntity>,
+    query: String,
+    form: ProductFormState?,
+    categories: ImmutableList<String>,
+    pendingDelete: ProductEntity?,
+    scanNotFound: InventoryViewModel.ScanNotFoundState?,
+    deletedProductFound: InventoryViewModel.DeletedProductFoundState?,
+    excelState: InventoryViewModel.ExcelUiState,
+    isSaving: Boolean,
+    sortOption: ProductSortOption,
+    topSalesRange: TopSalesRange,
+    hasCamera: Boolean,
+    onSearch: (String) -> Unit,
+    onStartAdd: () -> Unit,
+    onScanBarcode: () -> Unit,
+    onImportExcel: () -> Unit,
+    onExportExcel: () -> Unit,
+    onSortSelect: (ProductSortOption) -> Unit,
+    onTopSalesRangeSelect: (TopSalesRange) -> Unit,
+    onEditProduct: (ProductEntity) -> Unit,
+    onSaveForm: (ProductFormState) -> Unit,
+    onDismissForm: () -> Unit,
+    checkBarcodeConflict: suspend (String, Long) -> String?,
+    checkSkuConflict: suspend (String, Long) -> String?,
+    onDeleteRequest: (Long) -> Unit,
+    onReturnDamaged: (Long, Double) -> Unit,
+    onConfirmDelete: () -> Unit,
+    onCancelDelete: () -> Unit,
+    onDismissScanNotFound: () -> Unit,
+    onStartAddFromScanned: () -> Unit,
+    onDismissDeletedFound: () -> Unit,
+    onRestoreDeleted: () -> Unit,
+    onCommitImport: () -> Unit,
+    onDismissReviewDialog: () -> Unit,
+    onShowMessage: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -218,7 +337,7 @@ fun InventoryScreen(
                         ) {
                             CompactInventorySearchBar(
                                 query = query,
-                                onQueryChange = viewModel::search,
+                                onQueryChange = onSearch,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(34.dp),
@@ -227,14 +346,14 @@ fun InventoryScreen(
                             CompactActionSurface(
                                 icon = Icons.Rounded.Add,
                                 desc = "Tambah Produk",
-                                onClick = viewModel::startAdd,
+                                onClick = onStartAdd,
                             )
 
                             if (hasCamera) {
                                 CompactActionSurface(
                                     icon = Icons.Rounded.QrCodeScanner,
                                     desc = "Scan barcode",
-                                    onClick = launchMainScanner,
+                                    onClick = onScanBarcode,
                                 )
                             }
 
@@ -242,29 +361,22 @@ fun InventoryScreen(
                                 icon = Icons.Rounded.FileUpload,
                                 desc = "Import Excel",
                                 loading = excelState.isImporting,
-                                onClick = {
-                                    excelImportLauncher.launch(
-                                        arrayOf(
-                                            "application/vnd.ms-excel",
-                                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                        ),
-                                    )
-                                },
+                                onClick = onImportExcel,
                             )
 
                             ExcelIconButton(
                                 icon = Icons.Rounded.FileDownload,
                                 desc = "Export Excel",
                                 loading = excelState.isExporting,
-                                onClick = { excelExportLauncher.launch(ExcelManager.suggestedExportFileName()) },
+                                onClick = onExportExcel,
                             )
 
-                            SortMenuButton(current = sortOption, onSelect = viewModel::setSortOption)
+                            SortMenuButton(current = sortOption, onSelect = onSortSelect)
 
                             if (sortOption == ProductSortOption.TERLARIS) {
                                 TopSalesRangePicker(
                                     selected = topSalesRange,
-                                    onSelect = viewModel::setTopSalesRange,
+                                    onSelect = onTopSalesRangeSelect,
                                 )
                             }
                         }
@@ -304,7 +416,7 @@ fun InventoryScreen(
                             ) { product ->
                                 ProductRow(
                                     product = product,
-                                    onEdit = { viewModel.startEdit(product) },
+                                    onEdit = { onEditProduct(product) },
                                 )
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -324,23 +436,23 @@ fun InventoryScreen(
             state = state,
             categories = categories,
             isSaving = isSaving,
-            onSave = viewModel::save,
-            onDismiss = viewModel::dismissForm,
-            checkBarcodeConflict = viewModel::checkBarcodeConflict,
-            checkSkuConflict = viewModel::checkSkuConflict,
-            onDeleteRequest = { viewModel.requestDeleteFromForm(state.id) },
-            onScanError = { msg -> globalMessage.showMessage(msg) },
-            onReturnDamaged = { qty -> viewModel.returnDamagedItemToSupplier(state.id, qty) },
+            onSave = onSaveForm,
+            onDismiss = onDismissForm,
+            checkBarcodeConflict = checkBarcodeConflict,
+            checkSkuConflict = checkSkuConflict,
+            onDeleteRequest = { onDeleteRequest(state.id) },
+            onScanError = onShowMessage,
+            onReturnDamaged = { qty -> onReturnDamaged(state.id, qty) },
         )
     }
 
     pendingDelete?.let { target ->
         AlertDialog(
-            onDismissRequest = viewModel::cancelDelete,
+            onDismissRequest = onCancelDelete,
             containerColor = MaterialTheme.colorScheme.surface,
             confirmButton = {
                 Button(
-                    onClick = viewModel::confirmDelete,
+                    onClick = onConfirmDelete,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(8.dp),
                 ) {
@@ -348,7 +460,7 @@ fun InventoryScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelDelete) { Text("Batal") }
+                TextButton(onClick = onCancelDelete) { Text("Batal") }
             },
             title = { Text("Hapus Produk?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = { Text("\"${target.name}\" akan dihapus dari katalog.", style = MaterialTheme.typography.bodyMedium) },
@@ -357,7 +469,7 @@ fun InventoryScreen(
 
     scanNotFound?.let { state ->
         AlertDialog(
-            onDismissRequest = viewModel::dismissScanNotFound,
+            onDismissRequest = onDismissScanNotFound,
             containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Produk Tidak Ditemukan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
@@ -365,7 +477,7 @@ fun InventoryScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = viewModel::startAddFromScanned,
+                    onClick = onStartAddFromScanned,
                     shape = RoundedCornerShape(8.dp),
                 ) {
                     Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -374,14 +486,14 @@ fun InventoryScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissScanNotFound) { Text("Batal") }
+                TextButton(onClick = onDismissScanNotFound) { Text("Batal") }
             },
         )
     }
 
     deletedProductFound?.let { state ->
         AlertDialog(
-            onDismissRequest = viewModel::dismissDeletedProductFound,
+            onDismissRequest = onDismissDeletedFound,
             containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Produk Pernah Dihapus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
             text = {
@@ -391,12 +503,12 @@ fun InventoryScreen(
                 )
             },
             confirmButton = {
-                Button(onClick = viewModel::restoreDeletedProduct, shape = RoundedCornerShape(8.dp)) {
+                Button(onClick = onRestoreDeleted, shape = RoundedCornerShape(8.dp)) {
                     Text("Pulihkan", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissDeletedProductFound) { Text("Batal") }
+                TextButton(onClick = onDismissDeletedFound) { Text("Batal") }
             },
         )
     }
@@ -406,8 +518,8 @@ fun InventoryScreen(
             reviewItems = excelState.reviewItems,
             parseErrors = excelState.parseErrors,
             isCommitting = excelState.isCommitting,
-            onConfirm = viewModel::commitImport,
-            onDismiss = viewModel::dismissReviewDialog,
+            onConfirm = onCommitImport,
+            onDismiss = onDismissReviewDialog,
         )
     }
 }

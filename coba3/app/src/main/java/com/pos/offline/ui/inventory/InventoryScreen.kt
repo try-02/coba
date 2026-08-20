@@ -130,11 +130,8 @@ import kotlinx.collections.immutable.ImmutableList
 @Composable
 fun InventoryScreen(
     modifier: Modifier = Modifier,
-    viewModel: InventoryViewModel =
-        viewModel(
-            factory = ServiceLocator.inventoryViewModelFactory(),
-        ),
 ) {
+    val viewModel: InventoryViewModel = viewModel(factory = ServiceLocator.inventoryViewModelFactory())
     val products by viewModel.products.collectAsStateWithLifecycle()
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()

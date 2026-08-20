@@ -41,9 +41,9 @@ import androidx.compose.runtime.rememberUpdatedState
 
 @Composable
 fun UsbPickerDialog(
+    viewModel: PrinterViewModel,
     onDismiss: () -> Unit,
 ) {
-    val viewModel: PrinterViewModel = viewModel(factory = ServiceLocator.printerViewModelFactory())
     val state by viewModel.usbUiState.collectAsStateWithLifecycle()
     val currentOnDismiss by rememberUpdatedState(onDismiss)
 
