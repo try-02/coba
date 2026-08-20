@@ -1,6 +1,5 @@
 package com.pos.offline.util
 import android.content.Context
-import com.pos.offline.util.AppLogger
 import android.net.Uri
 import com.pos.offline.data.local.entity.ProductEntity
 import kotlinx.coroutines.Dispatchers
@@ -83,46 +82,29 @@ object ExcelManager {
 
     fun suggestedExportFileName(): String = "produk_${System.currentTimeMillis()}.xlsx"
 
-suspend fun exportProducts(
-    context: Context,
-    products: List<ProductEntity>,
-    destinationUri: Uri,
-): ExcelOutcome =
-    withContext(Dispatchers.IO) {
-        var outputStream: OutputStream? = null
-
-        try {
-            AppLogger.measure(
-                AppLogger.TAG_IO,
-                "1. Export: Open Output Stream SAF",
-            ) {
-                outputStream =
-                    context.contentResolver.openOutputStream(destinationUri)
-            }
-
-            if (outputStream == null) {
-                return@withContext ExcelOutcome.Error(
-                    IOException("Tidak bisa membuka output stream"),
-                )
-            }
-
-            AppLogger.measure(
-                AppLogger.TAG_IO,
-                "2. Export: Generate Workbook & Zip Deflate (size=${products.size})",
-            ) {
-                writeWorkbook(outputStream!!, products)
-            }
-
-            ExcelOutcome.Success
-        } catch (e: Exception) {
-            ExcelOutcome.Error(e)
-        } finally {
+    suspend fun exportProducts(
+        context: Context,
+        products: List<ProductEntity>,
+        destinationUri: Uri,
+    ): ExcelOutcome =
+        withContext(Dispatchers.IO) {
+            var outputStream: OutputStream? = null
             try {
-                outputStream?.close()
-            } catch (_: Exception) {
+                outputStream = context.contentResolver.openOutputStream(destinationUri)
+                    ?: return@withContext ExcelOutcome.Error(
+                        IOException("Tidak bisa membuka output stream"),
+                    )
+                writeWorkbook(outputStream, products)
+                ExcelOutcome.Success
+            } catch (e: Exception) {
+                ExcelOutcome.Error(e)
+            } finally {
+                try {
+                    outputStream?.close()
+                } catch (_: Exception) {
+                }
             }
         }
-    }
 
     private fun writeWorkbook(
         outputStream: OutputStream,
@@ -383,58 +365,39 @@ suspend fun exportProducts(
             .set()
     }
 
-suspend fun importProducts(
-    context: Context,
-    sourceUri: Uri,
-): ExcelImportResult =
-    withContext(Dispatchers.IO) {
-        var inputStream: InputStream? = null
-
-        try {
-            val fileSize = getFileSize(context, sourceUri)
-
-            if (fileSize > MAX_IMPORT_FILE_SIZE) {
-                val maxMb = MAX_IMPORT_FILE_SIZE / (1024 * 1024)
-
-                return@withContext ExcelImportResult(
-                    emptyList(),
-                    listOf("File terlalu besar (maks $maxMb MB)"),
-                )
-            }
-
-            AppLogger.measure(
-                AppLogger.TAG_IO,
-                "1. Import: Open Input Stream SAF",
-            ) {
-                inputStream =
-                    context.contentResolver.openInputStream(sourceUri)
-            }
-
-            if (inputStream == null) {
-                return@withContext ExcelImportResult(
-                    emptyList(),
-                    listOf("File tidak bisa dibuka"),
-                )
-            }
-
-            AppLogger.measureSuspend(
-                AppLogger.TAG_IO,
-                "2. Import: FastExcel Unzip & Stream XML Parse",
-            ) {
-                readWorkbook(inputStream!!)
-            }
-        } catch (e: Exception) {
-            ExcelImportResult(
-                emptyList(),
-                listOf("Error membaca file: ${e.message}"),
-            )
-        } finally {
+    suspend fun importProducts(
+        context: Context,
+        sourceUri: Uri,
+    ): ExcelImportResult =
+        withContext(Dispatchers.IO) {
+            var inputStream: InputStream? = null
             try {
-                inputStream?.close()
-            } catch (_: Exception) {
+                val fileSize = getFileSize(context, sourceUri)
+                if (fileSize > MAX_IMPORT_FILE_SIZE) {
+                    val maxMb = MAX_IMPORT_FILE_SIZE / (1024 * 1024)
+                    return@withContext ExcelImportResult(
+                        emptyList(),
+                        listOf("File terlalu besar (maks $maxMb MB)"),
+                    )
+                }
+                inputStream = context.contentResolver.openInputStream(sourceUri)
+                    ?: return@withContext ExcelImportResult(
+                        emptyList(),
+                        listOf("File tidak bisa dibuka"),
+                    )
+                readWorkbook(inputStream)
+            } catch (e: Exception) {
+                ExcelImportResult(
+                    emptyList(),
+                    listOf("Error membaca file: ${e.message}"),
+                )
+            } finally {
+                try {
+                    inputStream?.close()
+                } catch (_: Exception) {
+                }
             }
         }
-    }
 
     private suspend fun readWorkbook(inputStream: InputStream): ExcelImportResult {
         val rows = ArrayList<ImportedProductRow>(256)

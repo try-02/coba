@@ -253,12 +253,18 @@ fun exportToExcel(destinationUri: Uri) {
         try {
             AppLogger.measureSuspend(
                 AppLogger.TAG_IO,
-                "Export Products to Excel",
+                "Total Export Pipeline",
             ) {
-                val products = productRepository.getAllProductsOnce()
+                val products =
+                    AppLogger.measureSuspend(
+                        AppLogger.TAG_DB,
+                        "0. Export: Fetch Products from Room",
+                    ) {
+                        productRepository.getAllProductsOnce()
+                    }
 
                 AppLogger.d(AppLogger.TAG_IO) {
-                    "Produk dimuat untuk ekspor: size=${products.size}"
+                    "Produk siap diekspor: size=${products.size}"
                 }
 
                 if (products.isEmpty()) {
@@ -325,7 +331,7 @@ fun importFromExcel(sourceUri: Uri) {
         try {
             AppLogger.measureSuspend(
                 AppLogger.TAG_IO,
-                "Parse & Validate Excel Import",
+                "Total Import Pipeline",
             ) {
                 val result =
                     ExcelManager.importProducts(
@@ -350,7 +356,12 @@ fun importFromExcel(sourceUri: Uri) {
                 }
 
                 val reviewItems =
-                    validateImportedRows(result.rows)
+                    AppLogger.measureSuspend(
+                        AppLogger.TAG_IO,
+                        "3. Import: In-Memory Validation & Conflict Check (rows=${result.rows.size})",
+                    ) {
+                        validateImportedRows(result.rows)
+                    }
 
                 _excelState.value =
                     _excelState.value.copy(
