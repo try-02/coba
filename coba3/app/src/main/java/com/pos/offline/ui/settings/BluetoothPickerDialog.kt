@@ -1,6 +1,8 @@
 package com.pos.offline.ui.settings
 
 import android.bluetooth.BluetoothAdapter
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pos.offline.data.di.ServiceLocator
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
