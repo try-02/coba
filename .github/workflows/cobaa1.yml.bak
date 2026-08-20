@@ -41,7 +41,7 @@ jobs:
           chmod +x ./gradlew
 
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
-          ./gradlew assembleDebug \
+          ./gradlew assembleRelease \
             -x test \
             -x connectedAndroidTest \
             --parallel \

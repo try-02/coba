@@ -287,6 +287,8 @@ fun InventoryScreenContent(
     onShowMessage: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    TrackRecomposition("InventoryScreenContent")
+
     Box(modifier.fillMaxSize()) {
         Scaffold(
             topBar = {

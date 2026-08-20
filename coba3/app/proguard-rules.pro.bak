@@ -24,12 +24,12 @@
 # 2. HAPUS LOG & DEBUG (AKTIF UNTUK PROD RELEASE)
 # =========================================================
 # Memastikan tidak ada jejak log transaksi atau debugging POS di aplikasi rilis
-# -assumenosideeffects class android.util.Log {
-#    public static int v(...);
-#    public static int d(...);
-#    public static int i(...);
-#    public static int w(...);
-# }
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+}
 
 -assumenosideeffects class java.io.PrintStream {
     public void println(...);

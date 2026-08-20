@@ -13,6 +13,7 @@ import com.pos.offline.util.ExcelManager
 import com.pos.offline.util.ExcelOutcome
 import com.pos.offline.util.ImportedProductRow
 import com.pos.offline.util.sanitizeScannedCode
+import com.pos.offline.util.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -143,6 +144,22 @@ class InventoryViewModel(
     private val _messages = Channel<String>(capacity = Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
 
+init {
+    AppLogger.d(AppLogger.TAG_VM) {
+        "✨ InventoryViewModel INIT " +
+            "(ID: ${System.identityHashCode(this)})"
+    }
+}
+
+override fun onCleared() {
+    super.onCleared()
+
+    AppLogger.d(AppLogger.TAG_VM) {
+        "💀 InventoryViewModel CLEARED " +
+            "(ID: ${System.identityHashCode(this)})"
+    }
+}
+
     @Immutable
     data class ScanNotFoundState(
         val barcode: String,
@@ -227,57 +244,139 @@ class InventoryViewModel(
         )
     }
 
-    fun exportToExcel(destinationUri: Uri) {
-        if (_excelState.value.isExporting) return
-        viewModelScope.launch {
-            _excelState.value = _excelState.value.copy(isExporting = true)
-            try {
+fun exportToExcel(destinationUri: Uri) {
+    if (_excelState.value.isExporting) return
+
+    viewModelScope.launch {
+        _excelState.value = _excelState.value.copy(isExporting = true)
+
+        try {
+            AppLogger.measureSuspend(
+                AppLogger.TAG_IO,
+                "Export Products to Excel",
+            ) {
                 val products = productRepository.getAllProductsOnce()
+
+                AppLogger.d(AppLogger.TAG_IO) {
+                    "Produk dimuat untuk ekspor: size=${products.size}"
+                }
+
                 if (products.isEmpty()) {
                     notify("Tidak ada produk untuk diekspor.")
-                    return@launch
+                    return@measureSuspend
                 }
-                when (val result = ExcelManager.exportProducts(appContext, products, destinationUri)) {
-                    is ExcelOutcome.Success -> notify("Berhasil mengekspor ${products.size} produk ke Excel.")
-                    is ExcelOutcome.Error -> notify("Gagal ekspor: ${result.throwable.message ?: "kesalahan tak dikenal"}")
+
+                when (
+                    val result =
+                        ExcelManager.exportProducts(
+                            appContext,
+                            products,
+                            destinationUri,
+                        )
+                ) {
+                    is ExcelOutcome.Success -> {
+                        notify(
+                            "Berhasil mengekspor " +
+                                "${products.size} produk ke Excel.",
+                        )
+                    }
+
+                    is ExcelOutcome.Error -> {
+                        AppLogger.e(
+                            AppLogger.TAG_IO,
+                            result.throwable,
+                        ) {
+                            "Gagal ekspor excel"
+                        }
+
+                        notify(
+                            "Gagal ekspor: " +
+                                "${result.throwable.message ?: "kesalahan tak dikenal"}",
+                        )
+                    }
                 }
-            } catch (
-                e: Exception,
-            ) {
-                notify("Gagal ekspor: ${e.message ?: "kesalahan tak dikenal"}")
-            } finally {
-                _excelState.value = _excelState.value.copy(isExporting = false)
             }
+        } catch (e: Exception) {
+            AppLogger.e(
+                AppLogger.TAG_IO,
+                e,
+            ) {
+                "Exception saat ekspor excel"
+            }
+
+            notify(
+                "Gagal ekspor: " +
+                    "${e.message ?: "kesalahan tak dikenal"}",
+            )
+        } finally {
+            _excelState.value =
+                _excelState.value.copy(isExporting = false)
         }
     }
+}
 
-    fun importFromExcel(sourceUri: Uri) {
-        if (_excelState.value.isImporting) return
-        viewModelScope.launch {
-            _excelState.value = _excelState.value.copy(isImporting = true)
-            try {
-                val result: ExcelImportResult = ExcelManager.importProducts(appContext, sourceUri)
-                if (result.rows.isEmpty() &&
+fun importFromExcel(sourceUri: Uri) {
+    if (_excelState.value.isImporting) return
+
+    viewModelScope.launch {
+        _excelState.value =
+            _excelState.value.copy(isImporting = true)
+
+        try {
+            AppLogger.measureSuspend(
+                AppLogger.TAG_IO,
+                "Parse & Validate Excel Import",
+            ) {
+                val result =
+                    ExcelManager.importProducts(
+                        appContext,
+                        sourceUri,
+                    )
+
+                AppLogger.d(AppLogger.TAG_IO) {
+                    "Excel terbaca: " +
+                        "rows=${result.rows.size}, " +
+                        "parseErrors=${result.errors.size}"
+                }
+
+                if (
+                    result.rows.isEmpty() &&
                     result.errors.isEmpty()
                 ) {
-                    notify("File Excel kosong atau tidak ada data valid.")
-                    return@launch
+                    notify(
+                        "File Excel kosong atau tidak ada data valid.",
+                    )
+                    return@measureSuspend
                 }
-                val reviewItems = validateImportedRows(result.rows)
-                _excelState.value = _excelState.value.copy(
-                    reviewItems = reviewItems.toImmutableList(), 
-                    parseErrors = result.errors.toImmutableList(), 
-                    showReviewDialog = true
-                )
-            } catch (
-                e: Exception,
-            ) {
-                notify("Gagal membaca file: ${e.message ?: "format tidak didukung"}")
-            } finally {
-                _excelState.value = _excelState.value.copy(isImporting = false)
+
+                val reviewItems =
+                    validateImportedRows(result.rows)
+
+                _excelState.value =
+                    _excelState.value.copy(
+                        reviewItems = reviewItems.toImmutableList(),
+                        parseErrors = result.errors.toImmutableList(),
+                        showReviewDialog = true,
+                    )
             }
+        } catch (e: Exception) {
+            AppLogger.e(
+                AppLogger.TAG_IO,
+                e,
+            ) {
+                "Exception saat import excel"
+            }
+
+            notify(
+                "Gagal membaca file: " +
+                    "${e.message ?: "format tidak didukung"}",
+            )
+        } finally {
+            _excelState.value =
+                _excelState.value.copy(isImporting = false)
         }
     }
+}
 
     private suspend fun validateImportedRows(rows: List<ImportedProductRow>): List<ImportReviewItem> =
         withContext(Dispatchers.IO) {
@@ -299,20 +398,34 @@ class InventoryViewModel(
             }
         }
 
-    fun commitImport() {
-        if (_excelState.value.isCommitting) return
-        val newRows =
-            _excelState.value.reviewItems
-                .filter { it.status == ImportStatus.NEW }
-                .map { it.row }
-        if (newRows.isEmpty()) {
-            notify("Tidak ada produk baru yang bisa diimpor (semua konflik/duplikat).")
-            return
-        }
-        viewModelScope.launch {
-            _excelState.value = _excelState.value.copy(isCommitting = true)
-            try {
+fun commitImport() {
+    if (_excelState.value.isCommitting) return
+
+    val newRows =
+        _excelState.value.reviewItems
+            .filter { it.status == ImportStatus.NEW }
+            .map { it.row }
+
+    if (newRows.isEmpty()) {
+        notify(
+            "Tidak ada produk baru yang bisa diimpor " +
+                "(semua konflik/duplikat).",
+        )
+        return
+    }
+
+    viewModelScope.launch {
+        _excelState.value =
+            _excelState.value.copy(isCommitting = true)
+
+        try {
+            AppLogger.measureSuspend(
+                AppLogger.TAG_DB,
+                "Bulk Insert Imported Products " +
+                    "(size=${newRows.size})",
+            ) {
                 val now = System.currentTimeMillis()
+
                 val toInsert =
                     newRows.map { row ->
                         ProductEntity(
@@ -329,22 +442,46 @@ class InventoryViewModel(
                             updatedAt = now,
                         )
                     }
+
                 productRepository.bulkInsert(toInsert)
-                notify("Berhasil mengimpor ${toInsert.size} produk baru.")
+
+                notify(
+                    "Berhasil mengimpor " +
+                        "${toInsert.size} produk baru.",
+                )
+
                 dismissReviewDialog()
-            } catch (
-                e: SQLiteConstraintException,
-            ) {
-                notify("Gagal impor: ada SKU/barcode dobel yang lolos validasi.")
-            } catch (
-                e: Exception,
-            ) {
-                notify("Gagal impor: ${e.message ?: "kesalahan tak dikenal"}")
-            } finally {
-                _excelState.value = _excelState.value.copy(isCommitting = false)
             }
+        } catch (e: SQLiteConstraintException) {
+            AppLogger.e(
+                AppLogger.TAG_DB,
+                e,
+            ) {
+                "SQLite constraint saat commit import"
+            }
+
+            notify(
+                "Gagal impor: ada SKU/barcode dobel " +
+                    "yang lolos validasi.",
+            )
+        } catch (e: Exception) {
+            AppLogger.e(
+                AppLogger.TAG_DB,
+                e,
+            ) {
+                "Exception saat commit import"
+            }
+
+            notify(
+                "Gagal impor: " +
+                    "${e.message ?: "kesalahan tak dikenal"}",
+            )
+        } finally {
+            _excelState.value =
+                _excelState.value.copy(isCommitting = false)
         }
     }
+}
 
     suspend fun onBarcodeScanned(raw: String?): String? {
         val sanitized = sanitizeScannedCode(raw)
@@ -440,55 +577,112 @@ class InventoryViewModel(
         _form.value = null
     }
 
-    fun save(state: ProductFormState) {
-        if (_isSaving.value) return
-        viewModelScope.launch {
-            _isSaving.value = true
-            try {
-                val name = state.name.trim()
-                if (name.isBlank()) {
-                    notify("Nama produk wajib diisi.")
-                    return@launch
-                }
-                if (state.price < 0) {
-                    notify("Harga tidak boleh negatif.")
-                    return@launch
-                }
-                if (state.stock < 0.0) {
-                    notify("Stok tidak boleh negatif.")
-                    return@launch
-                }
-                val sku = state.sku.trim().ifBlank { "SKU-${System.currentTimeMillis()}" }
-                val barcode = state.barcode.trim().ifBlank { null }
-                val category = state.category.trim()
-                val now = System.currentTimeMillis()
-                val entity =
-                    ProductEntity(
-                        id = state.id,
-                        name = name,
-                        sku = sku,
-                        barcode = barcode,
-                        category = category,
-                        price = state.price,
-                        cost = state.cost,
-                        stock = state.stock,
-                        damagedStock = state.damagedStock,
-                        active = true,
-                        createdAt = if (state.isNew) now else state.createdAt,
-                        updatedAt = now,
-                    )
-                productRepository.save(entity)
-                notify(if (state.isNew) "Produk ditambahkan." else "Produk diperbarui.")
-                _form.value = null
-            } catch (e: SQLiteConstraintException) {
-                notify("Gagal menyimpan: SKU atau Barcode sudah dipakai produk lain.")
-            } catch (e: Exception) {
-                notify("Gagal menyimpan: ${e.message ?: "kesalahan tak dikenal"}.")
-            } finally {
-                _isSaving.value = false
+fun save(state: ProductFormState) {
+    if (_isSaving.value) return
+
+    viewModelScope.launch {
+        _isSaving.value = true
+
+        try {
+            val name = state.name.trim()
+
+            if (name.isBlank()) {
+                notify("Nama produk wajib diisi.")
+                return@launch
             }
+
+            if (state.price < 0) {
+                notify("Harga tidak boleh negatif.")
+                return@launch
+            }
+
+            if (state.stock < 0.0) {
+                notify("Stok tidak boleh negatif.")
+                return@launch
+            }
+
+            val sku =
+                state.sku
+                    .trim()
+                    .ifBlank {
+                        "SKU-${System.currentTimeMillis()}"
+                    }
+
+            val barcode =
+                state.barcode
+                    .trim()
+                    .ifBlank { null }
+
+            val category = state.category.trim()
+            val now = System.currentTimeMillis()
+
+            val entity =
+                ProductEntity(
+                    id = state.id,
+                    name = name,
+                    sku = sku,
+                    barcode = barcode,
+                    category = category,
+                    price = state.price,
+                    cost = state.cost,
+                    stock = state.stock,
+                    damagedStock = state.damagedStock,
+                    active = true,
+                    createdAt =
+                        if (state.isNew) {
+                            now
+                        } else {
+                            state.createdAt
+                        },
+                    updatedAt = now,
+                )
+
+            AppLogger.measureSuspend(
+                AppLogger.TAG_DB,
+                "Save Product " +
+                    "(id=${state.id}, isNew=${state.isNew})",
+            ) {
+                productRepository.save(entity)
+            }
+
+            notify(
+                if (state.isNew) {
+                    "Produk ditambahkan."
+                } else {
+                    "Produk diperbarui."
+                },
+            )
+
+            _form.value = null
+        } catch (e: SQLiteConstraintException) {
+            AppLogger.e(
+                AppLogger.TAG_DB,
+                e,
+            ) {
+                "Bentrok constraint saat menyimpan produk"
+            }
+
+            notify(
+                "Gagal menyimpan: SKU atau Barcode " +
+                    "sudah dipakai produk lain.",
+            )
+        } catch (e: Exception) {
+            AppLogger.e(
+                AppLogger.TAG_DB,
+                e,
+            ) {
+                "Gagal menyimpan produk"
+            }
+
+            notify(
+                "Gagal menyimpan: " +
+                    "${e.message ?: "kesalahan tak dikenal"}.",
+            )
+        } finally {
+            _isSaving.value = false
         }
     }
+}
 
     fun cancelDelete() {
         _pendingDelete.value = null

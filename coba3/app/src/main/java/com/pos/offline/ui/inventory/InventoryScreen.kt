@@ -115,6 +115,7 @@ import com.pos.offline.util.formatQuantity
 import com.pos.offline.util.iosGlideFlingBehavior
 import com.pos.offline.util.sanitizeScannedCode
 import com.pos.offline.util.toRupiah
+import com.pos.offline.util.TrackRecomposition
 import kotlinx.coroutines.delay
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.MutableState
@@ -130,8 +131,11 @@ import kotlinx.collections.immutable.ImmutableList
 @Composable
 fun InventoryScreen(
     modifier: Modifier = Modifier,
+    viewModel: InventoryViewModel =
+        viewModel(
+            factory = ServiceLocator.inventoryViewModelFactory(),
+        ),
 ) {
-    val viewModel: InventoryViewModel = viewModel(factory = ServiceLocator.inventoryViewModelFactory())
     val products by viewModel.products.collectAsStateWithLifecycle()
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
@@ -284,6 +288,8 @@ fun InventoryScreenContent(
     onShowMessage: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    TrackRecomposition("InventoryScreenContent")
+
     Box(modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
