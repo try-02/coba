@@ -634,12 +634,9 @@ private fun parseRow(
     val skuCell = skuRaw.lowercase()
     val nameCell = nameRaw.lowercase()
 
-    val totalRegex =
-        Regex("total\\s*\\(\\s*\\d+\\s*produk\\s*\\)")
-
     val isSummaryRow =
         (skuCell.isBlank() &&
-            totalRegex.containsMatchIn(nameCell)) ||
+            TOTAL_ROW_REGEX.containsMatchIn(nameCell)) ||
             skuCell == "total" ||
             skuCell == "jumlah"
 
@@ -735,27 +732,57 @@ private fun parseRow(
         return parseCurrency(s, field)
     }
 
-    private fun parseCurrency(
-        s: String,
-        field: String,
-    ): Long {
-        val value =
-            parseFlexibleNumber(s, treatSingleSeparatorAsThousands = true)
-                ?: error("$field tidak valid: \"$s\"")
-        require(value >= 0) { "$field bernilai negatif" }
-        return round(value).toLong()
+private fun parseCurrency(
+    s: String,
+    field: String,
+): Long {
+    val value =
+        parseFlexibleNumber(
+            raw = s,
+            treatSingleSeparatorAsThousands = true,
+        ) ?: error("$field tidak valid: \"$s\"")
+
+    require(value.isFinite()) {
+        "$field tidak valid: \"$s\""
     }
 
-    private fun parseQty(
-        s: String,
-        field: String,
-    ): Double {
-        val value =
-            parseFlexibleNumber(s, treatSingleSeparatorAsThousands = false)
-                ?: error("$field tidak valid: \"$s\"")
-        require(value >= 0) { "$field bernilai negatif" }
-        return value
+    require(value >= 0.0) {
+        "$field bernilai negatif"
     }
+
+    return round(value).toLong()
+}
+
+private fun parseQty(
+    s: String,
+    field: String,
+): Double {
+    val value =
+        parseFlexibleNumber(
+            raw = s,
+            treatSingleSeparatorAsThousands = false,
+        ) ?: error("$field tidak valid: \"$s\"")
+
+    require(value.isFinite()) {
+        "$field tidak valid: \"$s\""
+    }
+
+    require(value >= 0.0) {
+        "$field bernilai negatif"
+    }
+
+    /*
+     * Normalisasi floating-point error dari Excel.
+     *
+     * Contoh:
+     * 6.000000000000002 -> 6.0
+     * 1.9999999999999998 -> 2.0
+     */
+    val rounded =
+        round(value * 1_000_000_000.0) / 1_000_000_000.0
+
+    return rounded
+}
 
 private fun parseFlexibleNumber(
     raw: String,
@@ -812,41 +839,78 @@ private fun parseFlexibleNumber(
     val normalized =
         when {
             hasDot && hasComma -> {
+                /*
+                 * Jika separator terakhir adalah koma:
+                 *
+                 * 1.234,56 -> 1234.56
+                 */
                 if (lastComma > lastDot) {
-                    body.replace(".", "").replace(',', '.')
+                    body
+                        .replace(".", "")
+                        .replace(',', '.')
                 } else {
+                    /*
+                     * Jika separator terakhir adalah titik:
+                     *
+                     * 1,234.56 -> 1234.56
+                     */
                     body.replace(",", "")
                 }
             }
 
             hasDot -> {
-                val digitsAfter = body.length - lastDot - 1
+                val digitsAfter =
+                    body.length - lastDot - 1
 
                 if (
                     dotCount > 1 ||
-                    (treatSingleSeparatorAsThousands && digitsAfter == 3)
+                    (
+                        treatSingleSeparatorAsThousands &&
+                            digitsAfter == 3
+                    )
                 ) {
+                    /*
+                     * 1.234 -> 1234
+                     * 1.234.567 -> 1234567
+                     */
                     body.replace(".", "")
                 } else {
+                    /*
+                     * 123.45 -> 123.45
+                     */
                     body
                 }
             }
 
             else -> {
-                val digitsAfter = body.length - lastComma - 1
+                val digitsAfter =
+                    body.length - lastComma - 1
 
                 if (
                     commaCount > 1 ||
-                    (treatSingleSeparatorAsThousands && digitsAfter == 3)
+                    (
+                        treatSingleSeparatorAsThousands &&
+                            digitsAfter == 3
+                    )
                 ) {
+                    /*
+                     * 1,234 -> 1234
+                     * 1,234,567 -> 1234567
+                     */
                     body.replace(",", "")
                 } else {
+                    /*
+                     * 123,45 -> 123.45
+                     */
                     body.replace(',', '.')
                 }
             }
         }
 
-    val value = normalized.toDoubleOrNull() ?: return null
+    val value =
+        normalized.toDoubleOrNull() ?: return null
+
+    if (!value.isFinite()) return null
 
     return if (negative) -value else value
 }
