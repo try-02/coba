@@ -81,8 +81,8 @@ object ExcelManager {
     private const val COLOR_NEGATIVE = "FF0000"
     private const val COLOR_POSITIVE = "006100"
 
-    private val TOTAL_ROW_REGEX =
-    Regex("""total\s*\(\s*\d+\s*produk\s*\)""", RegexOption.IGNORE_CASE)
+private val TOTAL_ROW_REGEX =
+    Regex("total\\s*\\(\\s*\\d+\\s*produk\\s*\\)", RegexOption.IGNORE_CASE)
 
     fun suggestedExportFileName(): String = "produk_${System.currentTimeMillis()}.xlsx"
 
@@ -613,16 +613,14 @@ private fun parseRow(
     skipOffset: Int,
 ): Pair<ImportedProductRow?, String?>? {
 
-    val base = skipOffset
-
-    // Ambil 7 cell yang diperlukan SEKALI saja.
-    val sku = getSafeCellString(row, base)
-    val barcode = getSafeCellString(row, base + 1)
-    val name = getSafeCellString(row, base + 2)
-    val category = getSafeCellString(row, base + 3)
-    val price = getSafeCellString(row, base + 4)
-    val cost = getSafeCellString(row, base + 5)
-    val stock = getSafeCellString(row, base + 6)
+    // Baca setiap cell hanya satu kali.
+    val sku = getSafeCellString(row, skipOffset)
+    val barcode = getSafeCellString(row, skipOffset + 1)
+    val name = getSafeCellString(row, skipOffset + 2)
+    val category = getSafeCellString(row, skipOffset + 3)
+    val priceText = getSafeCellString(row, skipOffset + 4)
+    val costText = getSafeCellString(row, skipOffset + 5)
+    val stockText = getSafeCellString(row, skipOffset + 6)
 
     // Abaikan baris kosong.
     if (
@@ -630,46 +628,48 @@ private fun parseRow(
         barcode.isBlank() &&
         name.isBlank() &&
         category.isBlank() &&
-        price.isBlank() &&
-        cost.isBlank() &&
-        stock.isBlank()
+        priceText.isBlank() &&
+        costText.isBlank() &&
+        stockText.isBlank()
     ) {
         return null
     }
 
-    // Abaikan summary row.
-    val skuLower = sku.lowercase()
-    val nameLower = name.lowercase()
+    // Abaikan baris summary TOTAL.
+    val isSummaryRow =
+        (sku.isBlank() && TOTAL_ROW_REGEX.containsMatchIn(name)) ||
+            sku.equals("total", ignoreCase = true) ||
+            sku.equals("jumlah", ignoreCase = true)
 
-    if (
-        (skuLower.isBlank() && TOTAL_ROW_REGEX.containsMatchIn(nameLower)) ||
-        skuLower == "total" ||
-        skuLower == "jumlah"
-    ) {
+    if (isSummaryRow) {
         return null
     }
 
     return try {
-        if (sku.isBlank()) {
-            throw IllegalArgumentException("SKU kosong")
+        require(sku.isNotBlank()) {
+            "SKU kosong"
         }
 
-        if (name.isBlank()) {
-            throw IllegalArgumentException("Nama kosong")
+        require(name.isNotBlank()) {
+            "Nama kosong"
         }
 
-        val imported =
+        val price = parseCurrency(priceText, "Harga")
+        val cost = parseCurrency(costText, "Modal")
+        val stock = parseQty(stockText, "Stok")
+
+        Pair(
             ImportedProductRow(
                 sku = sku,
                 barcode = barcode.ifBlank { null },
                 name = name,
                 category = category.ifBlank { null },
-                price = parseCurrency(price, "Harga"),
-                cost = parseCurrency(cost, "Modal"),
-                stock = parseQty(stock, "Stok"),
-            )
-
-        Pair(imported, null)
+                price = price,
+                cost = cost,
+                stock = stock,
+            ),
+            null,
+        )
     } catch (e: Exception) {
         Pair(
             null,

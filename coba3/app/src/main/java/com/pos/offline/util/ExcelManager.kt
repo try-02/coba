@@ -613,67 +613,116 @@ private fun parseRow(
     skipOffset: Int,
 ): Pair<ImportedProductRow?, String?>? {
 
-    // Baca setiap cell hanya satu kali.
-    val sku = getSafeCellString(row, skipOffset)
-    val barcode = getSafeCellString(row, skipOffset + 1)
-    val name = getSafeCellString(row, skipOffset + 2)
-    val category = getSafeCellString(row, skipOffset + 3)
-    val priceText = getSafeCellString(row, skipOffset + 4)
-    val costText = getSafeCellString(row, skipOffset + 5)
-    val stockText = getSafeCellString(row, skipOffset + 6)
+    fun cell(logicalCol: Int): String =
+        getSafeCellString(row, logicalCol + skipOffset)
 
-    // Abaikan baris kosong.
-    if (
-        sku.isBlank() &&
-        barcode.isBlank() &&
-        name.isBlank() &&
-        category.isBlank() &&
-        priceText.isBlank() &&
-        costText.isBlank() &&
-        stockText.isBlank()
-    ) {
-        return null
-    }
+    val allBlank =
+        (0 until REQUIRED_IMPORT_COLUMNS).all {
+            cell(it).isBlank()
+        }
 
-    // Abaikan baris summary TOTAL.
+    if (allBlank) return null
+
+    val skuRaw = cell(0)
+    val barcodeRaw = cell(1)
+    val nameRaw = cell(2)
+    val categoryRaw = cell(3)
+    val priceRaw = cell(4)
+    val costRaw = cell(5)
+    val stockRaw = cell(6)
+
+    val skuCell = skuRaw.lowercase()
+    val nameCell = nameRaw.lowercase()
+
+    val totalRegex =
+        Regex("total\\s*\\(\\s*\\d+\\s*produk\\s*\\)")
+
     val isSummaryRow =
-        (sku.isBlank() && TOTAL_ROW_REGEX.containsMatchIn(name)) ||
-            sku.equals("total", ignoreCase = true) ||
-            sku.equals("jumlah", ignoreCase = true)
+        (skuCell.isBlank() &&
+            totalRegex.containsMatchIn(nameCell)) ||
+            skuCell == "total" ||
+            skuCell == "jumlah"
 
     if (isSummaryRow) {
+        AppLogger.d(AppLogger.TAG_IO) {
+            "Import: Skip summary row ${rowIndex + 1}"
+        }
         return null
     }
 
     return try {
-        require(sku.isNotBlank()) {
-            "SKU kosong"
-        }
-
-        require(name.isNotBlank()) {
-            "Nama kosong"
-        }
-
-        val price = parseCurrency(priceText, "Harga")
-        val cost = parseCurrency(costText, "Modal")
-        val stock = parseQty(stockText, "Stok")
-
-        Pair(
+        val product =
             ImportedProductRow(
-                sku = sku,
-                barcode = barcode.ifBlank { null },
-                name = name,
-                category = category.ifBlank { null },
-                price = price,
-                cost = cost,
-                stock = stock,
-            ),
-            null,
-        )
+                sku =
+                    skuRaw.also {
+                        require(it.isNotBlank()) {
+                            "SKU kosong"
+                        }
+                    },
+
+                barcode =
+                    barcodeRaw.ifBlank {
+                        null
+                    },
+
+                name =
+                    nameRaw.also {
+                        require(it.isNotBlank()) {
+                            "Nama kosong"
+                        }
+                    },
+
+                category =
+                    categoryRaw.ifBlank {
+                        null
+                    },
+
+                price =
+                    parseCurrency(
+                        priceRaw,
+                        "Harga",
+                    ),
+
+                cost =
+                    parseCurrency(
+                        costRaw,
+                        "Modal",
+                    ),
+
+                stock =
+                    parseQty(
+                        stockRaw,
+                        "Stok",
+                    ),
+            )
+
+        Pair(product, null)
+
     } catch (e: Exception) {
+
+        val message =
+            "Baris ${rowIndex + 1}: ${e.message}"
+
+        AppLogger.e(
+            AppLogger.TAG_IO,
+            e,
+        ) {
+            buildString {
+                append("Import PARSE ERROR | ")
+                append("row=${rowIndex + 1} | ")
+                append("SKU=\"$skuRaw\" | ")
+                append("Barcode=\"$barcodeRaw\" | ")
+                append("Nama=\"$nameRaw\" | ")
+                append("Kategori=\"$categoryRaw\" | ")
+                append("Harga=\"$priceRaw\" | ")
+                append("Modal=\"$costRaw\" | ")
+                append("Stok=\"$stockRaw\"")
+            }
+        }
+
         Pair(
             null,
-            "Baris ${rowIndex + 1}: ${e.message}",
+            message,
         )
     }
 }
