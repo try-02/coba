@@ -137,6 +137,7 @@ private fun writeWorkbook(
             }
 
             ws.freezePane(0, 2)
+
             writeTitleRow(ws, products.size)
             writeHeaderRow(ws)
 
@@ -160,26 +161,33 @@ private fun writeWorkbook(
                 totalStock += p.stock
                 totalStockValue += stockValue
 
-                writeDataRow(
-                    ws,
-                    idx + 2,
-                    idx + 1,
-                    p,
-                    margin,
-                    stockValue,
+                writeDataValues(
+                    ws = ws,
+                    rowIndex = idx + 2,
+                    number = idx + 1,
+                    p = p,
+                    margin = margin,
+                    stockValue = stockValue,
                 )
             }
+
+            // Styling seluruh data dilakukan menggunakan range,
+            // bukan per-cell/per-row.
+            styleDataRows(
+                ws = ws,
+                productCount = products.size,
+            )
 
             val summaryRow = products.size + 2
 
             writeSummaryRow(
-                ws,
-                summaryRow,
-                products.size,
-                totalPrice,
-                totalCost,
-                totalStock,
-                totalStockValue,
+                ws = ws,
+                rowIndex = summaryRow,
+                productCount = products.size,
+                totalPrice = totalPrice,
+                totalCost = totalCost,
+                totalStock = totalStock,
+                totalStockValue = totalStockValue,
             )
         }
 
@@ -235,109 +243,92 @@ private fun writeWorkbook(
         }
     }
 
-    private fun writeDataRow(
-        ws: Worksheet,
-        rowIndex: Int,
-        number: Int,
-        p: ProductEntity,
-        margin: Long,
-        stockValue: Double,
-    ) {
-        val isEven = number % 2 == 0
-        val bgColor = if (isEven) COLOR_ROW_EVEN else COLOR_ROW_ODD
-        val marginColor = if (margin >= 0) COLOR_POSITIVE else COLOR_NEGATIVE
-        ws.rowHeight(rowIndex, 20.0)
-        ws.value(rowIndex, 0, number)
-        ws
-            .style(rowIndex, 0)
-            .fontSize(10)
-            .fillColor(bgColor)
-            .horizontalAlignment("center")
-            .verticalAlignment("center")
-            .borderStyle(BorderSide.BOTTOM, BorderStyle.THIN)
-            .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
-            .set()
-        ws.value(rowIndex, 1, p.sku)
-        applyTextStyle(ws, rowIndex, 1, bgColor)
-        ws.value(rowIndex, 2, p.barcode)
-        applyTextStyle(ws, rowIndex, 2, bgColor)
-        ws.value(rowIndex, 3, p.name)
-        ws
-            .style(rowIndex, 3)
-            .bold()
-            .fontSize(10)
-            .fillColor(bgColor)
-            .verticalAlignment("center")
-            .borderStyle(BorderSide.BOTTOM, BorderStyle.THIN)
-            .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
-            .set()
-        ws.value(rowIndex, 4, p.category)
-        applyTextStyle(ws, rowIndex, 4, bgColor)
-        ws.value(rowIndex, 5, p.price.toDouble())
-        applyCurrencyStyle(ws, rowIndex, 5, bgColor)
-        ws.value(rowIndex, 6, p.cost.toDouble())
-        applyCurrencyStyle(ws, rowIndex, 6, bgColor)
-        ws.value(rowIndex, 7, p.stock)
-        ws
-            .style(rowIndex, 7)
-            .fontSize(10)
-            .fillColor(bgColor)
-            .format("#,##0.##")
-            .horizontalAlignment("right")
-            .verticalAlignment("center")
-            .borderStyle(BorderSide.BOTTOM, BorderStyle.THIN)
-            .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
-            .set()
-        ws.value(rowIndex, 8, margin.toDouble())
-        ws
-            .style(rowIndex, 8)
-            .bold()
-            .fontSize(10)
-            .fillColor(bgColor)
-            .fontColor(marginColor)
-            .format("#,##0")
-            .horizontalAlignment("right")
-            .verticalAlignment("center")
-            .borderStyle(BorderSide.BOTTOM, BorderStyle.THIN)
-            .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
-            .set()
-        ws.value(rowIndex, 9, stockValue)
-        applyCurrencyStyle(ws, rowIndex, 9, bgColor)
-    }
+private fun writeDataValues(
+    ws: Worksheet,
+    rowIndex: Int,
+    number: Int,
+    p: ProductEntity,
+    margin: Long,
+    stockValue: Double,
+) {
+    ws.value(rowIndex, 0, number)
+    ws.value(rowIndex, 1, p.sku)
+    ws.value(rowIndex, 2, p.barcode)
+    ws.value(rowIndex, 3, p.name)
+    ws.value(rowIndex, 4, p.category)
+    ws.value(rowIndex, 5, p.price.toDouble())
+    ws.value(rowIndex, 6, p.cost.toDouble())
+    ws.value(rowIndex, 7, p.stock)
+    ws.value(rowIndex, 8, margin.toDouble())
+    ws.value(rowIndex, 9, stockValue)
+}
 
-    private fun applyTextStyle(
-        ws: Worksheet,
-        row: Int,
-        col: Int,
-        bgColor: String,
-    ) {
-        ws
-            .style(row, col)
-            .fontSize(10)
-            .fillColor(bgColor)
-            .verticalAlignment("center")
-            .borderStyle(BorderSide.BOTTOM, BorderStyle.THIN)
-            .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
-            .set()
-    }
+private fun styleDataRows(
+    ws: Worksheet,
+    productCount: Int,
+) {
+    if (productCount <= 0) return
 
-    private fun applyCurrencyStyle(
-        ws: Worksheet,
-        row: Int,
-        col: Int,
-        bgColor: String,
-    ) {
-        ws
-            .style(row, col)
-            .fontSize(10)
-            .fillColor(bgColor)
-            .format("#,##0")
-            .horizontalAlignment("right")
-            .verticalAlignment("center")
-            .borderStyle(BorderSide.BOTTOM, BorderStyle.THIN)
-            .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
-            .set()
-    }
+    val firstRow = 2
+    val lastRow = productCount + 1
+
+    // Common style untuk seluruh data area A:J.
+    ws
+        .range(firstRow, 0, lastRow, 9)
+        .style()
+        .fontSize(10)
+        .verticalAlignment("center")
+        .borderStyle(BorderSide.BOTTOM, BorderStyle.THIN)
+        .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
+        .set()
+
+    // No
+    ws
+        .range(firstRow, 0, lastRow, 0)
+        .style()
+        .horizontalAlignment("center")
+        .set()
+
+    // Nama Produk
+    ws
+        .range(firstRow, 3, lastRow, 3)
+        .style()
+        .bold()
+        .set()
+
+    // Harga Jual + Modal
+    ws
+        .range(firstRow, 5, lastRow, 6)
+        .style()
+        .format("#,##0")
+        .horizontalAlignment("right")
+        .set()
+
+    // Stok
+    ws
+        .range(firstRow, 7, lastRow, 7)
+        .style()
+        .format("#,##0.##")
+        .horizontalAlignment("right")
+        .set()
+
+    // Margin
+    ws
+        .range(firstRow, 8, lastRow, 8)
+        .style()
+        .bold()
+        .format("#,##0")
+        .horizontalAlignment("right")
+        .set()
+
+    // Nilai Stok
+    ws
+        .range(firstRow, 9, lastRow, 9)
+        .style()
+        .format("#,##0")
+        .horizontalAlignment("right")
+        .set()
+}
 
     private fun writeSummaryRow(
         ws: Worksheet,

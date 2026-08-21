@@ -161,7 +161,7 @@ private fun writeWorkbook(
                 totalStock += p.stock
                 totalStockValue += stockValue
 
-                writeDataValues(
+                writeDataRow(
                     ws = ws,
                     rowIndex = idx + 2,
                     number = idx + 1,
@@ -171,23 +171,23 @@ private fun writeWorkbook(
                 )
             }
 
-            // Styling seluruh data dilakukan menggunakan range,
-            // bukan per-cell/per-row.
+            // Styling data dilakukan setelah seluruh value ditulis.
             styleDataRows(
                 ws = ws,
-                productCount = products.size,
+                firstRow = 2,
+                lastRow = products.size + 1,
             )
 
             val summaryRow = products.size + 2
 
             writeSummaryRow(
-                ws = ws,
-                rowIndex = summaryRow,
-                productCount = products.size,
-                totalPrice = totalPrice,
-                totalCost = totalCost,
-                totalStock = totalStock,
-                totalStockValue = totalStockValue,
+                ws,
+                summaryRow,
+                products.size,
+                totalPrice,
+                totalCost,
+                totalStock,
+                totalStockValue,
             )
         }
 
@@ -243,7 +243,7 @@ private fun writeWorkbook(
         }
     }
 
-private fun writeDataValues(
+private fun writeDataRow(
     ws: Worksheet,
     rowIndex: Int,
     number: Int,
@@ -251,6 +251,8 @@ private fun writeDataValues(
     margin: Long,
     stockValue: Double,
 ) {
+    ws.rowHeight(rowIndex, 20.0)
+
     ws.value(rowIndex, 0, number)
     ws.value(rowIndex, 1, p.sku)
     ws.value(rowIndex, 2, p.barcode)
@@ -265,14 +267,14 @@ private fun writeDataValues(
 
 private fun styleDataRows(
     ws: Worksheet,
-    productCount: Int,
+    firstRow: Int,
+    lastRow: Int,
 ) {
-    if (productCount <= 0) return
+    if (lastRow < firstRow) return
 
-    val firstRow = 2
-    val lastRow = productCount + 1
-
-    // Common style untuk seluruh data area A:J.
+    // ---------------------------------------------------------
+    // Base style seluruh data area A:J
+    // ---------------------------------------------------------
     ws
         .range(firstRow, 0, lastRow, 9)
         .style()
@@ -282,21 +284,36 @@ private fun styleDataRows(
         .borderColor(BorderSide.BOTTOM, COLOR_BORDER)
         .set()
 
-    // No
+    // ---------------------------------------------------------
+    // Zebra rows
+    // ---------------------------------------------------------
+    ws
+        .range(firstRow, 0, lastRow, 9)
+        .style()
+        .shadeAlternateRows(COLOR_ROW_EVEN)
+        .set()
+
+    // ---------------------------------------------------------
+    // Column A - No
+    // ---------------------------------------------------------
     ws
         .range(firstRow, 0, lastRow, 0)
         .style()
         .horizontalAlignment("center")
         .set()
 
-    // Nama Produk
+    // ---------------------------------------------------------
+    // Column D - Nama Produk
+    // ---------------------------------------------------------
     ws
         .range(firstRow, 3, lastRow, 3)
         .style()
         .bold()
         .set()
 
-    // Harga Jual + Modal
+    // ---------------------------------------------------------
+    // Column F:G - Harga Jual & Modal
+    // ---------------------------------------------------------
     ws
         .range(firstRow, 5, lastRow, 6)
         .style()
@@ -304,7 +321,9 @@ private fun styleDataRows(
         .horizontalAlignment("right")
         .set()
 
-    // Stok
+    // ---------------------------------------------------------
+    // Column H - Stok
+    // ---------------------------------------------------------
     ws
         .range(firstRow, 7, lastRow, 7)
         .style()
@@ -312,19 +331,27 @@ private fun styleDataRows(
         .horizontalAlignment("right")
         .set()
 
-    // Margin
+    // ---------------------------------------------------------
+    // Column J - Nilai Stok
+    // ---------------------------------------------------------
     ws
-        .range(firstRow, 8, lastRow, 8)
+        .range(firstRow, 9, lastRow, 9)
         .style()
-        .bold()
         .format("#,##0")
         .horizontalAlignment("right")
         .set()
 
-    // Nilai Stok
+    // ---------------------------------------------------------
+    // Column I - Margin
+    //
+    // Base style terlebih dahulu.
+    // Warna positif/negatif akan diterapkan per cell
+    // karena nilainya berbeda-beda.
+    // ---------------------------------------------------------
     ws
-        .range(firstRow, 9, lastRow, 9)
+        .range(firstRow, 8, lastRow, 8)
         .style()
+        .bold()
         .format("#,##0")
         .horizontalAlignment("right")
         .set()
