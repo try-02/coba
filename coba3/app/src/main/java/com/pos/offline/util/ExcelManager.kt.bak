@@ -814,17 +814,32 @@ private fun parseFlexibleNumber(
             -1L
         }
 
-    private fun getSafeCellString(
-        row: org.dhatim.fastexcel.reader.Row,
-        col: Int,
-    ): String {
-        if (col < 0 || col >= row.cellCount) return ""
-        val cell = row.getCell(col) ?: return ""
-        val textValue = cell.text ?: cell.value?.toString() ?: ""
-        return if (textValue.endsWith(".0")) {
-            textValue.dropLast(2).trim()
-        } else {
-            textValue.trim()
+private fun getSafeCellString(
+    row: org.dhatim.fastexcel.reader.Row,
+    col: Int,
+): String {
+    if (col < 0 || col >= row.cellCount) return ""
+
+    val cell = row.getCell(col) ?: return ""
+
+    val value = cell.value ?: return ""
+
+    return when (value) {
+        is String -> value.trim()
+
+        is Number -> {
+            val doubleValue = value.toDouble()
+
+            if (doubleValue.isFinite() &&
+                doubleValue == kotlin.math.floor(doubleValue)
+            ) {
+                doubleValue.toLong().toString()
+            } else {
+                value.toString()
+            }
         }
+
+        else -> value.toString().trim()
     }
+}
 }
