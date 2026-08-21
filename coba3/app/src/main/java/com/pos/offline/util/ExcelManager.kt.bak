@@ -81,6 +81,9 @@ object ExcelManager {
     private const val COLOR_NEGATIVE = "FF0000"
     private const val COLOR_POSITIVE = "006100"
 
+    private val TOTAL_ROW_REGEX =
+    Regex("""total\s*\(\s*\d+\s*produk\s*\)""", RegexOption.IGNORE_CASE)
+
     fun suggestedExportFileName(): String = "produk_${System.currentTimeMillis()}.xlsx"
 
 suspend fun exportProducts(
@@ -488,7 +491,7 @@ private suspend fun readWorkbook(
     inputStream: InputStream,
 ): ExcelImportResult {
     val rows = ArrayList<ImportedProductRow>(256)
-    val errors = mutableListOf<String>()
+    val errors = ArrayList<String>(16)
 
     val wb =
         AppLogger.measure(
@@ -506,11 +509,11 @@ private suspend fun readWorkbook(
             "2b. Import: Stream XML & Parse Rows",
         ) {
             sheet.openStream().use { rowStream ->
+                val iterator = rowStream.iterator()
+
                 var rowIndex = 0
                 var skipOffset = 0
                 var headerFound = false
-
-                val iterator = rowStream.iterator()
 
                 while (iterator.hasNext()) {
                     coroutineContext.ensureActive()
@@ -523,8 +526,6 @@ private suspend fun readWorkbook(
                         if (detection != null) {
                             headerFound = true
                             skipOffset = detection
-                            rowIndex++
-                            continue
                         }
 
                         rowIndex++
@@ -539,16 +540,13 @@ private suspend fun readWorkbook(
                         break
                     }
 
-                    val parsed =
-                        parseRow(
-                            row,
-                            rowIndex,
-                            skipOffset,
-                        )
-
-                    if (parsed != null) {
-                        parsed.first?.let { rows.add(it) }
-                        parsed.second?.let { errors.add(it) }
+                    parseRow(
+                        row = row,
+                        rowIndex = rowIndex,
+                        skipOffset = skipOffset,
+                    )?.let { result ->
+                        result.first?.let(rows::add)
+                        result.second?.let(errors::add)
                     }
 
                     rowIndex++
@@ -571,8 +569,8 @@ private suspend fun readWorkbook(
     rows.trimToSize()
 
     return ExcelImportResult(
-        rows,
-        errors,
+        rows = rows,
+        errors = errors,
     )
 }
 
@@ -609,49 +607,76 @@ private suspend fun readWorkbook(
         return null
     }
 
-    private fun parseRow(
-        row: org.dhatim.fastexcel.reader.Row,
-        rowIndex: Int,
-        skipOffset: Int,
-    ): Pair<ImportedProductRow?, String?>? {
-        fun cell(logicalCol: Int): String = getSafeCellString(row, logicalCol + skipOffset)
-        val allBlank =
-            (0 until REQUIRED_IMPORT_COLUMNS).all {
-                cell(it).isBlank()
-            }
-        if (allBlank) return null
-        val skuCell = cell(0).lowercase()
-        val nameCell = cell(2).lowercase()
-        val totalRegex = Regex("total\\s*\\(\\s*\\d+\\s*produk\\s*\\)")
-        val isSummaryRow =
-            (skuCell.isBlank() && totalRegex.containsMatchIn(nameCell)) ||
-                skuCell == "total" || skuCell == "jumlah"
-        if (isSummaryRow) {
-            return null
-        }
-        return try {
-            Pair(
-                ImportedProductRow(
-                    sku =
-                        cell(0).also {
-                            require(it.isNotBlank()) { "SKU kosong" }
-                        },
-                    barcode = cell(1).ifBlank { null },
-                    name =
-                        cell(2).also {
-                            require(it.isNotBlank()) { "Nama kosong" }
-                        },
-                    category = cell(3).ifBlank { null },
-                    price = parseCurrency(cell(4), "Harga"),
-                    cost = parseCurrency(cell(5), "Modal"),
-                    stock = parseQty(cell(6), "Stok"),
-                ),
-                null,
-            )
-        } catch (e: Exception) {
-            Pair(null, "Baris ${rowIndex + 1}: ${e.message}")
-        }
+private fun parseRow(
+    row: org.dhatim.fastexcel.reader.Row,
+    rowIndex: Int,
+    skipOffset: Int,
+): Pair<ImportedProductRow?, String?>? {
+
+    val base = skipOffset
+
+    // Ambil 7 cell yang diperlukan SEKALI saja.
+    val sku = getSafeCellString(row, base)
+    val barcode = getSafeCellString(row, base + 1)
+    val name = getSafeCellString(row, base + 2)
+    val category = getSafeCellString(row, base + 3)
+    val price = getSafeCellString(row, base + 4)
+    val cost = getSafeCellString(row, base + 5)
+    val stock = getSafeCellString(row, base + 6)
+
+    // Abaikan baris kosong.
+    if (
+        sku.isBlank() &&
+        barcode.isBlank() &&
+        name.isBlank() &&
+        category.isBlank() &&
+        price.isBlank() &&
+        cost.isBlank() &&
+        stock.isBlank()
+    ) {
+        return null
     }
+
+    // Abaikan summary row.
+    val skuLower = sku.lowercase()
+    val nameLower = name.lowercase()
+
+    if (
+        (skuLower.isBlank() && TOTAL_ROW_REGEX.containsMatchIn(nameLower)) ||
+        skuLower == "total" ||
+        skuLower == "jumlah"
+    ) {
+        return null
+    }
+
+    return try {
+        if (sku.isBlank()) {
+            throw IllegalArgumentException("SKU kosong")
+        }
+
+        if (name.isBlank()) {
+            throw IllegalArgumentException("Nama kosong")
+        }
+
+        val imported =
+            ImportedProductRow(
+                sku = sku,
+                barcode = barcode.ifBlank { null },
+                name = name,
+                category = category.ifBlank { null },
+                price = parseCurrency(price, "Harga"),
+                cost = parseCurrency(cost, "Modal"),
+                stock = parseQty(stock, "Stok"),
+            )
+
+        Pair(imported, null)
+    } catch (e: Exception) {
+        Pair(
+            null,
+            "Baris ${rowIndex + 1}: ${e.message}",
+        )
+    }
+}
 
     internal fun parseQtyForTest(s: String, field: String = "Qty"): Double {
         return parseQty(s, field)
@@ -683,56 +708,99 @@ private suspend fun readWorkbook(
         return value
     }
 
-    private fun parseFlexibleNumber(raw: String, treatSingleSeparatorAsThousands: Boolean): Double? {
-        val cleaned =
-            raw.trim().filter {
-                it.isDigit() || it == '.' || it == ',' || it == '-'
+private fun parseFlexibleNumber(
+    raw: String,
+    treatSingleSeparatorAsThousands: Boolean,
+): Double? {
+    val trimmed = raw.trim()
+
+    if (trimmed.isEmpty()) return null
+
+    var start = 0
+    var negative = false
+
+    if (trimmed[0] == '-') {
+        negative = true
+        start = 1
+    }
+
+    if (start >= trimmed.length) return null
+
+    val body = trimmed.substring(start)
+
+    var hasDot = false
+    var hasComma = false
+    var dotCount = 0
+    var commaCount = 0
+    var lastDot = -1
+    var lastComma = -1
+
+    for (i in body.indices) {
+        when (body[i]) {
+            '.' -> {
+                hasDot = true
+                dotCount++
+                lastDot = i
             }
-        if (cleaned.isBlank() || cleaned == "-") return null
-        val negative = cleaned.startsWith("-")
-        val body = cleaned.removePrefix("-")
-        if (body.isBlank()) return null
-        val hasDot = body.contains('.')
-        val hasComma = body.contains(',')
-        val normalized =
-            when {
-                hasDot && hasComma -> {
-                    val lastDot = body.lastIndexOf('.')
-                    val lastComma = body.lastIndexOf(',')
-                    if (lastComma > lastDot) {
-                        body.replace(".", "").replace(',', '.')
-                    } else {
-                        body.replace(",", "")
-                    }
-                }
 
-                hasDot -> {
-                    val dotCount = body.count { it == '.' }
-                    val digitsAfter = body.length - body.lastIndexOf('.') - 1
-                    if (dotCount > 1 || (treatSingleSeparatorAsThousands && digitsAfter == 3)) {
-                        body.replace(".", "")
-                    } else {
-                        body
-                    }
-                }
+            ',' -> {
+                hasComma = true
+                commaCount++
+                lastComma = i
+            }
 
-                hasComma -> {
-                    val commaCount = body.count { it == ',' }
-                    val digitsAfter = body.length - body.lastIndexOf(',') - 1
-                    if (commaCount > 1 || (treatSingleSeparatorAsThousands && digitsAfter == 3)) {
-                        body.replace(",", "")
-                    } else {
-                        body.replace(',', '.')
-                    }
-                }
+            in '0'..'9' -> Unit
 
-                else -> {
+            else -> return null
+        }
+    }
+
+    if (!hasDot && !hasComma) {
+        val value = body.toDoubleOrNull() ?: return null
+        return if (negative) -value else value
+    }
+
+    val normalized =
+        when {
+            hasDot && hasComma -> {
+                if (lastComma > lastDot) {
+                    body.replace(".", "").replace(',', '.')
+                } else {
+                    body.replace(",", "")
+                }
+            }
+
+            hasDot -> {
+                val digitsAfter = body.length - lastDot - 1
+
+                if (
+                    dotCount > 1 ||
+                    (treatSingleSeparatorAsThousands && digitsAfter == 3)
+                ) {
+                    body.replace(".", "")
+                } else {
                     body
                 }
             }
-        val value = normalized.toDoubleOrNull() ?: return null
-        return if (negative) -value else value
-    }
+
+            else -> {
+                val digitsAfter = body.length - lastComma - 1
+
+                if (
+                    commaCount > 1 ||
+                    (treatSingleSeparatorAsThousands && digitsAfter == 3)
+                ) {
+                    body.replace(",", "")
+                } else {
+                    body.replace(',', '.')
+                }
+            }
+        }
+
+    val value = normalized.toDoubleOrNull() ?: return null
+
+    return if (negative) -value else value
+}
 
     private fun getFileSize(
         context: Context,
