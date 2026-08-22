@@ -47,7 +47,7 @@ jobs:
             --non-interactive \
             --stacktrace \
             --console=plain \
-            --scan
+            --debug
         env:
           ANDROID_BUILD_NUMBER: ${{ github.run_number }}
           NO_COLOR: "1"
