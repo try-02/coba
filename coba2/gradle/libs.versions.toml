@@ -52,7 +52,6 @@ androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", 
 
 # Database (Room 3.0.1 + Bundled SQLite)
 room-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room" }
-room-ktx = { group = "androidx.room3", name = "room3-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room" }
 room-paging = { group = "androidx.room3", name = "room3-paging", version.ref = "room" }
 sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite" }
