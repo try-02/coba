@@ -8,23 +8,12 @@ import com.pos.offline.data.entity.*
 
 @Database(
     entities = [
-        TransaksiEntity::class,
-        ItemTransaksiEntity::class,
-        PembayaranEntity::class,
-        PengembalianEntity::class,
-        ItemPengembalianEntity::class,
-        PrinterEntity::class,
-        ProfilTokoEntity::class,
+        ProdukEntity::class,
     ],
     version = 1,
     exportSchema = true,
 )
 @ColumnTypeConverters(DatabaseConverters::class)
 abstract class PosDatabase : RoomDatabase() {
-    abstract fun transaksiDao(): com.pos.offline.data.dao.TransaksiDao
-    abstract fun itemTransaksiDao(): com.pos.offline.data.dao.ItemTransaksiDao
-    abstract fun pembayaranDao(): com.pos.offline.data.dao.PembayaranDao
-    abstract fun returDao(): com.pos.offline.data.dao.ReturDao
-    abstract fun printerDao(): com.pos.offline.data.dao.PrinterDao
-    abstract fun profilTokoDao(): com.pos.offline.data.dao.ProfilTokoDao
+    abstract fun produkDao(): com.pos.offline.data.dao.ProdukDao
 }
