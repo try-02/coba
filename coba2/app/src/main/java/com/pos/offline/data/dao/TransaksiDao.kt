@@ -1,11 +1,14 @@
 package com.pos.offline.data.dao
 
+import androidx.paging.PagingSource
 import androidx.room3.Dao
+import androidx.room3.DaoReturnTypeConverters
 import androidx.room3.Embedded
 import androidx.room3.Insert
 import androidx.room3.Query
 import androidx.room3.Relation
 import androidx.room3.Transaction
+import androidx.room3.paging.PagingSourceDaoReturnTypeConverter
 import com.pos.offline.data.entity.ItemTransaksiEntity
 import com.pos.offline.data.entity.PembayaranEntity
 import com.pos.offline.data.entity.TransaksiEntity
@@ -29,6 +32,7 @@ data class TransaksiDenganDetail(
 )
 
 @Dao
+@DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)
 interface TransaksiDao {
 
     @Insert
@@ -49,7 +53,7 @@ interface TransaksiDao {
     SELECT * FROM transaksi
     ORDER BY dibuat_pada DESC, id DESC
 """)
-suspend fun getAll(): List<TransaksiEntity>
+fun observeAllPaged(): PagingSource<Int, TransaksiEntity>
 
     @Query("""
         UPDATE transaksi
