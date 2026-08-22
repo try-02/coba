@@ -4,7 +4,6 @@ import androidx.room3.ColumnTypeConverters
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import com.pos.offline.data.converter.DatabaseConverters
-import com.pos.offline.data.dao.*
 import com.pos.offline.data.entity.*
 
 @Database(
@@ -30,18 +29,18 @@ import com.pos.offline.data.entity.*
 )
 @ColumnTypeConverters(DatabaseConverters::class)
 abstract class PosDatabase : RoomDatabase() {
-    abstract fun produkDao(): ProdukDao
-    abstract fun persediaanDao(): PersediaanDao
-    abstract fun pergerakanPersediaanDao(): PergerakanPersediaanDao
-    abstract fun kasirDao(): KasirDao
-    abstract fun shiftDao(): ShiftDao
-    abstract fun pergerakanKasDao(): PergerakanKasDao
-    abstract fun keranjangDao(): KeranjangDao
-    abstract fun itemKeranjangDao(): ItemKeranjangDao
-    abstract fun transaksiDao(): TransaksiDao
-    abstract fun itemTransaksiDao(): ItemTransaksiDao
-    abstract fun pembayaranDao(): PembayaranDao
-    abstract fun returDao(): ReturDao
-    abstract fun printerDao(): PrinterDao
-    abstract fun profilTokoDao(): ProfilTokoDao
+    abstract fun produkDao(): com.pos.offline.data.dao.ProdukDao
+    abstract fun persediaanDao(): com.pos.offline.data.dao.PersediaanDao
+    abstract fun pergerakanPersediaanDao(): com.pos.offline.data.dao.PergerakanPersediaanDao
+    abstract fun kasirDao(): com.pos.offline.data.dao.KasirDao
+    abstract fun shiftDao(): com.pos.offline.data.dao.ShiftDao
+    abstract fun pergerakanKasDao(): com.pos.offline.data.dao.PergerakanKasDao
+    abstract fun keranjangDao(): com.pos.offline.data.dao.KeranjangDao
+    abstract fun itemKeranjangDao(): com.pos.offline.data.dao.ItemKeranjangDao
+    abstract fun transaksiDao(): com.pos.offline.data.dao.TransaksiDao
+    abstract fun itemTransaksiDao(): com.pos.offline.data.dao.ItemTransaksiDao
+    abstract fun pembayaranDao(): com.pos.offline.data.dao.PembayaranDao
+    abstract fun returDao(): com.pos.offline.data.dao.ReturDao
+    abstract fun printerDao(): com.pos.offline.data.dao.PrinterDao
+    abstract fun profilTokoDao(): com.pos.offline.data.dao.ProfilTokoDao
 }
