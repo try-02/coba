@@ -8,12 +8,12 @@ import com.pos.offline.data.entity.*
 
 @Database(
     entities = [
-        ProdukEntity::class,
+        PersediaanEntity::class,
     ],
     version = 1,
     exportSchema = true,
 )
 @ColumnTypeConverters(DatabaseConverters::class)
 abstract class PosDatabase : RoomDatabase() {
-    abstract fun produkDao(): com.pos.offline.data.dao.ProdukDao
+    abstract fun persediaanDao(): com.pos.offline.data.dao.PersediaanDao
 }
