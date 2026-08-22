@@ -12,63 +12,48 @@ import androidx.room3.paging.PagingSourceDaoReturnTypeConverter
 import com.pos.offline.data.entity.ItemTransaksiEntity
 import com.pos.offline.data.entity.PembayaranEntity
 import com.pos.offline.data.entity.TransaksiEntity
+import com.pos.offline.data.model.StatusTransaksi
+import kotlinx.coroutines.flow.Flow
 
 data class TransaksiDenganDetail(
-
-    @Embedded
-    val transaksi: TransaksiEntity,
+    @Embedded val transaksi: TransaksiEntity,
 
     @Relation(
-        parentColumns = ["id"],
-        entityColumns = ["transaksi_id"]
+        parentColumn = "id",
+        entityColumn = "transaksi_id"
     )
     val items: List<ItemTransaksiEntity>,
 
     @Relation(
-        parentColumns = ["id"],
-        entityColumns = ["transaksi_id"]
+        parentColumn = "id",
+        entityColumn = "transaksi_id"
     )
-    val pembayaran: List<PembayaranEntity>,
+    val pembayaran: List<PembayaranEntity>
 )
 
 @Dao
-@DaoReturnTypeConverters(
-    PagingSourceDaoReturnTypeConverter::class
-)
+@DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)
 interface TransaksiDao {
 
     @Insert
-    suspend fun insert(
-        entity: TransaksiEntity
-    ): Long
+    suspend fun insert(entity: TransaksiEntity): Long
 
     @Transaction
-    @Query("""
-        SELECT *
-        FROM transaksi
-        WHERE id = :id
-        LIMIT 1
-    """)
-    suspend fun getTransaksiUtuhById(
-        id: Long
-    ): TransaksiDenganDetail?
+    @Query("SELECT * FROM transaksi WHERE id = :id LIMIT 1")
+    suspend fun getTransaksiUtuhById(id: Long): TransaksiDenganDetail?
 
     @Query("""
-        SELECT *
-        FROM transaksi
+        SELECT * FROM transaksi
         WHERE nomor_transaksi = :number
         LIMIT 1
     """)
-    suspend fun getByNumber(
-        number: String
-    ): TransaksiEntity?
+    suspend fun getByNumber(number: String): TransaksiEntity?
 
-    @Query("""
-        SELECT *
-        FROM transaksi
-        ORDER BY dibuat_pada DESC, id DESC
-    """)
-    fun observeAllPaged(): PagingSource<Int, TransaksiEntity>
+@Query("""
+    SELECT * FROM transaksi
+    ORDER BY dibuat_pada DESC, id DESC
+""")
+fun observeAllPaged(): PagingSource<Int, TransaksiEntity>
 
     @Query("""
         UPDATE transaksi
@@ -84,8 +69,6 @@ interface TransaksiDao {
         reason: String
     ): Int
 
-    // Sementara hapus dari test Transaksi
-    /*
     @Query("""
         SELECT EXISTS(
             SELECT 1
@@ -93,8 +76,5 @@ interface TransaksiDao {
             WHERE transaksi_id = :transactionId
         )
     """)
-    suspend fun hasReturns(
-        transactionId: Long
-    ): Boolean
-    */
+    suspend fun hasReturns(transactionId: Long): Boolean
 }
