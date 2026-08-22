@@ -1,5 +1,6 @@
+// ProdukEntity.kt
 package com.pos.offline.data.entity
-
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
@@ -16,11 +17,9 @@ data class ProdukEntity(
     val sku: String,
     val barcode: String?,
     val harga: Long,
-    @ColumnInfo(name = "harga_Modal")
-    val hargaModal: Long,
+    @ColumnInfo(name = "harga_modal") val hargaModal: Long,
     val kategori: String,
     val aktif: Boolean,
-    val dibuatPada: Long,
-    @ColumnInfo(name = "diperbarui_Pada")
-    val diperbaruiPada: Long,
+    @ColumnInfo(name = "dibuat_pada") val dibuatPada: Long,
+    @ColumnInfo(name = "diperbarui_pada") val diperbaruiPada: Long,
 )

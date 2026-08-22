@@ -1,5 +1,5 @@
+// PersediaanEntity.kt
 package com.pos.offline.data.entity
-
 import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
@@ -17,9 +17,6 @@ import androidx.room3.PrimaryKey
 data class PersediaanEntity(
     @PrimaryKey @ColumnInfo(name = "produk_id") val produkId: Long,
     val jumlah: Long,
-@ColumnInfo(name = "jumlah_rusak")
-val jumlahRusak: Long
-
-@ColumnInfo(name = "diperbarui_pada")
-val diperbaruiPada: Long
+    @ColumnInfo(name = "jumlah_rusak") val jumlahRusak: Long,
+    @ColumnInfo(name = "diperbarui_pada") val diperbaruiPada: Long,
 )
