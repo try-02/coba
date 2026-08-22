@@ -4,8 +4,8 @@
 org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=1g -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:+HeapDumpOnOutOfMemoryError
 
 # ===== PARALLEL BUILD CONFIG =====
-# org.gradle.workers.max=2
-# org.gradle.parallel=true
+org.gradle.workers.max=2
+org.gradle.parallel=true
 # org.gradle.caching=true
 # org.gradle.configuration-cache=true
 
@@ -25,5 +25,4 @@ android.enableR8.fullMode=true
 android.experimental.r8.dex-db-sharing=true
 # Memaksa KSP dan Room berjalan dalam mode Inkremental (Hanya memproses file yang berubah)
 ksp.incremental=true
-# room.incremental=true
-ksp.useKSP2=false
+room.incremental=true

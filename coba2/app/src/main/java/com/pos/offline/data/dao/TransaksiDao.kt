@@ -5,15 +5,8 @@ import androidx.room3.*
 import com.pos.offline.data.entity.ItemTransaksiEntity
 import com.pos.offline.data.entity.PembayaranEntity
 import com.pos.offline.data.entity.TransaksiEntity
+import com.pos.offline.data.entity.TransaksiDenganDetail
 import kotlinx.coroutines.flow.Flow
-
-data class TransaksiDenganDetail(
-    @Embedded val transaksi: TransaksiEntity,
-    @Relation(parentColumn = "id", entityColumn = "transaksi_id")
-    val items: List<ItemTransaksiEntity>,
-    @Relation(parentColumn = "id", entityColumn = "transaksi_id")
-    val pembayaran: List<PembayaranEntity>
-)
 
 @Dao // Hapus @DaoReturnTypeConverters sementara
 interface TransaksiDao {
