@@ -81,7 +81,6 @@ dependencies {
 
     // 4. Room 3.0.1 & SQLite Bundled 
     implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
     implementation(libs.room.paging)
     ksp(libs.room.compiler)
     implementation(libs.sqlite.bundled)
