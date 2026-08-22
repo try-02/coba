@@ -24,7 +24,6 @@ import com.pos.offline.data.entity.*
         PersediaanEntity::class,
         KasirEntity::class,
         ShiftEntity::class,
-        KeranjangEntity::class,
         PrinterEntity::class,
         ProfilTokoEntity::class,
     ],
@@ -37,7 +36,6 @@ abstract class PosDatabase : RoomDatabase() {
     abstract fun persediaanDao(): PersediaanDao
     abstract fun kasirDao(): KasirDao
     abstract fun shiftDao(): ShiftDao
-    abstract fun keranjangDao(): KeranjangDao
     abstract fun printerDao(): PrinterDao
     abstract fun profilTokoDao(): ProfilTokoDao
 }
