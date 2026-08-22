@@ -45,7 +45,9 @@ jobs:
             --parallel \
             --build-cache \
             --non-interactive \
-            --stacktrace
+            --stacktrace \
+            --console=plain \
+            --info
         env:
           ANDROID_BUILD_NUMBER: ${{ github.run_number }}
           NO_COLOR: "1"
