@@ -75,8 +75,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // 3. Navigation & Pagination UI
+    // Navigation & Paging
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
 
     // 4. Room 3.0.1 & SQLite Bundled 

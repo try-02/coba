@@ -11,7 +11,16 @@ import com.pos.offline.data.model.TujuanStokPengembalian
     ForeignKey(entity = PengembalianEntity::class, parentColumns = ["id"], childColumns = ["pengembalian_id"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = ItemTransaksiEntity::class, parentColumns = ["id"], childColumns = ["item_transaksi_id"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = ProdukEntity::class, parentColumns = ["id"], childColumns = ["produk_id"], onDelete = ForeignKey.SET_NULL),
-], indices = [Index("pengembalian_id"), Index("item_transaksi_id"), Index("produk_id"), Index(value = ["pengembalian_id", "item_transaksi_id"], unique = true, name = "unik_item_pengembalian")])
+], indices = [
+    Index("pengembalian_id"),
+    Index("item_transaksi_id"),
+    Index("produk_id"),
+    Index(
+        value = ["pengembalian_id", "item_transaksi_id"],
+        unique = true,
+        name = "unik_item_pengembalian"
+    )
+]
 data class ItemPengembalianEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "pengembalian_id") val pengembalianId: Long,
