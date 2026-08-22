@@ -44,7 +44,6 @@ jobs:
           ./gradlew clean assembleDebug \
             --parallel \
             --build-cache \
-            --configuration-cache \
             --non-interactive \
             --stacktrace
         env:
