@@ -1,81 +1,109 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "com.toko.pos"
-    compileSdk = 35
+    namespace = "com.pos.offline"
+    compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.toko.pos"
-        minSdk = 24
-        targetSdk = 35
+        applicationId = "com.pos.offline"
+        minSdk = 26 // Android 8.0 (Ideal untuk library ESCPOS & CameraX)
+        targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
+    }
+
+    androidResources {
+        localeFilters += listOf("id", "en")
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
+
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
+
     buildFeatures {
         compose = true
+    }
+    
+    // Konfigurasi Room Auto-Migration Schema
+    room3 {
+        schemaDirectory("$projectDir/schemas")
     }
 }
 
 dependencies {
-    // Compose
-    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
+    // 1. AndroidX Core & Lifecycle
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
-    // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    // 2. Jetpack Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Activity
-    implementation("androidx.activity:activity-compose:1.9.3")
+    // 3. Navigation & Pagination UI
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.paging.compose)
 
-    // Navigation Compose
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    // 4. Room 3.0.1 & SQLite Bundled 
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    implementation(libs.room.paging)
+    ksp(libs.room.compiler)
+    implementation(libs.sqlite.bundled)
 
-    // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    // 5. Coroutines
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.android)
 
-    // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // 6. Dependency Injection (Koin)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.kotlinx.serialization.json)
 
-    // Coil
-    implementation("io.coil-kt:coil-compose:2.7.0")
+    // 7. Hardware: Printer Termal
+    implementation(libs.escpos.printer)
 
-    // ML Kit Barcode
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    // 8. Hardware: Pemindai Barcode (CameraX + MLKit)
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.mlkit.barcode)
 
-    // CameraX
-    implementation("androidx.camera:camera-camera2:1.4.1")
-    implementation("androidx.camera:camera-lifecycle:1.4.1")
-    implementation("androidx.camera:camera-view:1.4.1")
-
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-
-    // Immutable Collections
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.8")
+    // 9. Laporan Ekspor/Impor (FastExcel & Stax)
+    implementation(libs.fastexcel)
+    implementation(libs.aalto.xml)
+    implementation(libs.stax.api)
 }

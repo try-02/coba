@@ -19,7 +19,7 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           # Perbaikan: Hapus 'cache: gradle' di sini agar tidak konflik dengan action resmi Gradle
 
@@ -41,9 +41,7 @@ jobs:
           chmod +x ./gradlew
 
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
-          ./gradlew assembleRelease \
-            -x test \
-            -x connectedAndroidTest \
+          ./gradlew clean assembleDebug \
             --parallel \
             --build-cache \
             --configuration-cache \
@@ -62,7 +60,7 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
         with:
-          releaseDirectory: coba2/app/build/outputs/apk/release
+          releaseDirectory: coba2/app/build/outputs/apk/debug
           signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -78,26 +76,3 @@ jobs:
             coba2/app/**/*.json
           retention-days: 1
           if-no-files-found: error
-
-      # Perbaikan: SEGERA HAPUS STEP "Cleanup Runner Environment" versi lama Anda di sini.
-      # Menjalankan `./gradlew clean` atau `rm -rf .gradle` di akhir step sebelum upload cache selesai 
-      # akan menghapus seluruh data kompilasi yang seharusnya di-cache untuk build berikutnya!
-#
-#      - name: Cleanup Runner Environment & Build Artifacts
-#        if: always() # Memastikan step ini SELALU berjalan (Sukses, Gagal, atau Dibatalkan)
-#        run: |
-#          echo "--- Memulai Pembersihan Runner & Bekas Build ---"
-#          
-#          # 1. Menghentikan Gradle Daemon agar RAM & CPU lega
-#          ./gradlew --stop || true
-#          
-#          # 3. Menjalankan task clean dari Gradle
-#          ./gradlew clean || true
-#          
-#          # 4. Hapus folder build dan .gradle secara paksa
-#          rm -rf build app/build .gradle || true
-#          
-#          # 5. Hapus semua file/folder yang tidak di-track oleh Git (bekas kompilasi, test report, APK temporer, dll)
-#          git clean -ffdx || true
-#          
- #         echo "--- Pembersihan Total Selesai ---"
