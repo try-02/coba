@@ -21,7 +21,7 @@ navigationCompose = "2.10.0-rc01" # Versi standar penunjang Compose
 pagingCompose = "3.5.1"             # Penunjang rekomendasi pagination kita
 
 # Dependency Injection
-koin = "4.0.0" # Versi Koin mutakhir untuk Compose
+koin = "4.2.2" # Versi Koin mutakhir untuk Compose
 
 # Hardware & Utilities (POS Specific)
 escpos = "3.4.0"
