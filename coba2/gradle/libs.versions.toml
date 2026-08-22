@@ -1,6 +1,6 @@
 [versions]
 # Core Build & Kotlin
-agp = "9.5.0"
+agp = "9.3.1"
 kotlin = "2.3.11"
 ksp = "2.3.11"
 kotlinxSerialization = "1.11.0"
