@@ -1,19 +1,45 @@
 package com.pos.offline.data
 
-import androidx.room3.ColumnTypeConverters
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
-import com.pos.offline.data.converter.DatabaseConverters
+import com.pos.offline.data.dao.ItemKeranjangDao
+import com.pos.offline.data.dao.ItemTransaksiDao
+import com.pos.offline.data.dao.KasirDao
+import com.pos.offline.data.dao.KeranjangDao
+import com.pos.offline.data.dao.PembayaranDao
+import com.pos.offline.data.dao.PergerakanKasDao
+import com.pos.offline.data.dao.PergerakanPersediaanDao
+import com.pos.offline.data.dao.PersediaanDao
+import com.pos.offline.data.dao.PrinterDao
+import com.pos.offline.data.dao.ProdukDao
+import com.pos.offline.data.dao.ProfilTokoDao
+import com.pos.offline.data.dao.ReturDao
+import com.pos.offline.data.dao.ShiftDao
+import com.pos.offline.data.dao.TransaksiDao
 import com.pos.offline.data.entity.*
 
 @Database(
     entities = [
+        ProdukEntity::class,
         PersediaanEntity::class,
+        PergerakanPersediaanEntity::class,
+        KasirEntity::class,
+        ShiftEntity::class,
+        PergerakanKasEntity::class,
+        KeranjangEntity::class,
+        ItemKeranjangEntity::class,
     ],
     version = 1,
-    exportSchema = true,
+    exportSchema = true
 )
-@ColumnTypeConverters(DatabaseConverters::class)
 abstract class PosDatabase : RoomDatabase() {
-    abstract fun persediaanDao(): com.pos.offline.data.dao.PersediaanDao
+
+    abstract fun produkDao(): ProdukDao
+    abstract fun persediaanDao(): PersediaanDao
+    abstract fun pergerakanPersediaanDao(): PergerakanPersediaanDao
+    abstract fun kasirDao(): KasirDao
+    abstract fun shiftDao(): ShiftDao
+    abstract fun pergerakanKasDao(): PergerakanKasDao
+    abstract fun keranjangDao(): KeranjangDao
+    abstract fun itemKeranjangDao(): ItemKeranjangDao
 }

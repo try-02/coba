@@ -16,11 +16,9 @@ data class ProdukEntity(
     val sku: String,
     val barcode: String?,
     val harga: Long,
-    @ColumnInfo(name = "harga_Modal")
     val hargaModal: Long,
     val kategori: String,
     val aktif: Boolean,
     val dibuatPada: Long,
-    @ColumnInfo(name = "diperbarui_Pada")
     val diperbaruiPada: Long,
 )
