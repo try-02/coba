@@ -22,6 +22,7 @@ import com.pos.offline.data.entity.*
     entities = [
         ProdukEntity::class,
         PersediaanEntity::class,
+        PergerakanPersediaanEntity::class,
     ],
     version = 1,
     exportSchema = true
@@ -30,4 +31,5 @@ abstract class PosDatabase : RoomDatabase() {
 
     abstract fun produkDao(): ProdukDao
     abstract fun persediaanDao(): PersediaanDao
+    abstract fun pergerakanPersediaanDao(): PergerakanPersediaanDao
 }
