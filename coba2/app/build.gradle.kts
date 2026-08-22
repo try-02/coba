@@ -38,13 +38,16 @@ android {
         }
     }
 
+    // Perbaikan 3: Menggunakan Java Toolchain (Sinkron dengan target kompilasi Kotlin & Java)
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    kotlinOptions {
-        jvmTarget = "21"
     }
 
     buildFeatures {
