@@ -1,8 +1,9 @@
-// PosDatabase.kt
 package com.pos.offline.data
 
+import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
+import androidx.room3.RoomDatabaseConstructor
 import com.pos.offline.data.dao.*
 import com.pos.offline.data.entity.*
 
@@ -27,7 +28,7 @@ import com.pos.offline.data.entity.*
     version = 1,
     exportSchema = true
 )
-// Tidak perlu anotasi converter sama sekali. Room 3.0 akan menangani Enum secara otomatis.
+@ConstructedBy(PosDatabaseConstructor::class) // <-- TAMBAHKAN INI
 abstract class PosDatabase : RoomDatabase() {
     abstract fun produkDao(): ProdukDao
     abstract fun persediaanDao(): PersediaanDao
@@ -44,3 +45,8 @@ abstract class PosDatabase : RoomDatabase() {
     abstract fun printerDao(): PrinterDao
     abstract fun profilTokoDao(): ProfilTokoDao
 }
+
+// Definisikan Constructor Object di bawah class PosDatabase
+// (Jika di project KMP / Kotlin Multiplatform gunakan `expect object`)
+@Suppress("KotlinNoActualForExpect")
+object PosDatabaseConstructor : RoomDatabaseConstructor<PosDatabase>

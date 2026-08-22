@@ -257,7 +257,7 @@ CREATE TABLE profil_toko (
   nama_toko TEXT NOT NULL,
   alamat TEXT NOT NULL,
   catatan_footer TEXT NOT NULL,
-  logo_bytes BLOB,
+  logo_uri TEXT,
   cetak_otomatis INTEGER NOT NULL
 );
 INSERT INTO profil_toko(id,nama_toko,alamat,catatan_footer,logo_bytes,cetak_otomatis)
