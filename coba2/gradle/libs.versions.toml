@@ -31,7 +31,7 @@ fastexcel = "0.20.2"
 aaltoXml = "1.4.0"
 staxApi = "1.0-2"
 splash = "1.2.0"
-google-material = "1.12.0"
+google-material = "1.14.0"
 
 [libraries]
 # Core
