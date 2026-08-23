@@ -6,7 +6,7 @@ import com.pos.offline.data.repository.*
 import com.pos.offline.data.repository.impl.*
 import com.pos.offline.data.service.*
 import org.koin.android.ext.koin.androidContext
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
