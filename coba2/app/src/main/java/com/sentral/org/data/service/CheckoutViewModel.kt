@@ -17,8 +17,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.sentral.org.data.local.entity.ItemKeranjangEntity
+import com.sentral.org.data.local.entity.KeranjangEntity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+
 
 sealed interface CheckoutUiState {
     data object Idle : CheckoutUiState
@@ -59,19 +67,19 @@ val state: StateFlow<PosUiState> = combine(
     _checkoutState,
     searchProductUseCase.observeCategories(),
     searchProductUseCase.observeFiltered("", null),
-    observeCartItems(),
+    observeCartItems(),          // <- ini harus Flow<List<CartItemUi>>
     observeActiveCart(),
 ) { values ->
-    val query = values[0] as String
-    val category = values[1] as String?
-    val expanded = values[2] as Boolean
-    val checkoutState = values[3] as CheckoutUiState
-    val categories = values[4] as List<String>
-    val products = values[5] as List<ProdukEntity>
-    val cartItems = values[6] as List<CartItemUi>
-    val cart = values[7] as KeranjangEntity?
+    // Cast eksplisit
+    val query: String = values[0] as String
+    val category: String? = values[1] as String?
+    val expanded: Boolean = values[2] as Boolean
+    val checkoutState: CheckoutUiState = values[3] as CheckoutUiState
+    val categories: List<String> = values[4] as List<String>
+    val products: List<ProdukEntity> = values[5] as List<ProdukEntity>
+    val cartItems: List<CartItemUi> = values[6] as List<CartItemUi>
+    val cart: KeranjangEntity? = values[7] as KeranjangEntity?
 
-    // Filter produk
     val filtered = if (query.isBlank() && category == null) {
         products.map { it.toProductUi() }
     } else {
@@ -85,24 +93,25 @@ val state: StateFlow<PosUiState> = combine(
         }.map { it.toProductUi() }
     }
 
-    val total = cartItems.sumOf { it.lineTotal }
-    val count = cartItems.sumOf { it.quantity.toInt() }
-
     PosUiState(
         isLoading = false,
         products = filtered,
-        categories = categories.map { CategoryUi(it, it == category) },
+        categories = categories.map { CategoryUi(name = it, selected = it == category) },
         searchQuery = query,
         cartItems = cartItems,
-        cartTotal = total,
-        cartTotalFormatted = formatRupiah(total),
-        cartItemCount = count,
+        cartTotal = cartItems.sumOf { it.lineTotal },
+        cartTotalFormatted = formatRupiah(cartItems.sumOf { it.lineTotal }),
+        cartItemCount = cartItems.sumOf { it.quantity.toInt() },
         activeCartId = cart?.id,
         shiftInfo = null,
         checkoutState = checkoutState,
         isCartExpanded = expanded,
     )
-}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PosUiState())
+}.stateIn(
+    scope = viewModelScope,
+    started = SharingStarted.WhileSubscribed(5_000),
+    initialValue = PosUiState(),
+)
 
     // ── Observe cart ──
 
@@ -110,10 +119,16 @@ private fun observeCartItems(): Flow<List<CartItemUi>> =
     keranjangDao.observeOpen()
         .flatMapLatest { carts ->
             val activeCart = carts.firstOrNull()
-            if (activeCart == null) flowOf(emptyList())
-            else itemKeranjangDao.getByCart(activeCart.id)
-                .map { items -> items.map { it.toCartItemUi() } }
+            if (activeCart == null) {
+                flowOf(emptyList())
+            } else {
+                itemKeranjangDao.getByCart(activeCart.id)
+                    .map { items: List<ItemKeranjangEntity> ->
+                        items.map { item -> item.toCartItemUi() }
+                    }
+            }
         }
+
 
 
     private fun observeActiveCart(): Flow<KeranjangEntity?> = keranjangDao.observeOpen()

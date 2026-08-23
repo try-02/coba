@@ -52,61 +52,75 @@ class CheckoutViewModel(
 
     // ── Public UI State ──
 
-    val state: StateFlow<PosUiState> = combine(
-        _searchQuery,
-        _selectedCategory,
-        _isCartExpanded,
-        _checkoutState,
-        searchProductUseCase.observeCategories(),
-        searchProductUseCase.observeFiltered("", null), // base product list
-        observeCartItems(),
-        observeActiveCart(),
-    ) { query, category, expanded, checkoutState, categories, products, cartItems, cart ->
+val state: StateFlow<PosUiState> = combine(
+    _searchQuery,
+    _selectedCategory,
+    _isCartExpanded,
+    _checkoutState,
+    searchProductUseCase.observeCategories(),
+    searchProductUseCase.observeFiltered("", null),
+    observeCartItems(),
+    observeActiveCart(),
+) { values ->
+    val query = values[0] as String
+    val category = values[1] as String?
+    val expanded = values[2] as Boolean
+    val checkoutState = values[3] as CheckoutUiState
+    val categories = values[4] as List<String>
+    val products = values[5] as List<ProdukEntity>
+    val cartItems = values[6] as List<CartItemUi>
+    val cart = values[7] as KeranjangEntity?
 
-        val filtered = if (query.isBlank() && category == null) {
-            products.map { it.toProductUi() }
-        } else {
-            products.filter { p ->
-                val matchQuery = query.isBlank() ||
-                    p.nama.contains(query, ignoreCase = true) ||
-                    p.sku.contains(query, ignoreCase = true) ||
-                    (p.barcode?.contains(query, ignoreCase = true) == true)
-                val matchCategory = category == null || p.kategori == category
-                matchQuery && matchCategory
-            }.map { it.toProductUi() }
-        }
+    // Filter produk
+    val filtered = if (query.isBlank() && category == null) {
+        products.map { it.toProductUi() }
+    } else {
+        products.filter { p ->
+            val matchQuery = query.isBlank() ||
+                p.nama.contains(query, ignoreCase = true) ||
+                p.sku.contains(query, ignoreCase = true) ||
+                (p.barcode?.contains(query, ignoreCase = true) == true)
+            val matchCategory = category == null || p.kategori == category
+            matchQuery && matchCategory
+        }.map { it.toProductUi() }
+    }
 
-        val total = cartItems.sumOf { it.lineTotal }
-        val count = cartItems.sumOf { it.quantity.toInt() }
+    val total = cartItems.sumOf { it.lineTotal }
+    val count = cartItems.sumOf { it.quantity.toInt() }
 
-        PosUiState(
-            isLoading = false,
-            products = filtered,
-            categories = categories.map { CategoryUi(it, it == category) },
-            searchQuery = query,
-            cartItems = cartItems,
-            cartTotal = total,
-            cartTotalFormatted = formatRupiah(total),
-            cartItemCount = count,
-            activeCartId = cart?.id,
-            shiftInfo = null, // will be populated separately
-            checkoutState = checkoutState,
-            isCartExpanded = expanded,
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PosUiState())
+    PosUiState(
+        isLoading = false,
+        products = filtered,
+        categories = categories.map { CategoryUi(it, it == category) },
+        searchQuery = query,
+        cartItems = cartItems,
+        cartTotal = total,
+        cartTotalFormatted = formatRupiah(total),
+        cartItemCount = count,
+        activeCartId = cart?.id,
+        shiftInfo = null,
+        checkoutState = checkoutState,
+        isCartExpanded = expanded,
+    )
+}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PosUiState())
 
     // ── Observe cart ──
 
-    private fun observeCartItems(): Flow<List<CartItemUi>> = keranjangDao.observeOpen()
-        .map { carts -> carts.firstOrNull() }
-        .onEach { cart -> cartId = cart?.id }
-        .flatMapLatest { cart ->
-            if (cart == null) flowOf(emptyList())
-            else flow {
-                val items = itemKeranjangDao.getByCart(cart.id)
-                emit(items.map { it.toCartItemUi() })
+private fun observeCartItems(): Flow<List<CartItemUi>> =
+    keranjangDao.observeOpen()
+        .flatMapLatest { carts ->
+            val activeCart = carts.firstOrNull()
+            if (activeCart == null) {
+                flowOf(emptyList())
+            } else {
+                itemKeranjangDao.getByCart(activeCart.id)
+                    .map { items: List<ItemKeranjangEntity> ->
+                        items.map { item -> item.toCartItemUi() }
+                    }
             }
         }
+
+
 
     private fun observeActiveCart(): Flow<KeranjangEntity?> = keranjangDao.observeOpen()
         .map { it.firstOrNull() }
