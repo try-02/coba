@@ -21,4 +21,16 @@ data class ItemPengembalianEntity(
 
     @ColumnInfo(name = "pengembalian_id")
     val pengembalianId: Long
+
+    @ColumnInfo(name = "nama_produk")
+    val namaProduk: String,
+
+    @ColumnInfo(name = "harga_satuan")
+    val hargaSatuan: Long,
+
+    @ColumnInfo(name = "jumlah_dikembalikan")
+    val jumlahDikembalikan: Long,
+
+    @ColumnInfo(name = "jumlah_refund")
+    val jumlahRefund: Long,
 )
