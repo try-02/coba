@@ -58,6 +58,33 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.version",
+                "META-INF/INDEX.LIST"
+            )
+
+            pickFirsts += setOf(
+                "META-INF/services/javax.xml.stream.XMLInputFactory",
+                "META-INF/services/javax.xml.stream.XMLOutputFactory",
+                "META-INF/services/javax.xml.stream.XMLEventFactory",
+                "META-INF/services/org.codehaus.stax2.validation.XMLValidationSchemaFactory.DTD",
+                "META-INF/services/org.codehaus.stax2.validation.XMLValidationSchemaFactory.RELAXNG",
+                "META-INF/services/org.codehaus.stax2.validation.XMLValidationSchemaFactory.W3C"
+            )
+        }
+    }
 }
 
 dependencies {
