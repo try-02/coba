@@ -9,6 +9,7 @@ import androidx.room3.Transaction
 import androidx.room3.paging.PagingSourceDaoReturnTypeConverter
 import com.pos.offline.data.entity.TransaksiDenganDetail
 import com.pos.offline.data.entity.TransaksiEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 @DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)
@@ -16,6 +17,19 @@ interface TransaksiDao {
 
     @Insert
     suspend fun insert(entity: TransaksiEntity): Long
+
+    @Query("""
+        SELECT * FROM transaksi
+        WHERE id = :id
+        LIMIT 1
+    """)
+    suspend fun getById(id: Long): TransaksiEntity?
+
+    @Query("""
+        SELECT * FROM transaksi
+        ORDER BY dibuat_pada DESC, id DESC
+    """)
+    fun observeAll(): Flow<List<TransaksiEntity>>
 
     @Transaction
     @Query("SELECT * FROM transaksi WHERE id = :id LIMIT 1")
