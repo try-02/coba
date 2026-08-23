@@ -4,6 +4,7 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.PrimaryKey
+import androidx.room3.Index
 import com.pos.offline.data.model.TujuanStokPengembalian
 
 @Entity(
@@ -27,6 +28,11 @@ import com.pos.offline.data.model.TujuanStokPengembalian
             childColumns = ["produk_id"],
             onDelete = ForeignKey.SET_NULL
         )
+    ],
+    indices = [
+        Index("pengembalian_id"),
+        Index("item_transaksi_id"),
+        Index("produk_id")
     ]
 )
 data class ItemPengembalianEntity(
