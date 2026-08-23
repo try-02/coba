@@ -32,5 +32,5 @@ enableFeaturePreview("NO_IMPLICIT_LOOKUP_IN_PARENT_PROJECTS")
 // 2. Mengaktifkan optimasi I/O journal tingkat lanjut untuk mempercepat pemrosesan disk di GitHub CI
 enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
 
-rootProject.name = "KasirOffline"
+rootProject.name = "CobaApp"
 include(":app")

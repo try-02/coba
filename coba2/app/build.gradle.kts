@@ -12,11 +12,11 @@ room3 {
 }
 
 android {
-    namespace = "com.pos.offline"
+    namespace = "com.sentral.org"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.pos.offline"
+        applicationId = "com.sentral.org"
         minSdk = 26 // Android 8.0 (Ideal untuk library ESCPOS & CameraX)
         targetSdk = 37
         versionCode = 1

@@ -27,7 +27,7 @@
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
     <application
-        android:name="com.pos.offline.PosApplication"
+        android:name="com.sentral.org.PosApplication"
         android:allowBackup="false"
         android:label="Kasir Offline"
         android:supportsRtl="true"
