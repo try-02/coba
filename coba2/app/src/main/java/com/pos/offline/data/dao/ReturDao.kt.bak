@@ -12,15 +12,15 @@ interface ReturDao {
     @Insert
     suspend fun insert(entity: PengembalianEntity): Long
 
+    @Insert
+    suspend fun insertItems(
+        items: List<ItemPengembalianEntity>
+    ): List<Long>
+
     @Query("""
         SELECT * FROM pengembalian
         WHERE id = :id
         LIMIT 1
     """)
     suspend fun getById(id: Long): PengembalianEntity?
-    
-    @Insert
-    suspend fun insertItems(
-        items: List<ItemPengembalianEntity>
-    ): List<Long>
 }
