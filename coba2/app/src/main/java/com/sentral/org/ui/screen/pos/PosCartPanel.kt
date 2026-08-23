@@ -1,0 +1,392 @@
+package com.sentral.org.ui.screen.pos
+
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun PosCartPanel(
+    uiState: PosUiState,
+    panelHeight: Dp,
+    collapsedHeight: Dp,
+    expandedMaxHeight: Dp,
+    onToggleExpand: () -> Unit,
+    onDragProgress: (Float) -> Unit,
+    onIncrement: (Long) -> Unit,
+    onDecrement: (Long) -> Unit,
+    onRemove: (Long) -> Unit,
+    onCheckout: () -> Unit,
+    density: androidx.compose.ui.unit.Density,
+) {
+    val isExpanded = uiState.isCartExpanded
+    val showContent = isExpanded || uiState.cartItems.isNotEmpty()
+
+    AnimatedVisibility(
+        visible = showContent,
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(panelHeight)
+                .shadow(8.dp, shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+            shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+            tonalElevation = 3.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                // ── Drag Handle + Collapsed Summary ──
+                CartDragHandle(
+                    isExpanded = isExpanded,
+                    itemCount = uiState.cartItemCount,
+                    totalFormatted = uiState.cartTotalFormatted,
+                    onToggle = onToggleExpand,
+                    onDrag = { deltaPx ->
+                        val totalHeightPx = with(density) { expandedMaxHeight.toPx() - collapsedHeight.toPx() }
+                        if (totalHeightPx > 0f) {
+                            val progress = (deltaPx / totalHeightPx).coerceIn(-1f, 1f)
+                            onDragProgress(if (isExpanded) 1f + progress else progress)
+                        }
+                    },
+                    density = density,
+                )
+
+                // ── Divider ──
+                if (isExpanded && uiState.cartItems.isNotEmpty()) {
+                    HorizontalDivider(
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                }
+
+                // ── Expanded content: Items + Checkout ──
+                if (isExpanded) {
+                    if (uiState.cartItems.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Keranjang kosong",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        // Items list
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentPadding = PaddingValues(vertical = 2.dp),
+                        ) {
+                            items(
+                                items = uiState.cartItems,
+                                key = { it.id },
+                            ) { item ->
+                                CartItemRow(
+                                    item = item,
+                                    onIncrement = { onIncrement(item.productId) },
+                                    onDecrement = { onDecrement(item.productId) },
+                                    onRemove = { onRemove(item.id) },
+                                )
+                            }
+                        }
+
+                        // Checkout bar
+                        CartCheckoutBar(
+                            totalFormatted = uiState.cartTotalFormatted,
+                            itemCount = uiState.cartItemCount,
+                            onCheckout = onCheckout,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CartDragHandle(
+    isExpanded: Boolean,
+    itemCount: Int,
+    totalFormatted: String,
+    onToggle: () -> Unit,
+    onDrag: (Float) -> Unit,
+    density: androidx.compose.ui.unit.Density,
+) {
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = { accumulatedDrag = 0f },
+                    onDragEnd = {
+                        // Snap to nearest state
+                        if (accumulatedDrag > with(density) { 20.dp.toPx() }) {
+                            if (!isExpanded) onToggle()
+                        } else if (accumulatedDrag < with(density) { -20.dp.toPx() }) {
+                            if (isExpanded) onToggle()
+                        }
+                        accumulatedDrag = 0f
+                    },
+                    onVerticalDrag = { _, dragAmount ->
+                        accumulatedDrag += dragAmount
+                        onDrag(accumulatedDrag)
+                    },
+                )
+            }
+            .clickable(enabled = true, onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        // Visual drag handle bar
+        Box(
+            modifier = Modifier
+                .width(32.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                .align(Alignment.CenterHorizontally),
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Item count badge
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Text(
+                    text = "$itemCount item",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Total
+            Text(
+                text = totalFormatted,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            // Chevron indicator
+            Text(
+                text = if (isExpanded) "▼" else "▲",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CartItemRow(
+    item: CartItemUi,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 0.dp,
+        color = Color.Transparent,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Product name
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = item.productName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = item.unitPriceFormatted,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Quantity controls
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                IconButton(
+                    onClick = onDecrement,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .then(Modifier.requiredSizeIn(
+                            minWidth = LocalMinimumInteractiveComponentSize,
+                            minHeight = LocalMinimumInteractiveComponentSize,
+                        )),
+                ) {
+                    Icon(
+                        Icons.Default.Remove,
+                        contentDescription = "Kurangi",
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+
+                Text(
+                    text = formatQuantity(item.quantity),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(32.dp),
+                    textAlign = TextAlign.Center,
+                )
+
+                IconButton(
+                    onClick = onIncrement,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .then(Modifier.requiredSizeIn(
+                            minWidth = LocalMinimumInteractiveComponentSize,
+                            minHeight = LocalMinimumInteractiveComponentSize,
+                        )),
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Tambah",
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Line total
+            Text(
+                text = item.lineTotalFormatted,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.width(64.dp),
+                textAlign = TextAlign.End,
+            )
+
+            // Remove
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier
+                    .size(28.dp)
+                    .then(Modifier.requiredSizeIn(
+                        minWidth = LocalMinimumInteractiveComponentSize,
+                        minHeight = LocalMinimumInteractiveComponentSize,
+                    )),
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Hapus",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CartCheckoutBar(
+    totalFormatted: String,
+    itemCount: Int,
+    onCheckout: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text(
+                    text = "Total",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = totalFormatted,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Button(
+                onClick = onCheckout,
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp),
+                modifier = Modifier.heightIn(min = LocalMinimumInteractiveComponentSize),
+            ) {
+                Text(
+                    text = "Bayar ($itemCount)",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+    }
+}
+
+private fun formatQuantity(qty: Long): String {
+    return if (qty >= 1000) {
+        "%.1f".format(qty / 1000.0)
+    } else {
+        qty.toString()
+    }
+}
