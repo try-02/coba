@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.pos.offline.ui.navigation.PosNavHost
-import com.pos.offline.ui.theme.PosOfflineTheme // Sesuaikan dengan package theme Anda
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
