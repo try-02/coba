@@ -48,11 +48,12 @@ import com.pos.offline.data.model.JenisPergerakanPersediaan
         )
     ],
     indices = [
-            Index("transaksi_id"),
+        Index("produk_id"),
+        Index("transaksi_id"),
         Index("item_transaksi_id"),
         Index("pengembalian_id"),
         Index("item_pengembalian_id"),
-        Index("shift_id")
+        Index("shift_id"),
         Index(
             value = ["produk_id", "dibuat_pada", "id"]
         )
