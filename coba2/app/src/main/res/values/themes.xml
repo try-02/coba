@@ -1,6 +1,16 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.KasirOffline" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/black</item>
+<resources>
+    <!-- Tema utama aplikasi kamu (seharusnya sudah ada) -->
+    <style name="Theme.SentralOrg" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- TAMBAHKAN TEMA SPLASH SCREEN INI -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Warna latar belakang saat aplikasi baru diklik -->
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+        
+        <!-- Logo aplikasi di tengah layar -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        
+        <!-- Setelah selesai muat, kembalikan ke tema utama aplikasi -->
+        <item name="postSplashScreenTheme">@style/Theme.SentralOrg</item>
     </style>
 </resources>

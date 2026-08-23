@@ -113,6 +113,7 @@ val appModule = module {
 
     // 5. ViewModels
     viewModel {
-        CheckoutViewModel(get())
+        // Gunakan blok lazy bawaan Kotlin untuk menunda pemanggilan get()
+        CheckoutViewModel(lazy { get<CheckoutService>() })
     }
 }

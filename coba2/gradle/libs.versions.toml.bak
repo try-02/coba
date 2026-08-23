@@ -30,14 +30,12 @@ mlkitBarcode = "17.3.0"
 fastexcel = "0.20.2"
 aaltoXml = "1.4.0"
 staxApi = "1.0-2"
-splash = "1.2.0"
 
 [libraries]
 # Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
-androidx-core-splash = { group = "androidx.core", name = "core-splashscreen", version.ref = "splash" }
 
 # Compose Framework
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
