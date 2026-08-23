@@ -15,6 +15,7 @@ import com.pos.offline.data.entity.*
         ShiftEntity::class,
         PrinterEntity::class,
         ProfilTokoEntity::class,
+        TransaksiEntity::class,
     ],
     version = 1,
     exportSchema = false
