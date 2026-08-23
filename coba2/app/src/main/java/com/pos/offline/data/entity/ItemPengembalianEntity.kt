@@ -20,7 +20,7 @@ data class ItemPengembalianEntity(
     val itemTransaksiId: Long,
 
     @ColumnInfo(name = "pengembalian_id")
-    val pengembalianId: Long
+    val pengembalianId: Long,
 
     @ColumnInfo(name = "nama_produk")
     val namaProduk: String,
