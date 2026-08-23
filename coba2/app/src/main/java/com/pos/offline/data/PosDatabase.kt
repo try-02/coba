@@ -30,4 +30,5 @@ abstract class PosDatabase : RoomDatabase() {
     abstract fun shiftDao(): ShiftDao
     abstract fun printerDao(): PrinterDao
     abstract fun profilTokoDao(): ProfilTokoDao
+    abstract fun itemTransaksiDao(): ItemTransaksiDao
 }
