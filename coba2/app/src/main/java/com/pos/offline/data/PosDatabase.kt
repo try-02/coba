@@ -19,7 +19,6 @@ import com.pos.offline.data.entity.*
         ItemTransaksiEntity::class,
         PembayaranEntity::class,
         KeranjangEntity::class,
-        ItemKeranjangEntity::class,
     ],
     version = 1,
     exportSchema = false
