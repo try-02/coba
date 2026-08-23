@@ -1,3 +1,4 @@
+// ui/navigation/PosNavHost.kt
 package com.sentral.org.ui.navigation
 
 import androidx.compose.runtime.Composable
@@ -7,14 +8,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sentral.org.ui.screen.pos.PosUtamaScreen
-import com.sentral.org.ui.screen.splash.SplashScreen // Pastikan import sesuai foldermu
 
 @Composable
 fun PosNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    // Ubah rute awal menjadi Splash Screen
-    startDestination: Any = PosRoute.Splash 
+    startDestination: Any = PosRoute.PosUtama // Sementara langsung ke POS Utama untuk testing
 ) {
     NavHost(
         navController = navController,
@@ -22,17 +21,9 @@ fun PosNavHost(
         modifier = modifier
     ) {
         composable<PosRoute.Splash> {
-            SplashScreen(
-                onSplashFinished = {
-                    // Pindah ke halaman POS Utama dan hapus rute Splash dari riwayat tombol "Back"
-                    navController.navigate(PosRoute.PosUtama) {
-                        popUpTo(PosRoute.Splash) { inclusive = true }
-                    }
-                }
-            )
+            // SplashScreen(onSplashFinished = { navController.navigate(PosRoute.LoginKasir) })
         }
         
-        // Rute LoginKasir bisa kamu siapkan nanti
         composable<PosRoute.LoginKasir> {
             // LoginScreen(...)
         }
@@ -49,7 +40,9 @@ fun PosNavHost(
         }
 
         composable<PosRoute.RiwayatTransaksi> { backStackEntry ->
-            // RiwayatScreen(...)
+            // Contoh cara menangkap argumen (kasirId) secara type-safe dari Route
+            // val route = backStackEntry.toRoute<PosRoute.RiwayatTransaksi>()
+            // RiwayatScreen(kasirId = route.kasirId)
         }
     }
 }
