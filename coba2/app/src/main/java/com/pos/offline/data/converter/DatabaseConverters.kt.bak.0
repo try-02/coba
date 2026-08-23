@@ -1,9 +1,9 @@
+// DatabaseConverters.kt
 package com.pos.offline.data.converter
-
 import androidx.room3.ColumnTypeConverter
 import com.pos.offline.data.model.*
 
-class DatabaseConverters {
+object DatabaseConverters {
     @ColumnTypeConverter fun statusKeranjangToString(v: StatusKeranjang?): String? = v?.name
     @ColumnTypeConverter fun stringToStatusKeranjang(v: String?): StatusKeranjang? = v?.let { enumValueOf<StatusKeranjang>(it) }
 
