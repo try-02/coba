@@ -1,5 +1,5 @@
 <resources>
-    <!-- Tema utama aplikasi kamu (seharusnya sudah ada) -->
+    <!-- 1. TEMA UNTUK SPLASH SCREEN (Sudah benar) -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <!-- Latar belakang tetap putih -->
         <item name="windowSplashScreenBackground">#FFFFFF</item>
@@ -9,5 +9,14 @@
     
         <!-- Setelah Splash selesai, kembali ke tema utama -->
         <item name="postSplashScreenTheme">@style/Theme.SentralOrg</item>
+    </style>
+
+    <!-- 2. TAMBAHKAN TEMA UTAMA INI YANG HILANG -->
+    <style name="Theme.SentralOrg" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Sesuaikan warna tema utama aplikasi Anda di sini -->
+        <item name="colorPrimary">#1976D2</item>
+        <item name="colorSecondary">#0E7490</item>
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>
