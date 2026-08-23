@@ -37,4 +37,23 @@ interface ReturDao {
         ORDER BY id
     """)
     suspend fun getItemsByReturn(returnId: Long): List<ItemPengembalianEntity>
+
+    @Query("""
+        SELECT EXISTS(SELECT 1 FROM pengembalian
+        WHERE transaksi_id = :transactionId)
+    """)
+
+    suspend fun existsForTransaction(transactionId: Long): Boolean
+    @Query("""
+        SELECT COALESCE(SUM(jumlah_dikembalikan),0) FROM item_pengembalian
+        WHERE item_transaksi_id = :itemTransactionId
+    """)
+
+    suspend fun getReturnedQuantity(itemTransactionId: Long): Long
+
+    @Query("""
+        SELECT COALESCE(SUM(jumlah_refund),0) FROM item_pengembalian
+        WHERE item_transaksi_id = :itemTransactionId
+    """)
+    suspend fun getRefundTotal(itemTransactionId: Long): Long
 }
