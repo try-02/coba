@@ -155,31 +155,30 @@ private fun CartDragHandle(
 ) {
     var accumulatedDrag by remember { mutableFloatStateOf(0f) }
 
-Column(
-    modifier = Modifier
-        .fillMaxWidth()
-        .pointerInput(Unit) {
-            detectVerticalDragGestures(
-                onDragStart = { accumulatedDrag = 0f },
-                onDragEnd = {
-                    val threshold = with(density) { 20.dp.toPx() }
-                    when {
-                        accumulatedDrag > threshold && !isExpanded -> onToggle()
-                        accumulatedDrag < -threshold && isExpanded -> onToggle()
-                    }
-                    accumulatedDrag = 0f
-                },
-                onVerticalDrag = { _, dragAmount ->
-                    accumulatedDrag += dragAmount
-                    onDrag(accumulatedDrag)
-                },
-            )
-        }
-        .pointerInput(Unit) {
-            detectTapGestures(onTap = { onToggle() })
-        }
-        .padding(horizontal = 16.dp, vertical = 6.dp),
-) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = { accumulatedDrag = 0f },
+                    onDragEnd = {
+                        // Snap to nearest state
+                        if (accumulatedDrag > with(density) { 20.dp.toPx() }) {
+                            if (!isExpanded) onToggle()
+                        } else if (accumulatedDrag < with(density) { -20.dp.toPx() }) {
+                            if (isExpanded) onToggle()
+                        }
+                        accumulatedDrag = 0f
+                    },
+                    onVerticalDrag = { _, dragAmount ->
+                        accumulatedDrag += dragAmount
+                        onDrag(accumulatedDrag)
+                    },
+                )
+            }
+            .clickable(enabled = true, onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
         // Visual drag handle bar
         Box(
             modifier = Modifier

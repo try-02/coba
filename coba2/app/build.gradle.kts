@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.core.splash)
     implementation(libs.google.material)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // 2. Jetpack Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -103,6 +104,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icon)
+    implementation(libs.androidx.compose.material.icon.ext)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Navigation & Paging

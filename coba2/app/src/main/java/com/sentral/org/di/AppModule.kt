@@ -8,6 +8,10 @@ import com.sentral.org.data.service.*
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import com.sentral.org.domain.usecase.AddToCartUseCase
+import com.sentral.org.domain.usecase.RemoveFromCartUseCase
+import com.sentral.org.domain.usecase.UpdateCartQuantityUseCase
+import com.sentral.org.domain.usecase.SearchProductUseCase
 
 val appModule = module {
 
@@ -121,16 +125,16 @@ val appModule = module {
 
 
     // 5. ViewModels
-    viewModel { params ->
-        CheckoutViewModel(
-            checkoutServiceLazy = lazy { get<CheckoutService>() },
-            cartService = get(),
-            searchProductUseCase = get(),
-            addToCartUseCase = get(),
-            removeFromCartUseCase = get(),
-            updateCartQuantityUseCase = get(),
-            keranjangDao = get(),
-            itemKeranjangDao = get(),
-        )
-    }
+viewModel { params ->
+    CheckoutViewModel(
+        checkoutServiceLazy = lazy { get<CheckoutService>() },
+        cartService = get(),
+        searchProductUseCase = get(),
+        addToCartUseCase = get(),
+        removeFromCartUseCase = get(),
+        updateCartQuantityUseCase = get(),
+        keranjangDao = get(),
+        itemKeranjangDao = get(),
+    )
+}
 }

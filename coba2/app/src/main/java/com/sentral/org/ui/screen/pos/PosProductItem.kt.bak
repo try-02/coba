@@ -97,12 +97,12 @@ fun PosProductItem(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier
                     .sizeIn(
-                        minWidth = LocalMinimumInteractiveComponentSize.current,
-                        minHeight = LocalMinimumInteractiveComponentSize.current,
+                        minWidth = LocalMinimumInteractiveComponentSize,
+                        minHeight = LocalMinimumInteractiveComponentSize,
                     )
                     .defaultMinSize(
-                        minWidth = LocalMinimumInteractiveComponentSize.current,
-                        minHeight = LocalMinimumInteractiveComponentSize.current,
+                        minWidth = LocalMinimumInteractiveComponentSize,
+                        minHeight = LocalMinimumInteractiveComponentSize,
                     ),
             ) {
                 Box(

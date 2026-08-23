@@ -111,9 +111,26 @@ val appModule = module {
         )
     }
 
+    // ── Tambahkan setelah baris viewModel CheckoutViewModel ──
+
+    // 6. Use Cases
+    factory { AddToCartUseCase(get()) }
+    factory { RemoveFromCartUseCase(get()) }
+    factory { UpdateCartQuantityUseCase(get()) }
+    factory { SearchProductUseCase(get()) }
+
+
     // 5. ViewModels
-    viewModel {
-        // Gunakan blok lazy bawaan Kotlin untuk menunda pemanggilan get()
-        CheckoutViewModel(lazy { get<CheckoutService>() })
+    viewModel { params ->
+        CheckoutViewModel(
+            checkoutServiceLazy = lazy { get<CheckoutService>() },
+            cartService = get(),
+            searchProductUseCase = get(),
+            addToCartUseCase = get(),
+            removeFromCartUseCase = get(),
+            updateCartQuantityUseCase = get(),
+            keranjangDao = get(),
+            itemKeranjangDao = get(),
+        )
     }
 }
