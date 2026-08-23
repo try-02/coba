@@ -30,4 +30,5 @@ interface ReturDao {
         ORDER BY dikembalikan_pada, id
     """)
     suspend fun getByTransaction(transactionId: Long): List<PengembalianEntity>
+
 }
