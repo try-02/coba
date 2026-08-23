@@ -11,5 +11,8 @@ data class ItemPengembalianEntity(
     val id: Long = 0,
 
     @ColumnInfo(name = "tujuan_stok")
-    val tujuanStok: TujuanStokPengembalian
+    val tujuanStok: TujuanStokPengembalian,
+
+    @ColumnInfo(name = "produk_id")
+    val produkId: Long?
 )
