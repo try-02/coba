@@ -32,5 +32,5 @@ data class ItemPengembalianEntity(
     val jumlahDikembalikan: Long,
 
     @ColumnInfo(name = "jumlah_refund")
-    val jumlahRefund: Long
+    val jumlahRefund: Long,
 )
