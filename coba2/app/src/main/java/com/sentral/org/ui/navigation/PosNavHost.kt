@@ -7,30 +7,20 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sentral.org.ui.screen.pos.PosUtamaScreen
-import com.sentral.org.ui.screen.splash.SplashScreen // Pastikan import sesuai foldermu
 
 @Composable
 fun PosNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    // Ubah rute awal menjadi Splash Screen
-    startDestination: Any = PosRoute.Splash 
+    // Rute awal kini langsung menuju POS Utama, karena Splash Screen 
+    // sudah ditangani sepenuhnya oleh level Activity
+    startDestination: Any = PosRoute.PosUtama 
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable<PosRoute.Splash> {
-            SplashScreen(
-                onSplashFinished = {
-                    // Pindah ke halaman POS Utama dan hapus rute Splash dari riwayat tombol "Back"
-                    navController.navigate(PosRoute.PosUtama) {
-                        popUpTo(PosRoute.Splash) { inclusive = true }
-                    }
-                }
-            )
-        }
         
         // Rute LoginKasir bisa kamu siapkan nanti
         composable<PosRoute.LoginKasir> {
