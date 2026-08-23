@@ -5,7 +5,23 @@ import androidx.room3.Entity
 import androidx.room3.PrimaryKey
 import com.pos.offline.data.model.TujuanStokPengembalian
 
-@Entity(tableName = "item_pengembalian")
+@Entity(
+    tableName = "item_pengembalian",
+    foreignKeys = [
+        ForeignKey(
+            entity = PengembalianEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["pengembalian_id"],
+            onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = ItemTransaksiEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["item_transaksi_id"],
+            onDelete = ForeignKey.RESTRICT
+        )
+    ]
+)
 data class ItemPengembalianEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
