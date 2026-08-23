@@ -18,8 +18,6 @@ import com.pos.offline.data.entity.*
         TransaksiEntity::class,
         ItemTransaksiEntity::class,
         PembayaranEntity::class,
-        PengembalianEntity::class,
-        ItemPengembalianEntity::class,
     ],
     version = 1,
     exportSchema = false
@@ -33,7 +31,7 @@ abstract class PosDatabase : RoomDatabase() {
     abstract fun shiftDao(): ShiftDao
     abstract fun printerDao(): PrinterDao
     abstract fun profilTokoDao(): ProfilTokoDao
+    abstract fun transaksiDao(): TransaksiDao
     abstract fun itemTransaksiDao(): ItemTransaksiDao
     abstract fun pembayaranDao(): PembayaranDao
-    abstract fun returDao(): ReturDao
 }
