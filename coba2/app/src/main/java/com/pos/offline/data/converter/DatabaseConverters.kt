@@ -18,10 +18,10 @@ class DatabaseConverters {
 
     @ColumnTypeConverter fun jenisDiskonToString(v: JenisDiskon?): String? = v?.name
     @ColumnTypeConverter fun stringToJenisDiskon(v: String?): JenisDiskon? = v?.let { enumValueOf<JenisDiskon>(it) }
-/*
+
     @ColumnTypeConverter fun tujuanStokToString(v: TujuanStokPengembalian?): String? = v?.name
     @ColumnTypeConverter fun stringToTujuanStok(v: String?): TujuanStokPengembalian? = v?.let { enumValueOf<TujuanStokPengembalian>(it) }
-*/
+
     @ColumnTypeConverter fun jenisPersediaanToString(v: JenisPergerakanPersediaan?): String? = v?.name
     @ColumnTypeConverter fun stringToJenisPersediaan(v: String?): JenisPergerakanPersediaan? = v?.let { enumValueOf<JenisPergerakanPersediaan>(it) }
 
