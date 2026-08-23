@@ -20,23 +20,23 @@ class CheckoutService(
 ) {
     private val inventory by lazy { InventoryMutationService(stock, inventoryLedger) }
 
-suspend fun checkout(request: CheckoutRequest): Result<CheckoutResult> = suspendRunCatching {
-    // 1. FASE BACA & KOMPUTASI (DI LUAR KUNCI TRANSAKSI)
-    val cart = carts.getById(request.cartId) ?: throw PosDataException.NotFound("Keranjang tidak ditemukan")
-    if (cart.status != StatusKeranjang.AKTIF) throw PosDataException.InvalidState("Keranjang bukan AKTIF")
+    suspend fun checkout(request: CheckoutRequest): Result<CheckoutResult> = suspendRunCatching {
+        // 1. FASE BACA & KOMPUTASI (DI LUAR KUNCI TRANSAKSI)
+        val cart = carts.getById(request.cartId) ?: throw PosDataException.NotFound("Keranjang tidak ditemukan")
+        if (cart.status != StatusKeranjang.AKTIF) throw PosDataException.InvalidState("Keranjang bukan AKTIF")
 
-            val cashier = cashiers.getById(request.cashierId)
-                ?: throw PosDataException.NotFound("Kasir tidak ditemukan")
-            if (!cashier.aktif) throw PosDataException.Validation("Kasir tidak aktif")
+        val cashier = cashiers.getById(request.cashierId)
+            ?: throw PosDataException.NotFound("Kasir tidak ditemukan")
+        if (!cashier.aktif) throw PosDataException.Validation("Kasir tidak aktif")
 
-            val shift = shifts.getById(request.shiftId)
-                ?: throw PosDataException.NotFound("Shift tidak ditemukan")
-            if (shift.status != StatusShift.TERBUKA || shift.kasirId != request.cashierId) {
-                throw PosDataException.InvalidState("Shift tidak aktif atau bukan milik kasir")
-            }
+        val shift = shifts.getById(request.shiftId)
+            ?: throw PosDataException.NotFound("Shift tidak ditemukan")
+        if (shift.status != StatusShift.TERBUKA || shift.kasirId != request.cashierId) {
+             throw PosDataException.InvalidState("Shift tidak aktif atau bukan milik kasir")
+        }
 
     val cartRows = cartItems.getByCart(cart.id)
-val lines = cartRows.map { row ->
+    val lines = cartRows.map { row ->
     val product = products.getById(row.produkId)
         ?: throw PosDataException.NotFound("Produk ${row.produkId} tidak ditemukan")
     if (!product.aktif) throw PosDataException.ProductInactive(product.id, product.nama)
@@ -45,7 +45,7 @@ val lines = cartRows.map { row ->
     // PERBAIKAN: Ambil harga terbaru secara absolut dari entitas produk master, 
     // abaikan snapshot harga usang di keranjang.
     CartLine(product.id, product.nama, product.harga, row.jumlah, product.hargaModal)
-}
+    }
 
     val lineSubtotals = lines.map { MoneyMath.lineTotal(it.unitPrice, it.quantity) }
     val subtotal = MoneyMath.sumExact(lineSubtotals)
@@ -55,11 +55,11 @@ val lines = cartRows.map { row ->
     val paymentCalculation = validatePayments(request.payments, total, request.now)
     val allocatedDiscounts = allocateDiscounts(lineSubtotals, discountTotal)
 
-    // 2. FASE TULIS (EKSEKUSI CEPAT DI DALAM KUNCI TRANSAKSI)
-    write.run {
-        // Optimistic lock: pastikan tidak berubah selagi kita komputasi
-        val stateCheck = carts.getById(request.cartId)
-        if (stateCheck?.status != StatusKeranjang.AKTIF) throw PosDataException.InvalidState("Status keranjang berubah saat komputasi")
+        // 2. FASE TULIS (EKSEKUSI CEPAT DI DALAM KUNCI TRANSAKSI)
+        write.run {
+            // Optimistic lock: pastikan tidak berubah selagi kita komputasi
+            val stateCheck = carts.getById(request.cartId)
+            if (stateCheck?.status != StatusKeranjang.AKTIF) throw PosDataException.InvalidState("Status keranjang berubah saat komputasi")
 
             val transactionId = transactions.insert(
                 TransaksiEntity(

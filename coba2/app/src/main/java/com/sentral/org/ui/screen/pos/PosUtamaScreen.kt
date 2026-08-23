@@ -14,17 +14,19 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PosUtamaScreen(
-    // 1. Injeksi ViewModel otomatis dari Koin[span_1](start_span)[span_1](end_span)
-    viewModel: CheckoutViewModel = koinViewModel(),
-    // 2. STATE HOISTING: Jangan pernah passing NavController ke dalam screen! 
-    // Gunakan fungsi lambda untuk navigasi agar screen tetap murni dan bisa di-test.
+    // 1. Parameter tanpa default paling atas
     onNavigateToRiwayat: () -> Unit,
-    onNavigateToTutupShift: () -> Unit
+    onNavigateToTutupShift: () -> Unit,
+    // 2. Modifier selalu di tengah/setelah parameter wajib
+    modifier: Modifier = Modifier,
+    // 3. Parameter dengan default paling bawah
+    viewModel: CheckoutViewModel = koinViewModel(),
 ) {
-    // 3. Gunakan collectAsStateWithLifecycle untuk mencegah memory leak saat UI masuk background
     val checkoutState by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
+        // Terapkan modifier yang diterima dari luar ke root element
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("POS Kasir Offline") },
@@ -35,7 +37,6 @@ fun PosUtamaScreen(
             )
         }
     ) { paddingValues ->
-        // Layout Split: 60% Produk, 40% Keranjang (Ideal untuk Tablet/POS)
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -43,7 +44,6 @@ fun PosUtamaScreen(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Panel Kiri: Grid Produk
             Surface(
                 modifier = Modifier.weight(0.6f),
                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -54,7 +54,6 @@ fun PosUtamaScreen(
                 }
             }
 
-            // Panel Kanan: Keranjang & Pembayaran
             Surface(
                 modifier = Modifier.weight(0.4f),
                 color = MaterialTheme.colorScheme.surfaceVariant,

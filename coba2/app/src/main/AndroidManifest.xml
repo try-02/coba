@@ -28,7 +28,7 @@
 
     <application
         android:name="com.sentral.org.PosApplication"
-        android:allowBackup="false"
+        android:allowBackup="true"
         android:label="Sen"
         android:supportsRtl="true"
         android:icon="@mipmap/ic_launcher"
