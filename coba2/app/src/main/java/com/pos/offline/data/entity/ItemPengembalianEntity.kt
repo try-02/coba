@@ -32,7 +32,12 @@ import com.pos.offline.data.model.TujuanStokPengembalian
     indices = [
         Index("pengembalian_id"),
         Index("item_transaksi_id"),
-        Index("produk_id")
+        Index("produk_id"),
+        Index(
+            value = ["pengembalian_id", "item_transaksi_id"],
+            unique = true,
+            name = "unik_item_pengembalian"
+        )
     ]
 )
 data class ItemPengembalianEntity(
