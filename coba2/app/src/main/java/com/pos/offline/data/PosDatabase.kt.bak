@@ -18,7 +18,6 @@ import com.pos.offline.data.entity.*
         TransaksiEntity::class,
         ItemTransaksiEntity::class,
         PembayaranEntity::class,
-        PergerakanPersediaanEntity::class,
         PergerakanKasEntity::class,
         PengembalianEntity::class,
         ItemPengembalianEntity::class,
