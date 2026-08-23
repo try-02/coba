@@ -30,4 +30,11 @@ interface ReturDao {
         ORDER BY dikembalikan_pada, id
     """)
     suspend fun getByTransaction(transactionId: Long): List<PengembalianEntity>
+
+    @Query("""
+        SELECT * FROM item_pengembalian
+        WHERE pengembalian_id = :returnId
+        ORDER BY id
+    """)
+    suspend fun getItemsByReturn(returnId: Long): List<ItemPengembalianEntity>
 }
