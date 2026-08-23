@@ -21,11 +21,11 @@ interface TransaksiDao {
 
     @Insert
     suspend fun insert(entity: TransaksiEntity): Long
-/*
+
     @Transaction
     @Query("SELECT * FROM transaksi WHERE id = :id LIMIT 1")
     suspend fun getTransaksiUtuhById(id: Long): TransaksiDenganDetail?
-*/
+
     @Query("""
         SELECT * FROM transaksi
         WHERE nomor_transaksi = :number
