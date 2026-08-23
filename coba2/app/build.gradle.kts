@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.core.splash)
+    implementation(libs.google.material)
 
     // 2. Jetpack Compose
     implementation(platform(libs.androidx.compose.bom))
