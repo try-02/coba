@@ -41,9 +41,10 @@ jobs:
           chmod +x ./gradlew
 
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
-          ./gradlew clean :app:kspDebugKotlin \
+          ./gradlew clean assembleDebug \
             --parallel \
             --build-cache \
+            --configuration-cache \
             --non-interactive \
             --stacktrace \
             --console=plain
