@@ -1,16 +1,13 @@
 <resources>
     <!-- Tema utama aplikasi kamu (seharusnya sudah ada) -->
-    <style name="Theme.SentralOrg" parent="android:Theme.Material.Light.NoActionBar" />
-
-    <!-- TAMBAHKAN TEMA SPLASH SCREEN INI -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <!-- Warna latar belakang saat aplikasi baru diklik -->
+        <!-- Latar belakang tetap putih -->
         <item name="windowSplashScreenBackground">#FFFFFF</item>
-        
-        <!-- Logo aplikasi di tengah layar -->
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
-        
-        <!-- Setelah selesai muat, kembalikan ke tema utama aplikasi -->
+    
+        <!-- UBAH BARIS INI: Arahkan ke file XML yang baru dibuat -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo_pos</item>
+    
+        <!-- Setelah Splash selesai, kembali ke tema utama -->
         <item name="postSplashScreenTheme">@style/Theme.SentralOrg</item>
     </style>
 </resources>
