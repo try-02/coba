@@ -13,23 +13,20 @@ import com.pos.offline.data.entity.*
         PersediaanEntity::class,
         KasirEntity::class,
         ShiftEntity::class,
+        PrinterEntity::class,
+        ProfilTokoEntity::class,
         TransaksiEntity::class,
-        ItemTransaksiEntity::class,
-        PembayaranEntity::class,
-        PengembalianEntity::class,
-        ItemPengembalianEntity::class,
     ],
     version = 1,
     exportSchema = false
 )
-@ColumnTypeConverters(DatabaseConverters::class) // Wajib untuk enum Room 3.0
+@ColumnTypeConverters(DatabaseConverters::class)
 abstract class PosDatabase : RoomDatabase() {
+
     abstract fun produkDao(): ProdukDao
     abstract fun persediaanDao(): PersediaanDao
     abstract fun kasirDao(): KasirDao
     abstract fun shiftDao(): ShiftDao
-    abstract fun transaksiDao(): TransaksiDao
-    abstract fun itemTransaksiDao(): ItemTransaksiDao
-    abstract fun pembayaranDao(): PembayaranDao
-    abstract fun returDao(): ReturDao
+    abstract fun printerDao(): PrinterDao
+    abstract fun profilTokoDao(): ProfilTokoDao
 }
