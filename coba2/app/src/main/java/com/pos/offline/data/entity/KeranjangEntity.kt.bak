@@ -15,7 +15,7 @@ import com.pos.offline.data.model.StatusKeranjang
             parentColumns = ["id"],
             childColumns = ["kasir_id"],
             onDelete = ForeignKey.RESTRICT
-        )
+        ),
     ],
     indices = [
         Index("kasir_id"),

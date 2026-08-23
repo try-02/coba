@@ -37,18 +37,12 @@ import com.pos.offline.data.model.JenisPergerakanKas
     ]
 )
 data class PergerakanKasEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    @ColumnInfo(name = "shift_id")
-    val shiftId: Long,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "shift_id") val shiftId: Long,
     val jenis: JenisPergerakanKas,
-    @ColumnInfo(name = "jumlah_delta")
-    val jumlahDelta: Long,
-    @ColumnInfo(name = "transaksi_id")
-    val transaksiId: Long?,
-    @ColumnInfo(name = "pengembalian_id")
-    val pengembalianId: Long?,
+    @ColumnInfo(name = "jumlah_delta") val jumlahDelta: Long,
+    @ColumnInfo(name = "transaksi_id") val transaksiId: Long?,
+    @ColumnInfo(name = "pengembalian_id") val pengembalianId: Long?,
     val keterangan: String,
-    @ColumnInfo(name = "dibuat_pada")
-    val dibuatPada: Long,
+    @ColumnInfo(name = "dibuat_pada") val dibuatPada: Long,
 )
