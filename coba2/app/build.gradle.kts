@@ -92,7 +92,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.core.splash)
 
     // 2. Jetpack Compose
     implementation(platform(libs.androidx.compose.bom))
