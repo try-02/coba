@@ -35,5 +35,4 @@ abstract class PosDatabase : RoomDatabase() {
     abstract fun transaksiDao(): TransaksiDao
     abstract fun itemTransaksiDao(): ItemTransaksiDao
     abstract fun pembayaranDao(): PembayaranDao
-    abstract fun returDao(): ReturDao
 }

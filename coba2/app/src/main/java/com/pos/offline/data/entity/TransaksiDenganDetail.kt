@@ -4,9 +4,18 @@ import androidx.room3.Embedded
 import androidx.room3.Relation
 
 data class TransaksiDenganDetail(
-    @Embedded val transaksi: TransaksiEntity,
-    @Relation(parentColumn = "id", entityColumn = "transaksi_id")
+    @Embedded
+    val transaksi: TransaksiEntity,
+
+    @Relation(
+        parentColumns = ["id"],
+        entityColumns = ["transaksi_id"]
+    )
     val items: List<ItemTransaksiEntity>,
-    @Relation(parentColumn = "id", entityColumn = "transaksi_id")
+
+    @Relation(
+        parentColumns = ["id"],
+        entityColumns = ["transaksi_id"]
+    )
     val pembayaran: List<PembayaranEntity>
 )

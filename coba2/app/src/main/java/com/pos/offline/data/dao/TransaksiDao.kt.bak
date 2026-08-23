@@ -3,12 +3,17 @@ package com.pos.offline.data.dao
 import androidx.paging.PagingSource
 import androidx.room3.Dao
 import androidx.room3.DaoReturnTypeConverters
+import androidx.room3.Embedded
 import androidx.room3.Insert
 import androidx.room3.Query
+import androidx.room3.Relation
 import androidx.room3.Transaction
 import androidx.room3.paging.PagingSourceDaoReturnTypeConverter
-import com.pos.offline.data.entity.TransaksiDenganDetail
+import com.pos.offline.data.entity.ItemTransaksiEntity
+import com.pos.offline.data.entity.PembayaranEntity
 import com.pos.offline.data.entity.TransaksiEntity
+import com.pos.offline.data.model.StatusTransaksi
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 @DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)
@@ -16,11 +21,11 @@ interface TransaksiDao {
 
     @Insert
     suspend fun insert(entity: TransaksiEntity): Long
-
+/*
     @Transaction
     @Query("SELECT * FROM transaksi WHERE id = :id LIMIT 1")
     suspend fun getTransaksiUtuhById(id: Long): TransaksiDenganDetail?
-
+*/
     @Query("""
         SELECT * FROM transaksi
         WHERE nomor_transaksi = :number
@@ -28,11 +33,11 @@ interface TransaksiDao {
     """)
     suspend fun getByNumber(number: String): TransaksiEntity?
 
-    @Query("""
-        SELECT * FROM transaksi
-        ORDER BY dibuat_pada DESC, id DESC
-    """)
-    fun observeAllPaged(): PagingSource<Int, TransaksiEntity>
+@Query("""
+    SELECT * FROM transaksi
+    ORDER BY dibuat_pada DESC, id DESC
+""")
+fun observeAllPaged(): PagingSource<Int, TransaksiEntity>
 
     @Query("""
         UPDATE transaksi
