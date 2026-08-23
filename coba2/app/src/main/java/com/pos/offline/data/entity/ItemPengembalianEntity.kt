@@ -20,6 +20,12 @@ import com.pos.offline.data.model.TujuanStokPengembalian
             parentColumns = ["id"],
             childColumns = ["item_transaksi_id"],
             onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = ProdukEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["produk_id"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
