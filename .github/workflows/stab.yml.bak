@@ -5,7 +5,7 @@ on:
 
 defaults:
   run:
-    working-directory: ./coba2
+    working-directory: ./coba3
 
 jobs:
   analyze-stability:
@@ -48,5 +48,5 @@ jobs:
       with:
         name: compose-analysis-reports
         path: |
-          coba2/app/stability/*.stability
-          coba2/app/build/reports/lint-results-*.*
+          coba3/app/stability/*.stability
+          coba3/app/build/reports/lint-results-*.*

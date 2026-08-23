@@ -1,7 +1,7 @@
 [versions]
 # Core Build & Kotlin
-agp = "9.3.1"
-kotlin = "2.3.21"
+agp = "9.5.0-alpha01"
+kotlin = "2.4.20-RC"
 ksp = "2.3.11"
 kotlinxSerialization = "1.11.0"
 
@@ -32,6 +32,7 @@ aaltoXml = "1.4.0"
 staxApi = "1.0-2"
 splash = "1.2.0"
 google-material = "1.14.0"
+slack-compose-lint = "1.5.4"
 
 [libraries]
 # Core
@@ -76,6 +77,7 @@ camerax-camera2 = { group = "androidx.camera", name = "camera-camera2", version.
 camerax-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 camerax-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 mlkit-barcode = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
+slack-compose-lints = { module = "com.slack.lint.compose:compose-lint-checks", version.ref = "slack-compose-lint" }
 
 # Export/Import Reports
 fastexcel = { group = "org.dhatim", name = "fastexcel", version.ref = "fastexcel" }
@@ -89,3 +91,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room3 = { id = "androidx.room3", version.ref = "room3" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+stability-analyzer = { id = "com.github.skydoves.compose.stability.analyzer", version = "0.12.0" }

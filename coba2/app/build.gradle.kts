@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.room3)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.stability.analyzer)
 }
 
 // Konfigurasi Room Auto-Migration Schema
@@ -132,6 +133,8 @@ dependencies {
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
     implementation(libs.mlkit.barcode)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    lintChecks(libs.slack.compose.lints)
 
     // 9. Laporan Ekspor/Impor (FastExcel & Stax)
     implementation(libs.fastexcel)
