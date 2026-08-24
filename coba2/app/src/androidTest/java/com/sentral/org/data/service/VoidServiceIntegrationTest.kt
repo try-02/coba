@@ -7,6 +7,7 @@ import com.sentral.org.data.PosDatabase
 import com.sentral.org.data.entity.ItemKeranjangEntity
 import com.sentral.org.data.entity.KasirEntity
 import com.sentral.org.data.entity.KeranjangEntity
+import com.sentral.org.data.entity.PergerakanKasEntity
 import com.sentral.org.data.entity.PersediaanEntity
 import com.sentral.org.data.entity.ProdukEntity
 import com.sentral.org.data.entity.ShiftEntity
