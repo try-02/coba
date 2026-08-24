@@ -99,25 +99,14 @@ class KasirViewModel(
         }
     }
 
-fun tahanKeranjang() {
-    viewModelScope.launch {
-        val cartId = uiState.value.keranjangAktifId ?: return@launch
-        cartService.hold(cartId, System.currentTimeMillis()).fold(
-        onSuccess = { pilihanManual.value = null; kirim("Keranjang ditahan", KasirEvent.Pesan.Jenis.INFO) },
-        onFailure = { kirim(it.pesanPengguna(), KasirEvent.Pesan.Jenis.GALAT) },
-        )
+    fun tahanKeranjang() = aksiKeranjang("Keranjang ditahan") { id, now ->
+        cartService.hold(id, now); pilihanManual.value = null
     }
-}
 
-fun batalkanKeranjang() {
-    viewModelScope.launch {
-        val cartId = uiState.value.keranjangAktifId ?: return@launch
-        cartService.cancel(cartId, System.currentTimeMillis()).fold(
-        onSuccess = { pilihanManual.value = null; kirim("Keranjang dibatalkan", KasirEvent.Pesan.Jenis.INFO) },
-        onFailure = { kirim(it.pesanPengguna(), KasirEvent.Pesan.Jenis.GALAT) },
-        )
+    fun batalkanKeranjang() = aksiKeranjang("Keranjang dibatalkan") { id, now ->
+        cartService.cancel(id, now); pilihanManual.value = null
     }
-}
+
     fun lanjutkanKeranjang(id: Long) {
         viewModelScope.launch {
             cartService.resume(id, System.currentTimeMillis()).fold(
@@ -218,7 +207,7 @@ fun batalkanKeranjang() {
             onFailure = { e -> kirim(e.pesanPengguna(), KasirEvent.Pesan.Jenis.GALAT); null },
         )
     }
-/*
+
     private fun aksiKeranjang(
         pesanSukses: String,
         blok: suspend (cartId: Long, now: Long) -> Unit,
@@ -230,7 +219,7 @@ fun batalkanKeranjang() {
             kirim(pesanSukses, KasirEvent.Pesan.Jenis.INFO)
         }
     }
-*/
+
     private fun kirim(teks: String, jenis: KasirEvent.Pesan.Jenis) {
         viewModelScope.launch { _event.send(KasirEvent.Pesan(teks, jenis)) }
     }
