@@ -38,7 +38,7 @@ fun PosNavHost(
             )
         }
 
-        composable<PosRoute.RiwayatTransaksi> {
+        composable<PosRoute.RiwayatTransaksi> { backStackEntry ->
             // RiwayatScreen(...)
         }
     }

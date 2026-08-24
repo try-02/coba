@@ -120,6 +120,7 @@ class ReturService(
                     )
                     TujuanStokPengembalian.RUSAK -> inventory.mutateNormal(
                         productId = productId,
+                        normalDelta = 0,
                         damagedDelta = p.line.quantity,
                         type = JenisPergerakanPersediaan.PENGEMBALIAN_RUSAK,
                         returnId = returnId,
