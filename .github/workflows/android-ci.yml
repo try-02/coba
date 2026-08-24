@@ -10,7 +10,7 @@ concurrency:
 
 defaults:
   run:
-    working-directory: ./coba
+    working-directory: ./coba2
 
 jobs:
   test:
@@ -24,7 +24,7 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       # Setup Gradle dengan caching otomatis & Enkripsi
@@ -43,14 +43,14 @@ jobs:
 
       # 2. Menjalankan Unit Test
       - name: Run Pure Unit Tests
-        run: ./gradlew testDebugUnitTest --parallel --build-cache --stacktrace
+        run: ./gradlew :app:testDebugUnitTest --parallel --build-cache --stacktrace
 
       - name: Upload Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
-          path: coba/app/build/reports/tests/testDebugUnitTest/
+          path: coba2/app/build/reports/tests/testDebugUnitTest/
 
   instrumented-tests:
     name: Run Migration Tests (Emulator)
@@ -63,7 +63,7 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       # Setup Gradle
@@ -76,7 +76,7 @@ jobs:
           add-job-summary: on-failure
           cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
-      # 1. Memberikan izin eksekusi Gradle (Diubah dari ./coba/gradlew karena working-directory sudah ./coba)
+      # 1. Memberikan izin eksekusi Gradle (Diubah dari ./coba2/gradlew karena working-directory sudah ./coba2)
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
@@ -93,9 +93,9 @@ jobs:
           arch: x86_64
           force-avd-creation: false
           disable-animations: true
-          working-directory: ./coba
+          working-directory: ./coba2
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
-          script: ./gradlew clean connectedDebugAndroidTest --rerun-tasks --parallel --stacktrace
+          script: ./gradlew clean :app:connectedDebugAndroidTest --rerun-tasks --parallel --stacktrace
 
       - name: Upload instrumentation test reports
         if: always()
@@ -103,8 +103,8 @@ jobs:
         with:
           name: instrumentation-test-reports
           path: |
-            coba/**/build/reports/androidTests/
-            coba**/build/outputs/androidTest-results/
+            coba2/**/build/reports/androidTests/
+            coba2**/build/outputs/androidTest-results/
           if-no-files-found: ignore
 
       # 4. Pembersihan Total Runner & Bekas Proses Build

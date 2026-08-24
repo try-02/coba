@@ -61,6 +61,15 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        named("androidTest") {
+            assets.directories.add(layout.projectDirectory.dir("schemas").toString())
+        }
+        named("debug") {
+            assets.directories.add(layout.projectDirectory.dir("schemas").toString())
+        }
+    }
+
     packaging {
         resources {
             excludes += setOf(
@@ -86,6 +95,12 @@ android {
                 "META-INF/services/org.codehaus.stax2.validation.XMLValidationSchemaFactory.W3C"
             )
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
 
@@ -145,4 +160,13 @@ dependencies {
     implementation(libs.fastexcel)
     implementation(libs.aalto.xml)
     implementation(libs.stax.api)
+
+    // ===== TESTING =====
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.room3.testing)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }

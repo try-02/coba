@@ -1,7 +1,5 @@
 package com.sentral.org.data.model
 
-// const val QUANTITY_SCALE = 1000L
-
 /**
  * Kebijakan pembulatan uang: HALF_UP konsisten untuk SEMUA pembagi
  * (skala quantity, persentase, dan alokasi proporsional).
@@ -27,6 +25,36 @@ object MoneyMath {
     }
 
     fun sumExact(values: Iterable<Long>): Long = values.fold(0L, Math::addExact)
+
+    /**
+     * Membagi [amount] proporsional ke tiap bobot dengan metode largest-remainder:
+     * jumlah hasil SELALU persis [amount] dan tidak ada alokasi negatif, bahkan
+     * pada kasus ekstrem (banyak baris bernilai kecil).
+     */
+    fun allocateProportional(weights: List<Long>, amount: Long): List<Long> {
+        require(amount >= 0) { "Nilai alokasi tidak boleh negatif" }
+        if (weights.isEmpty()) return emptyList()
+        if (amount == 0L) return List(weights.size) { 0L }
+        val total = sumExact(weights)
+        require(total > 0) { "Total bobot harus > 0 bila alokasi > 0" }
+
+        val remainders = LongArray(weights.size)
+        var allocated = 0L
+        val result = MutableList(weights.size) { i ->
+            val dividend = Math.multiplyExact(amount, weights[i])
+            val base = dividend / total
+            remainders[i] = dividend % total
+            allocated += base
+            base
+        }
+        // Sisa pembulatan (< jumlah baris) diberikan ke baris dgn fraksi terbesar.
+        var leftover = amount - allocated
+        for (i in weights.indices.sortedByDescending { remainders[it] }) {
+            if (leftover-- == 0L) break
+            result[i] += 1
+        }
+        return result
+    }
 
     // Caller menjamin dividend >= 0, sehingga formula ini aman.
     private fun divideHalfUp(dividend: Long, divisor: Long): Long =
