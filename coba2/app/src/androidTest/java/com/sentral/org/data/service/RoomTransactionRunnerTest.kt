@@ -5,7 +5,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sentral.org.data.PosDatabase
 import com.sentral.org.data.entity.KasirEntity
-import com.sentalPlaceholder
 import com.sentral.org.data.entity.PergerakanKasEntity
 import com.sentral.org.data.entity.ShiftEntity
 import com.sentral.org.data.model.JenisPergerakanKas
