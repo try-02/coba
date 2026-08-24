@@ -170,6 +170,7 @@ class CheckoutServiceIntegrationTest {
         assertEquals(hargaP1, items[0].hargaSatuan)
         assertEquals(hargaP2, items[1].hargaSatuan)
         assertEquals(diskonEkspektasi, items.sumOf { it.diskonItem })
+        assertTrue(items.all { it.diskonItem >= 0 })
 
         val bayar = db.pembayaranDao().getByTransaction(hasil.transactionId)
         assertEquals(1, bayar.size)

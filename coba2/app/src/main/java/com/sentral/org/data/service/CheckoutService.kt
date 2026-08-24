@@ -59,7 +59,7 @@ class CheckoutService(
             val total = subtotal - discountTotal + tax
 
             val paymentCalculation = validatePayments(request.payments, total, request.now)
-            val allocatedDiscounts = allocateDiscounts(lineSubtotals, discountTotal)
+            val allocatedDiscounts = MoneyMath.allocateProportional(lineSubtotals, discountTotal)
 
             // ---------- TULIS ----------
             val transactionId = transactions.insert(

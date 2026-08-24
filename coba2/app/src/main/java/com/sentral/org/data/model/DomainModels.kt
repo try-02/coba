@@ -1,6 +1,13 @@
 package com.sentral.org.data.model
 
+/**
+ * Seluruh kuantitas tersimpan (item keranjang, item transaksi, saldo & mutasi
+ * persediaan) memakai fixed-point dengan skala ini: 1 buah = 1_000.
+ */
 const val QUANTITY_SCALE = 1000L
+
+/** 2 buah -> 2_000. Satu-satunya pintu konversi dari input pengguna ke storage. */
+fun quantityOf(units: Long): Long = Math.multiplyExact(units, QUANTITY_SCALE)
 
 @JvmInline
 value class Quantity(val scaled: Long) {
