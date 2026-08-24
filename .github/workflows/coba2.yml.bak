@@ -41,7 +41,7 @@ jobs:
           chmod +x ./gradlew
 
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
-          ./gradlew clean assembleRelease \
+          ./gradlew clean assembleDebug \
             --parallel \
             --build-cache \
             --configuration-cache \
@@ -61,7 +61,7 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
         with:
-          releaseDirectory: coba2/app/build/outputs/apk/release
+          releaseDirectory: coba2/app/build/outputs/apk/debug
           signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
