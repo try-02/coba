@@ -112,6 +112,15 @@ class MoneyMathTest {
         }
     }
 
+    // ---------- konversi kuantitas ----------
+
+    @Test
+    fun `quantityOf mengonversi unit utuh ke skala storage`() {
+        assertEquals(2_000L, quantityOf(2))
+        assertEquals(0L, quantityOf(0))
+        assertThrows(ArithmeticException::class.java) { quantityOf(Long.MAX_VALUE) }
+    }
+
     // ---------- allocateProportional ----------
 
     @Test

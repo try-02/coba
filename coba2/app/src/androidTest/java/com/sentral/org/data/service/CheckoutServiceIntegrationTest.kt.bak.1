@@ -46,13 +46,9 @@ class CheckoutServiceIntegrationTest {
 
     // Fixture angka sengaja hardcoded agar ekspektasi dihitung independen dari MoneyMath.
     private val hargaP1 = 15_000L
-    // Kontrak kuantitas domain: nilai tersimpan SELALU ter-skala QUANTITY_SCALE
-    // (2 buah -> 2_000). Salah skala di sini membuat total & stok melenceng jauh.
-    private val qtyP1 = 2_000L
+    private val qtyP1 = 2L
     private val hargaP2 = 7_500L
-    private val qtyP2 = 1_000L
-    // Saldo awal persediaan dalam skala yang sama: 10_000 = 10 unit.
-    private val stokAwal = 10_000L
+    private val qtyP2 = 1L
     private val subtotalEkspektasi = 37_500L          // 30.000 + 7.500
     private val diskonEkspektasi = 2_500L
     private val totalEkspektasi = 35_000L             // 37.500 - 2.500
@@ -114,7 +110,7 @@ class CheckoutServiceIntegrationTest {
             )
             produkIds += id
             // Baris persediaan dibuat eksplisit supaya delta stok mudah diverifikasi.
-            db.persediaanDao().insert(PersediaanEntity(produkId = id, jumlah = stokAwal, jumlahRusak = 0, diperbaruiPada = now))
+            db.persediaanDao().insert(PersediaanEntity(produkId = id, jumlah = 1_000, jumlahRusak = 0, diperbaruiPada = now))
         }
         val cartId = db.keranjangDao().insert(
             KeranjangEntity(
