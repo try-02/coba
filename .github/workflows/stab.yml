@@ -50,3 +50,4 @@ jobs:
         path: |
           coba2/app/stability/*.stability
           coba2/app/build/reports/lint-results-*.*
+        retention-days: 1

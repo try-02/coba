@@ -43,7 +43,7 @@ jobs:
 
       # 2. Menjalankan Unit Test
       - name: Run Pure Unit Tests
-        run: ./gradlew :app:testDebugUnitTest --parallel --build-cache --stacktrace
+        run: ./gradlew :app:testDebugUnitTest --build-cache --stacktrace
 
       - name: Upload Test Report
         if: always()
@@ -95,7 +95,7 @@ jobs:
           disable-animations: true
           working-directory: ./coba2
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
-          script: ./gradlew clean :app:connectedDebugAndroidTest --rerun-tasks --parallel --stacktrace
+          script: ./gradlew :app:connectedDebugAndroidTest --rerun-tasks --stacktrace
 
       - name: Upload instrumentation test reports
         if: always()
