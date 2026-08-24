@@ -160,7 +160,7 @@ class CheckoutService(
         is DiscountInput.Nominal -> input.rupiah.coerceIn(0, subtotal)
         is DiscountInput.Percentage -> MoneyMath.percentage(subtotal, input.scaledPercent)
     }
-
+/*
     private fun allocateDiscounts(lines: List<Long>, discount: Long): List<Long> {
         if (discount == 0L) return List(lines.size) { 0L }
         val total = MoneyMath.sumExact(lines)
@@ -176,7 +176,7 @@ class CheckoutService(
         }
         return result
     }
-
+*/
     private data class PaymentCalculation(
         val rows: List<PembayaranEntity>,
         val paid: Long,

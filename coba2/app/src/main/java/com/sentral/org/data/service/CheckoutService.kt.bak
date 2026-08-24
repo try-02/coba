@@ -225,8 +225,11 @@ class CheckoutService(
                 }
             }
         }
+        // "paid" = uang yang benar-benar diserahkan (CASH: received; QRIS: jumlah tagihan),
+        // sehingga invariant struk selalu berlaku: paid - total == change.
+        val paid = MoneyMath.sumExact(inputs.map { it.received ?: it.amount })
         val cashChange = inputs.filter { it.method == MetodePembayaran.CASH }
             .sumOf { (it.received ?: it.amount) - it.amount }
-        return PaymentCalculation(rows, sum, cashChange)
+        return PaymentCalculation(rows, paid, cashChange)
     }
 }
