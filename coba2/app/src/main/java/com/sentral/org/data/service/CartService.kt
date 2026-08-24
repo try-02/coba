@@ -6,6 +6,7 @@ import com.sentral.org.data.dao.ProdukDao
 import com.sentral.org.data.entity.ItemKeranjangEntity
 import com.sentral.org.data.model.PosDataException
 import com.sentral.org.data.model.StatusKeranjang
+import com.sentral.org.data.model.suspendRunCatching
 
 class CartService(
     private val write: PosWriteService,

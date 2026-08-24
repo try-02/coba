@@ -8,6 +8,7 @@ import com.sentral.org.data.entity.PergerakanPersediaanEntity
 import com.sentral.org.data.entity.PersediaanEntity
 import com.sentral.org.data.model.JenisPergerakanPersediaan
 import com.sentral.org.data.model.PosDataException
+import com.sentral.org.data.model.suspendRunCatching
 
 class PersediaanService(
     private val write: PosWriteService,

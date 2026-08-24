@@ -1,6 +1,6 @@
 package com.sentral.org.data.model
 
-const val QUANTITY_SCALE = 1000L
+// const val QUANTITY_SCALE = 1000L
 
 /**
  * Kebijakan pembulatan uang: HALF_UP konsisten untuk SEMUA pembagi
