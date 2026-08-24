@@ -106,5 +106,6 @@ jobs:
           path: |
             coba2/**/build/reports/androidTests/
             coba2**/build/outputs/androidTest-results/
+            coba2/app/build/reports/androidTests/connected/debug/index.html
           if-no-files-found: ignore
           retention-days: 1
