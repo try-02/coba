@@ -64,7 +64,7 @@ class CheckoutServiceIntegrationTest {
         val cashierId: Long,
         val shiftId: Long,
         val produkIds: List<Long>,
-        val stokAwal: Long = 1_000L,
+        val stokAwal: Long,
     )
 
     @Before
@@ -158,6 +158,8 @@ class CheckoutServiceIntegrationTest {
         assertEquals(diskonEkspektasi, hasil.discount)
         assertEquals(uangDiterima, hasil.paid)
         assertEquals(kembalianEkspektasi, hasil.change)
+        // Invariant struk: uang diserahkan - total harus sama dengan kembalian.
+        assertEquals(kembalianEkspektasi, hasil.paid - hasil.total)
 
         val tx = db.transaksiDao().getById(hasil.transactionId)
         assertNotNull(tx)
@@ -170,6 +172,7 @@ class CheckoutServiceIntegrationTest {
         assertEquals(hargaP1, items[0].hargaSatuan)
         assertEquals(hargaP2, items[1].hargaSatuan)
         assertEquals(diskonEkspektasi, items.sumOf { it.diskonItem })
+        // Guard wiring: tidak boleh ada baris berdiskon negatif (regresi algoritma lama).
         assertTrue(items.all { it.diskonItem >= 0 })
 
         val bayar = db.pembayaranDao().getByTransaction(hasil.transactionId)
