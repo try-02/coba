@@ -96,6 +96,14 @@ class VoidServiceIntegrationTest {
                 selisihKas = null, ditutupPada = null, catatan = "",
             )
         )
+        // Meniru ShiftService.open(): kas awal WAJIB tercatat di ledger,
+        // agar invariant "kas_awal + penjualan - retur = expected cash" teruji penuh.
+        db.pergerakanKasDao().insert(
+            PergerakanKasEntity(
+                shiftId = shiftId, jenis = JenisPergerakanKas.KAS_AWAL, jumlahDelta = 100_000,
+                transaksiId = null, pengembalianId = null, keterangan = "Kas awal", dibuatPada = now,
+            )
+        )
         return Sesi(kasirId, shiftId)
     }
 
