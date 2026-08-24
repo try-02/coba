@@ -41,13 +41,13 @@ class MoneyMathTest {
     // ---------- percentage ----------
 
     @Test
-    fun `persentase HALF_UP pada pecahan 0.9`() {
+    fun `persentase HALF_UP pada pecahan 0,9`() {
         // 10% dari 199.999 = 19.999,9 -> 20.000
         assertEquals(20_000L, MoneyMath.percentage(value = 199_999, scaledPercent = 10_000))
     }
 
     @Test
-    fun `persentase HALF_UP pada pecahan tepat 0.5`() {
+    fun `persentase HALF_UP pada pecahan tepat 0,5`() {
         // 50% dari 12.345 = 6.172,5 -> 6.173
         assertEquals(6_173L, MoneyMath.percentage(value = 12_345, scaledPercent = 50_000))
         // 12,5% dari 100 = 12,5 -> 13

@@ -13,7 +13,7 @@ import com.sentral.org.data.entity.ShiftEntity
 import com.sentral.org.data.entity.TransaksiEntity
 import com.sentral.org.data.model.CheckoutRequest
 import com.sentral.org.data.model.DiscountInput
-import com.sental.org.data.model.JenisDiskon
+import com.sentral.org.data.model.JenisDiskon
 import com.sentral.org.data.model.JenisPergerakanKas
 import com.sentral.org.data.model.JenisPergerakanPersediaan
 import com.sentral.org.data.model.MetodePembayaran
