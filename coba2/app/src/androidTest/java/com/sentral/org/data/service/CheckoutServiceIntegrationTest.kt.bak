@@ -133,7 +133,7 @@ class CheckoutServiceIntegrationTest {
                 )
             )
         }
-        return Fixture(cartId, cashierId, shiftId, produkIds, stokAwal)
+        return Fixture(cartId, cashierId, shiftId, produkIds)
     }
 
     private fun cashRequest(f: Fixture, number: String) = CheckoutRequest(
