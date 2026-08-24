@@ -26,7 +26,7 @@ import com.sentral.org.data.entity.*
         ProfilTokoEntity::class,
     ],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
 @ColumnTypeConverters(DatabaseConverters::class)
 abstract class PosDatabase : RoomDatabase() {

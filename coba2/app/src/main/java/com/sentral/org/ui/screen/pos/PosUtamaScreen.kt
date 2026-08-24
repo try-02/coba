@@ -1,342 +1,67 @@
+// ui/screen/pos/PosUtamaScreen.kt
 package com.sentral.org.ui.screen.pos
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sentral.org.data.service.CheckoutViewModel
 import org.koin.androidx.compose.koinViewModel
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.Add
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PosUtamaScreen(
-    onNavigateToRiwayat: () -> Unit = {},
-    onNavigateToTutupShift: () -> Unit = {},
+    // 1. Parameter tanpa default paling atas
+    onNavigateToRiwayat: () -> Unit,
+    onNavigateToTutupShift: () -> Unit,
+    // 2. Modifier selalu di tengah/setelah parameter wajib
     modifier: Modifier = Modifier,
+    // 3. Parameter dengan default paling bawah
     viewModel: CheckoutViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.state.collectAsStateWithLifecycle()
-    val density = LocalDensity.current
-    val productListState = rememberLazyListState()
+    val checkoutState by viewModel.state.collectAsStateWithLifecycle()
 
-    // Determine collapsed vs expanded panel heights based on actual screen size
-    var boxConstraints: BoxWithConstraintsScope? = null
-
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing),
-    ) {
-        boxConstraints = this
-
-        // ── Percentages based on actual screen height ──
-        val screenHeightDp = maxHeight
-        val collapsedPanelHeight = screenHeightDp * 0.08f  // 8%
-        val expandedPanelMaxHeight = screenHeightDp * 0.70f // 70%
-
-        // Animate panel height
-        val panelHeight by animateDpAsState(
-            targetValue = if (uiState.isCartExpanded) expandedPanelMaxHeight else collapsedPanelHeight,
-            animationSpec = tween(durationMillis = 300),
-            label = "cartHeight",
-        )
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
+    Scaffold(
+        // Terapkan modifier yang diterima dari luar ke root element
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text("POS Kasir Offline") },
+                actions = {
+                    TextButton(onClick = onNavigateToRiwayat) { Text("Riwayat") }
+                    TextButton(onClick = onNavigateToTutupShift) { Text("Tutup Shift") }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // ═══ 1. COMPACT HEADER ═══
-            PosHeader(
-                cashierName = uiState.shiftInfo?.cashierName ?: "Kasir",
-                shiftIsOpen = uiState.shiftInfo?.isOpen == true,
-                cartItemCount = uiState.cartItemCount,
-                onMenuClick = { /* open drawer / menu */ },
-                onRiwayatClick = onNavigateToRiwayat,
-                onTutupShiftClick = onNavigateToTutupShift,
-            )
-
-            // ═══ 2. SEARCH + BARCODE ═══
-            SearchBar(
-                query = uiState.searchQuery,
-                onQueryChange = viewModel::onSearchQueryChanged,
-                onBarcodeClick = { /* trigger barcode scanner */ },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // ═══ 3. CATEGORIES (horizontal scroll) ═══
-            CategoryStrip(
-                categories = uiState.categories,
-                onCategorySelected = viewModel::onCategorySelected,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // ═══ 4. PRODUCT LIST (takes remaining space above cart) ═══
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+            Surface(
+                modifier = Modifier.weight(0.6f),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.medium
             ) {
-                if (uiState.isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else if (uiState.products.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = if (uiState.searchQuery.isNotBlank())
-                                "Produk tidak ditemukan"
-                            else "Belum ada produk aktif",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        state = productListState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                    ) {
-                        items(
-                            items = uiState.products,
-                            key = { it.id },
-                        ) { product ->
-                            PosProductItem(
-                                product = product,
-                                onAddToCart = { viewModel.onAddToCart(product.id) },
-                            )
-                        }
-                    }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text("Grid Produk (Dalam Konstruksi)", modifier = Modifier.padding(16.dp))
                 }
             }
 
-            // ═══ 5. FLOATING CART PANEL ═══
-            PosCartPanel(
-                uiState = uiState,
-                panelHeight = panelHeight,
-                collapsedHeight = collapsedPanelHeight,
-                expandedMaxHeight = expandedPanelMaxHeight,
-                onToggleExpand = viewModel::onToggleCartExpanded,
-                onDragProgress = viewModel::onCartDragProgress,
-                onIncrement = { viewModel.onIncrementQuantity(it) },
-                onDecrement = { viewModel.onDecrementQuantity(it) },
-                onRemove = viewModel::onRemoveCartItem,
-                onCheckout = { /* start checkout flow */ },
-                density = density,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PosHeader(
-    cashierName: String,
-    shiftIsOpen: Boolean,
-    cartItemCount: Int,
-    onMenuClick: () -> Unit,
-    onRiwayatClick: () -> Unit,
-    onTutupShiftClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 40.dp)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Shift indicator
-            ShiftChip(isOpen = shiftIsOpen)
-
-            Spacer(Modifier.width(6.dp))
-
-            // Cashier name
-            Text(
-                text = cashierName,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-
-            // Action icons — compact
-            TextButton(
-                onClick = onRiwayatClick,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                modifier = Modifier.heightIn(min = LocalMinimumInteractiveComponentSize.current),
+            Surface(
+                modifier = Modifier.weight(0.4f),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.medium
             ) {
-                Text("Riwayat", style = MaterialTheme.typography.labelSmall)
-            }
-
-            TextButton(
-                onClick = onTutupShiftClick,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                modifier = Modifier.heightIn(min = LocalMinimumInteractiveComponentSize.current),
-            ) {
-                Text("Shift", style = MaterialTheme.typography.labelSmall)
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text("Keranjang Checkout (Dalam Konstruksi)", modifier = Modifier.padding(16.dp))
+                }
             }
         }
     }
 }
-
-@Composable
-private fun ShiftChip(isOpen: Boolean) {
-    val color = if (isOpen) MaterialTheme.colorScheme.primary
-    else MaterialTheme.colorScheme.error
-    val text = if (isOpen) "● Buka" else "● Tutup"
-
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.12f),
-    ) {
-        Text(
-            text = text,
-            color = color,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-        )
-    }
-}
-
-@Composable
-private fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onBarcodeClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 40.dp),
-                placeholder = {
-                    Text(
-                        "Cari produk…",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = "Cari",
-                        modifier = Modifier.size(18.dp),
-                    )
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = onBarcodeClick,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .then(Modifier.requiredSizeIn(
-                                minWidth = LocalMinimumInteractiveComponentSize.current,
-                                minHeight = LocalMinimumInteractiveComponentSize.current,
-                            )),
-                    ) {
-                        Icon(
-                            Icons.Default.QrCodeScanner,
-                            contentDescription = "Scan Barcode",
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                ),
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategoryStrip(
-    categories: List<CategoryUi>,
-    onCategorySelected: (String?) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            // "Semua" chip
-            FilterChip(
-                selected = categories.none { it.isSelected },
-                onClick = { onCategorySelected(null) },
-                label = { Text("Semua", style = MaterialTheme.typography.labelSmall) },
-                modifier = Modifier.heightIn(min = 28.dp),
-                leadingIcon = null,
-            )
-
-            categories.forEach { cat ->
-                FilterChip(
-                    selected = cat.isSelected,
-                    onClick = { onCategorySelected(cat.name) },
-                    label = { Text(cat.name, style = MaterialTheme.typography.labelSmall) },
-                    modifier = Modifier.heightIn(min = 28.dp),
-                    leadingIcon = null,
-                )
-            }
-        }
-    }
-}
-

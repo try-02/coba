@@ -7,8 +7,6 @@ import com.sentral.org.data.model.*
 class CheckoutService(
     private val write: PosWriteService,
     private val products: ProdukDao,
-    private val stock: PersediaanDao,
-    private val inventoryLedger: PergerakanPersediaanDao,
     private val carts: KeranjangDao,
     private val cartItems: ItemKeranjangDao,
     private val cashiers: KasirDao,
@@ -17,50 +15,53 @@ class CheckoutService(
     private val transactionItems: ItemTransaksiDao,
     private val payments: PembayaranDao,
     private val cashLedger: PergerakanKasDao,
+    private val inventory: InventoryMutationService,
 ) {
-    private val inventory by lazy { InventoryMutationService(stock, inventoryLedger) }
-
+    /**
+     * Seluruh proses (validasi, komputasi, penulisan) dieksekusi di dalam
+     * SATU transaksi tulis: konsistensi penuh tanpa window baca->tulis.
+     */
     suspend fun checkout(request: CheckoutRequest): Result<CheckoutResult> = suspendRunCatching {
-        // 1. FASE BACA & KOMPUTASI (DI LUAR KUNCI TRANSAKSI)
-        val cart = carts.getById(request.cartId) ?: throw PosDataException.NotFound("Keranjang tidak ditemukan")
-        if (cart.status != StatusKeranjang.AKTIF) throw PosDataException.InvalidState("Keranjang bukan AKTIF")
-
-        val cashier = cashiers.getById(request.cashierId)
-            ?: throw PosDataException.NotFound("Kasir tidak ditemukan")
-        if (!cashier.aktif) throw PosDataException.Validation("Kasir tidak aktif")
-
-        val shift = shifts.getById(request.shiftId)
-            ?: throw PosDataException.NotFound("Shift tidak ditemukan")
-        if (shift.status != StatusShift.TERBUKA || shift.kasirId != request.cashierId) {
-             throw PosDataException.InvalidState("Shift tidak aktif atau bukan milik kasir")
-        }
-
-    val cartRows = cartItems.getByCart(cart.id)
-    val lines = cartRows.map { row ->
-    val product = products.getById(row.produkId)
-        ?: throw PosDataException.NotFound("Produk ${row.produkId} tidak ditemukan")
-    if (!product.aktif) throw PosDataException.ProductInactive(product.id, product.nama)
-    if (row.jumlah <= 0) throw PosDataException.Validation("Quantity tidak valid")
-    
-    // PERBAIKAN: Ambil harga terbaru secara absolut dari entitas produk master, 
-    // abaikan snapshot harga usang di keranjang.
-    CartLine(product.id, product.nama, product.harga, row.jumlah, product.hargaModal)
-    }
-
-    val lineSubtotals = lines.map { MoneyMath.lineTotal(it.unitPrice, it.quantity) }
-    val subtotal = MoneyMath.sumExact(lineSubtotals)
-    val discountTotal = calculateDiscount(subtotal, request.discount)
-    val tax = request.tax.coerceAtLeast(0)
-    val total = subtotal - discountTotal + tax
-    val paymentCalculation = validatePayments(request.payments, total, request.now)
-    val allocatedDiscounts = allocateDiscounts(lineSubtotals, discountTotal)
-
-        // 2. FASE TULIS (EKSEKUSI CEPAT DI DALAM KUNCI TRANSAKSI)
         write.run {
-            // Optimistic lock: pastikan tidak berubah selagi kita komputasi
-            val stateCheck = carts.getById(request.cartId)
-            if (stateCheck?.status != StatusKeranjang.AKTIF) throw PosDataException.InvalidState("Status keranjang berubah saat komputasi")
+            // ---------- VALIDASI ----------
+            val cart = carts.getById(request.cartId)
+                ?: throw PosDataException.NotFound("Keranjang tidak ditemukan")
+            if (cart.status != StatusKeranjang.AKTIF) {
+                throw PosDataException.InvalidState("Keranjang bukan AKTIF")
+            }
+            val cashier = cashiers.getById(request.cashierId)
+                ?: throw PosDataException.NotFound("Kasir tidak ditemukan")
+            if (!cashier.aktif) throw PosDataException.Validation("Kasir tidak aktif")
+            val shift = shifts.getById(request.shiftId)
+                ?: throw PosDataException.NotFound("Shift tidak ditemukan")
+            if (shift.status != StatusShift.TERBUKA || shift.kasirId != request.cashierId) {
+                throw PosDataException.InvalidState("Shift tidak aktif atau bukan milik kasir")
+            }
 
+            // ---------- KOMPUTASI ----------
+            val cartRows = cartItems.getByCart(cart.id)
+            if (cartRows.isEmpty()) throw PosDataException.Validation("Keranjang kosong")
+
+            // Harga selalu diambil dari master produk saat checkout,
+            // snapshot harga keranjang sengaja diabaikan.
+            val lines = cartRows.map { row ->
+                val product = products.getById(row.produkId)
+                    ?: throw PosDataException.NotFound("Produk ${row.produkId} tidak ditemukan")
+                if (!product.aktif) throw PosDataException.ProductInactive(product.id, product.nama)
+                if (row.jumlah <= 0) throw PosDataException.Validation("Quantity tidak valid")
+                CartLine(product.id, product.nama, product.harga, row.jumlah, product.hargaModal)
+            }
+
+            val lineSubtotals = lines.map { MoneyMath.lineTotal(it.unitPrice, it.quantity) }
+            val subtotal = MoneyMath.sumExact(lineSubtotals)
+            val discountTotal = calculateDiscount(subtotal, request.discount)
+            val tax = request.tax.coerceAtLeast(0)
+            val total = subtotal - discountTotal + tax
+
+            val paymentCalculation = validatePayments(request.payments, total, request.now)
+            val allocatedDiscounts = allocateDiscounts(lineSubtotals, discountTotal)
+
+            // ---------- TULIS ----------
             val transactionId = transactions.insert(
                 TransaksiEntity(
                     nomorTransaksi = request.transactionNumber,
@@ -138,7 +139,7 @@ class CheckoutService(
             }
 
             check(carts.complete(cart.id, request.now) == 1) {
-                "Keranjang sudah berubah sebelum checkout selesai"
+                "Status keranjang berubah saat checkout"
             }
 
             CheckoutResult(
@@ -160,6 +161,22 @@ class CheckoutService(
         is DiscountInput.Percentage -> MoneyMath.percentage(subtotal, input.scaledPercent)
     }
 
+    private fun allocateDiscounts(lines: List<Long>, discount: Long): List<Long> {
+        if (discount == 0L) return List(lines.size) { 0L }
+        val total = MoneyMath.sumExact(lines)
+        val result = MutableList(lines.size) { 0L }
+        var allocated = 0L
+        lines.forEachIndexed { index, line ->
+            result[index] = if (index == lines.lastIndex) {
+                discount - allocated // koreksi sisa pembulatan di baris terakhir
+            } else {
+                MoneyMath.proportional(part = line, total = total, amount = discount)
+            }
+            allocated += result[index]
+        }
+        return result
+    }
+
     private data class PaymentCalculation(
         val rows: List<PembayaranEntity>,
         val paid: Long,
@@ -173,7 +190,6 @@ class CheckoutService(
     ): PaymentCalculation {
         if (inputs.isEmpty()) throw PosDataException.Validation("Pembayaran kosong")
         if (inputs.any { it.amount <= 0 }) throw PosDataException.Validation("Jumlah pembayaran harus > 0")
-
         val sum = MoneyMath.sumExact(inputs.map { it.amount })
         if (sum != total) throw PosDataException.Validation("Total pembayaran harus sama dengan total transaksi")
 
@@ -190,7 +206,7 @@ class CheckoutService(
                         diterima = received,
                         kembalian = received - input.amount,
                         referensi = null,
-                        dibuatPada = 0,
+                        dibuatPada = currentPaymentTimestamp,
                     )
                 }
                 MetodePembayaran.QRIS -> {
@@ -204,32 +220,13 @@ class CheckoutService(
                         diterima = null,
                         kembalian = 0,
                         referensi = input.reference,
-                        dibuatPada = 0,
+                        dibuatPada = currentPaymentTimestamp,
                     )
                 }
             }
-        }.map { it.copy(dibuatPada = currentPaymentTimestamp) }
-
+        }
         val cashChange = inputs.filter { it.method == MetodePembayaran.CASH }
             .sumOf { (it.received ?: it.amount) - it.amount }
-
         return PaymentCalculation(rows, sum, cashChange)
-    }
-
-    private fun allocateDiscounts(lines: List<Long>, discount: Long): List<Long> {
-        if (discount == 0L) return List(lines.size) { 0L }
-        val total = lines.sum()
-        val result = MutableList(lines.size) { 0L }
-        var allocated = 0L
-lines.forEachIndexed { index, line ->
-    result[index] = if (index == lines.lastIndex) {
-        discount - allocated
-    } else {
-        // PERBAIKAN: Gunakan utilitas proporsional yang sudah memakai Banker's Rounding
-        MoneyMath.proportional(part = line, total = total, amount = discount)
-    }
-    allocated += result[index]
-}
-        return result
     }
 }

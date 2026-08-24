@@ -14,7 +14,7 @@ fun PosNavHost(
     navController: NavHostController = rememberNavController(),
     // Rute awal kini langsung menuju POS Utama, karena Splash Screen 
     // sudah ditangani sepenuhnya oleh level Activity
-    startDestination: Any = PosRoute.PosUtama 
+    startDestination: PosRoute = PosRoute.PosUtama
 ) {
     NavHost(
         navController = navController,

@@ -1,5 +1,6 @@
 package com.sentral.org.data.service
 
+import android.database.sqlite.SQLiteConstraintException
 import com.sentral.org.data.dao.PergerakanPersediaanDao
 import com.sentral.org.data.dao.PersediaanDao
 import com.sentral.org.data.dao.ProdukDao
@@ -14,14 +15,49 @@ class PersediaanService(
     private val stock: PersediaanDao,
     private val ledger: PergerakanPersediaanDao,
 ) {
-    suspend fun createForProduct(productId: Long, initialQuantity: Long, initialDamaged: Long, now: Long): Result<Unit> = runCatching {
+    suspend fun createForProduct(
+        productId: Long,
+        initialQuantity: Long,
+        initialDamaged: Long,
+        now: Long,
+    ): Result<Unit> = suspendRunCatching {
         require(initialQuantity >= 0) { "Stok awal tidak boleh negatif" }
         require(initialDamaged >= 0) { "Stok rusak awal tidak boleh negatif" }
         write.run {
-            products.getById(productId) ?: throw PosDataException.NotFound("Produk tidak ditemukan")
-            stock.insert(PersediaanEntity(productId, initialQuantity, initialDamaged, now))
+            products.getById(productId)
+                ?: throw PosDataException.NotFound("Produk tidak ditemukan")
+            try {
+                stock.insert(
+                    PersediaanEntity(
+                        produkId = productId,
+                        jumlah = initialQuantity,
+                        jumlahRusak = initialDamaged,
+                        diperbaruiPada = now,
+                    )
+                )
+            } catch (e: SQLiteConstraintException) {
+                throw PosDataException.Duplicate("Produk $productId sudah memiliki baris persediaan")
+            }
             if (initialQuantity != 0L || initialDamaged != 0L) {
-                ledger.insert(PergerakanPersediaanEntity(0, productId, JenisPergerakanPersediaan.STOK_AWAL, initialQuantity, initialDamaged, 0, initialQuantity, 0, initialDamaged, null, null, null, null, null, "Stok awal", now))
+                ledger.insert(
+                    PergerakanPersediaanEntity(
+                        produkId = productId,
+                        jenis = JenisPergerakanPersediaan.STOK_AWAL,
+                        perubahanJumlah = initialQuantity,
+                        perubahanJumlahRusak = initialDamaged,
+                        saldoJumlahSebelum = 0,
+                        saldoJumlahSetelah = initialQuantity,
+                        saldoRusakSebelum = 0,
+                        saldoRusakSetelah = initialDamaged,
+                        transaksiId = null,
+                        itemTransaksiId = null,
+                        pengembalianId = null,
+                        itemPengembalianId = null,
+                        shiftId = null,
+                        keterangan = "Stok awal",
+                        dibuatPada = now,
+                    )
+                )
             }
         }
     }

@@ -9,16 +9,18 @@ class ReturService(
     private val transactions: TransaksiDao,
     private val transactionItems: ItemTransaksiDao,
     private val returns: ReturDao,
-    private val products: ProdukDao,
     private val cashiers: KasirDao,
     private val shifts: ShiftDao,
     private val cashLedger: PergerakanKasDao,
-    private val stock: PersediaanDao,
-    private val inventoryLedger: PergerakanPersediaanDao,
+    private val inventory: InventoryMutationService,
 ) {
-    private val inventory by lazy { InventoryMutationService(stock, inventoryLedger) }
+    private data class PreparedLine(
+        val item: ItemTransaksiEntity,
+        val line: ReturnLineRequest,
+        val refund: Long,
+    )
 
-    suspend fun process(request: ReturnRequest): Result<ReturnResult> = runCatching {
+    suspend fun process(request: ReturnRequest): Result<ReturnResult> = suspendRunCatching {
         write.run {
             if (request.lines.isEmpty()) throw PosDataException.Validation("Retur harus memiliki item")
             if (request.lines.map { it.transactionItemId }.distinct().size != request.lines.size) {
@@ -30,11 +32,9 @@ class ReturService(
             if (transaction.status != StatusTransaksi.SELESAI) {
                 throw PosDataException.InvalidState("Transaksi tidak dapat diretur")
             }
-
             val cashier = cashiers.getById(request.cashierId)
                 ?: throw PosDataException.NotFound("Kasir tidak ditemukan")
             if (!cashier.aktif) throw PosDataException.Validation("Kasir tidak aktif")
-
             val shift = request.shiftId?.let {
                 shifts.getById(it) ?: throw PosDataException.NotFound("Shift tidak ditemukan")
             }
@@ -45,20 +45,35 @@ class ReturService(
             val processed = request.lines.map { line ->
                 val item = transactionItems.getById(line.transactionItemId)
                     ?: throw PosDataException.NotFound("Item transaksi tidak ditemukan")
-                if (item.transaksiId != transaction.id) throw PosDataException.Validation("Item bukan milik transaksi")
+                if (item.transaksiId != transaction.id) {
+                    throw PosDataException.Validation("Item bukan milik transaksi")
+                }
                 if (line.quantity <= 0) throw PosDataException.Validation("Quantity retur harus > 0")
-                val returned = returns.getReturnedQuantity(item.id)
-                val remaining = item.jumlah - returned
+
+                val returnedQty = returns.getReturnedQuantity(item.id)
+                val remaining = item.jumlah - returnedQty
                 if (line.quantity > remaining) {
                     throw PosDataException.Validation("Quantity retur melebihi sisa quantity yang dapat diretur")
                 }
-val netLine = item.totalBaris - item.diskonItem
-// PERBAIKAN: Gunakan perhitungan proporsional yang presisi
-val refund = MoneyMath.proportional(part = line.quantity, total = item.jumlah, amount = netLine)
-                Triple(item, line, refund)
+
+                // Budget anti-over-refund: pembulatan per-sesi bisa saja melebihi
+                // neto bila baris diretur bertahap; klem terhadap sisa budget.
+                val netLine = item.totalBaris - item.diskonItem
+                val budget = netLine - returns.getRefundTotal(item.id)
+                if (budget <= 0) {
+                    throw PosDataException.InvalidState("Nilai retur untuk item ini sudah habis")
+                }
+                val refund = MoneyMath.proportional(
+                    part = line.quantity,
+                    total = item.jumlah,
+                    amount = netLine,
+                ).coerceAtMost(budget)
+
+                PreparedLine(item, line, refund)
             }
 
-            val totalRefund = MoneyMath.sumExact(processed.map { it.third })
+            val totalRefund = MoneyMath.sumExact(processed.map { it.refund })
+
             val returnId = returns.insert(
                 PengembalianEntity(
                     transaksiId = transaction.id,
@@ -74,26 +89,45 @@ val refund = MoneyMath.proportional(part = line.quantity, total = item.jumlah, a
                 ),
             )
 
-            val returnItems = processed.map { (item, line, refund) ->
-                ItemPengembalianEntity(
-                    pengembalianId = returnId,
-                    itemTransaksiId = item.id,
-                    produkId = item.produkId,
-                    namaProduk = item.namaProduk,
-                    hargaSatuan = item.hargaSatuan,
-                    jumlahDikembalikan = line.quantity,
-                    jumlahRefund = refund,
-                    tujuanStok = line.destination,
-                )
-            }
-            val returnItemIds = returns.insertItems(returnItems)
+            val returnItemIds = returns.insertItems(
+                processed.map { p ->
+                    ItemPengembalianEntity(
+                        pengembalianId = returnId,
+                        itemTransaksiId = p.item.id,
+                        produkId = p.item.produkId,
+                        namaProduk = p.item.namaProduk,
+                        hargaSatuan = p.item.hargaSatuan,
+                        jumlahDikembalikan = p.line.quantity,
+                        jumlahRefund = p.refund,
+                        tujuanStok = p.line.destination,
+                    )
+                },
+            )
 
-            processed.forEachIndexed { index, (item, line, _) ->
-                val productId = item.produkId
+            processed.forEachIndexed { index, p ->
+                val productId = p.item.produkId
                     ?: throw PosDataException.Validation("Produk historical tidak tersedia untuk mutasi stok")
-                when (line.destination) {
-                    TujuanStokPengembalian.NORMAL -> inventory.mutateNormal(productId, line.quantity, 0, JenisPergerakanPersediaan.PENGEMBALIAN_NORMAL, returnId = returnId, returnItemId = returnItemIds[index], shiftId = shift?.id, note = "Retur transaksi ${transaction.nomorTransaksi}", now = request.now)
-                    TujuanStokPengembalian.RUSAK -> inventory.mutateNormal(productId, 0, line.quantity, JenisPergerakanPersediaan.PENGEMBALIAN_RUSAK, returnId = returnId, returnItemId = returnItemIds[index], shiftId = shift?.id, note = "Retur rusak transaksi ${transaction.nomorTransaksi}", now = request.now)
+                when (p.line.destination) {
+                    TujuanStokPengembalian.NORMAL -> inventory.mutateNormal(
+                        productId = productId,
+                        normalDelta = p.line.quantity,
+                        type = JenisPergerakanPersediaan.PENGEMBALIAN_NORMAL,
+                        returnId = returnId,
+                        returnItemId = returnItemIds[index],
+                        shiftId = shift?.id,
+                        note = "Retur transaksi ${transaction.nomorTransaksi}",
+                        now = request.now,
+                    )
+                    TujuanStokPengembalian.RUSAK -> inventory.mutateNormal(
+                        productId = productId,
+                        damagedDelta = p.line.quantity,
+                        type = JenisPergerakanPersediaan.PENGEMBALIAN_RUSAK,
+                        returnId = returnId,
+                        returnItemId = returnItemIds[index],
+                        shiftId = shift?.id,
+                        note = "Retur rusak transaksi ${transaction.nomorTransaksi}",
+                        now = request.now,
+                    )
                     TujuanStokPengembalian.TIDAK_DIKEMBALIKAN -> Unit
                 }
             }

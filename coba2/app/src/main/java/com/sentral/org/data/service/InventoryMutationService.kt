@@ -2,19 +2,31 @@ package com.sentral.org.data.service
 
 import com.sentral.org.data.dao.PergerakanPersediaanDao
 import com.sentral.org.data.dao.PersediaanDao
+import com.sentral.org.data.entity.PersediaanEntity
 import com.sentral.org.data.entity.PergerakanPersediaanEntity
-import com.sentral.org.data.model.*
+import com.sentral.org.data.model.JenisPergerakanPersediaan
+import com.sentral.org.data.model.PosDataException
 
 class InventoryMutationService(
     private val persediaanDao: PersediaanDao,
     private val ledgerDao: PergerakanPersediaanDao,
 ) {
-    /** Caller owns the outer write transaction. */
+    /**
+     * Caller wajib berada di dalam transaksi tulis (PosWriteService.run).
+     *
+     * Auto-upsert: baris persediaan dibuat dengan saldo 0 bila belum ada.
+     * Baris ledger delta-0 sengaja TIDAK ditulis agar audit trail hanya
+     * berisi mutasi riil (mutasi aktual tetap mencatat saldo 0 -> X).
+     *
+     * @param allowNegativeStock default true demi menjaga perilaku backorder.
+     *       Setel false pada jalur PENJUALAN bila bisnis melarang stok minus.
+     */
     suspend fun mutateNormal(
         productId: Long,
         normalDelta: Long,
         damagedDelta: Long = 0,
         type: JenisPergerakanPersediaan,
+        allowNegativeStock: Boolean = true,
         transactionId: Long? = null,
         transactionItemId: Long? = null,
         returnId: Long? = null,
@@ -24,40 +36,36 @@ class InventoryMutationService(
         now: Long,
     ) {
         require(normalDelta != 0L || damagedDelta != 0L)
-// InventoryMutationService.kt
-// Lakukan Auto-Upsert: Jika baris persediaan belum ada, buat saat itu juga dengan stok 0.
-// (Stok akan otomatis menjadi negatif setelah dikurangi delta penjualan)
-var before = persediaanDao.getByProdukId(productId)
-if (before == null) {
-    persediaanDao.insert(com.sentral.org.data.entity.PersediaanEntity(
-        produkId = productId, 
-        jumlah = 0, 
-        jumlahRusak = 0, 
-        diperbaruiPada = now
-    ))
-    before = persediaanDao.getByProdukId(productId)!!
-    
-    // Opsional: Catat pergerakan sistem inisialisasi darurat di pergerakan_persediaan
-    ledgerDao.insert(com.sentral.org.data.entity.PergerakanPersediaanEntity(
-        produkId = productId, jenis = JenisPergerakanPersediaan.STOK_AWAL, 
-        perubahanJumlah = 0, perubahanJumlahRusak = 0, saldoJumlahSebelum = 0, 
-        saldoJumlahSetelah = 0, saldoRusakSebelum = 0, saldoRusakSetelah = 0, 
-        transaksiId = null, itemTransaksiId = null, pengembalianId = null, 
-        itemPengembalianId = null, shiftId = shiftId, 
-        keterangan = "Auto-inisialisasi saat mutasi", dibuatPada = now
-    ))
-}
+
+        var before = persediaanDao.getByProdukId(productId)
+        if (before == null) {
+            persediaanDao.insert(
+                PersediaanEntity(
+                    produkId = productId,
+                    jumlah = 0,
+                    jumlahRusak = 0,
+                    diperbaruiPada = now,
+                )
+            )
+            before = persediaanDao.getByProdukId(productId)
+                ?: throw PosDataException.NotFound("Gagal inisialisasi persediaan produk $productId")
+        }
+
+        if (!allowNegativeStock && before.jumlah + normalDelta < 0) {
+            throw PosDataException.InsufficientStock(
+                "Stok produk $productId tidak cukup (sisa ${before.jumlah}, diminta ${-normalDelta})"
+            )
+        }
+
         if (normalDelta != 0L) {
             check(persediaanDao.addNormal(productId, normalDelta, now) == 1)
         }
-        if (damagedDelta != 0L) {
-            if (persediaanDao.addDamaged(productId, damagedDelta, now) != 1) {
-                throw PosDataException.InsufficientDamagedStock("Stok rusak tidak mencukupi untuk produk $productId")
-            }
+        if (damagedDelta != 0L && persediaanDao.addDamaged(productId, damagedDelta, now) != 1) {
+            throw PosDataException.InsufficientDamagedStock("Stok rusak tidak mencukupi untuk produk $productId")
         }
 
         val after = persediaanDao.getByProdukId(productId)
-            ?: throw PosDataException.NotFound("Persediaan produk $productId tidak ditemukan setelah mutasi")
+            ?: throw PosDataException.NotFound("Persediaan produk $productId hilang setelah mutasi")
 
         check(after.jumlah == before.jumlah + normalDelta)
         check(after.jumlahRusak == before.jumlahRusak + damagedDelta)
@@ -79,7 +87,7 @@ if (before == null) {
                 shiftId = shiftId,
                 keterangan = note,
                 dibuatPada = now,
-            ),
+            )
         )
     }
 }

@@ -1,10 +1,10 @@
-package com.sentral.org.data.service
+package com.sentral.org.ui.screen.pos
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sentral.org.data.model.CheckoutRequest
 import com.sentral.org.data.model.CheckoutResult
-import kotlinx.coroutines.Dispatchers
+import com.sentral.org.data.service.CheckoutService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,26 +18,18 @@ sealed interface CheckoutUiState {
 }
 
 class CheckoutViewModel(
-    // 1. Ubah parameter menjadi Lazy untuk menunda perakitan 12 DAO
-    private val checkoutServiceLazy: Lazy<CheckoutService>,
+    private val checkoutService: CheckoutService,
 ) : ViewModel() {
+
     private val _state = MutableStateFlow<CheckoutUiState>(CheckoutUiState.Idle)
     val state: StateFlow<CheckoutUiState> = _state.asStateFlow()
 
-    // 2. Ambil instance service sebenarnya secara aman
-    private val checkoutService by lazy { checkoutServiceLazy.value }
-
     fun checkout(request: CheckoutRequest) {
         if (_state.value is CheckoutUiState.Processing) return
-        
-        // 3. Pindahkan seluruh proses inisialisasi dan eksekusi ke Background Thread
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
+            // Room memindahkan pekerjaan ke executor-nya sendiri; tidak perlu Dispatchers.IO manual.
             _state.value = CheckoutUiState.Processing
-            
-            // Saat checkoutService dipanggil pertama kali di sini, 
-            // perakitan berat akan terjadi di IO thread, membebaskan main thread!
             val result = checkoutService.checkout(request)
-            
             _state.value = result.fold(
                 onSuccess = { CheckoutUiState.Success(it) },
                 onFailure = { CheckoutUiState.Error(it.message ?: "Checkout gagal") },

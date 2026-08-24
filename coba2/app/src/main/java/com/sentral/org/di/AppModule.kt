@@ -1,28 +1,22 @@
 package com.sentral.org.di
 
+import com.sentral.org.data.DatabaseWarmup
 import com.sentral.org.data.PosDatabase
 import com.sentral.org.data.PosDatabaseFactory
 import com.sentral.org.data.repository.*
 import com.sentral.org.data.repository.impl.*
 import com.sentral.org.data.service.*
+import com.sentral.org.ui.MainViewModel
+import com.sentral.org.ui.screen.pos.CheckoutViewModel
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import com.sentral.org.domain.usecase.AddToCartUseCase
-import com.sentral.org.domain.usecase.RemoveFromCartUseCase
-import com.sentral.org.domain.usecase.UpdateCartQuantityUseCase
-import com.sentral.org.domain.usecase.SearchProductUseCase
 
 val appModule = module {
-
     // 1. Core & Database
-    single {
-        PosDatabaseFactory.create(androidContext())
-    }
-
-    single<PosWriteService> {
-        RoomTransactionRunner(get())
-    }
+    single { PosDatabaseFactory.create(androidContext()) }
+    single<PosWriteService> { RoomTransactionRunner(get()) }
+    single { DatabaseWarmup(get()) }
 
     // 2. DAOs
     single { get<PosDatabase>().produkDao() }
@@ -41,100 +35,63 @@ val appModule = module {
     single { get<PosDatabase>().profilTokoDao() }
 
     // 3. Repositories
-    single<ProdukRepository> {
-        OfflineProdukRepository(get())
-    }
+    single<ProdukRepository> { OfflineProdukRepository(get()) }
+    single<PersediaanRepository> { OfflinePersediaanRepository(get(), get()) }
+    single<KasirRepository> { OfflineKasirRepository(get()) }
+    single<ShiftRepository> { OfflineShiftRepository(get()) }
+    single<CartRepository> { OfflineCartRepository(get(), get()) }
+    single<TransaksiRepository> { OfflineTransaksiRepository(get(), get(), get()) }
+    single<ReturRepository> { OfflineReturRepository(get()) }
+    single<PrinterRepository> { OfflinePrinterRepository(get()) }
+    single<ProfilTokoRepository> { OfflineProfilTokoRepository(get()) }
 
-    single<PersediaanRepository> {
-        OfflinePersediaanRepository(get(), get())
-    }
-
-    single<KasirRepository> {
-        OfflineKasirRepository(get())
-    }
-
-    single<ShiftRepository> {
-        OfflineShiftRepository(get())
-    }
-
-    single<CartRepository> {
-        OfflineCartRepository(get(), get())
-    }
-
-    single<TransaksiRepository> {
-        OfflineTransaksiRepository(get(), get(), get())
-    }
-
-    single<ReturRepository> {
-        OfflineReturRepository(get())
-    }
-
-    single<PrinterRepository> {
-        OfflinePrinterRepository(get())
-    }
-
-    single<ProfilTokoRepository> {
-        OfflineProfilTokoRepository(get())
-    }
-
-    // 4. Domain Services
-    factory {
-        InventoryMutationService(get(), get())
-    }
-
-    factory {
-        PersediaanService(get(), get(), get(), get())
-    }
-
-    factory {
-        CartService(get(), get(), get(), get())
-    }
-
-    factory {
-        ShiftService(get(), get(), get(), get())
-    }
-
+    // 4. Domain Services (semua stateless -> factory murah & aman)
+    factory { InventoryMutationService(persediaanDao = get(), ledgerDao = get()) }
+    factory { PersediaanService(write = get(), products = get(), stock = get(), ledger = get()) }
+    factory { CartService(write = get(), carts = get(), items = get(), products = get()) }
+    factory { ShiftService(write = get(), cashiers = get(), shifts = get(), cashLedger = get()) }
     factory {
         CheckoutService(
-            get(), get(), get(), get(), get(), get(),
-            get(), get(), get(), get(), get(), get()
+            write = get(),
+            products = get(),
+            carts = get(),
+            cartItems = get(),
+            cashiers = get(),
+            shifts = get(),
+            transactions = get(),
+            transactionItems = get(),
+            payments = get(),
+            cashLedger = get(),
+            inventory = get(),
         )
     }
-
     factory {
         ReturService(
-            get(), get(), get(), get(), get(),
-            get(), get(), get(), get(), get()
+            write = get(),
+            transactions = get(),
+            transactionItems = get(),
+            returns = get(),
+            cashiers = get(),
+            shifts = get(),
+            cashLedger = get(),
+            inventory = get(),
         )
     }
-
     factory {
         VoidService(
-            get(), get(), get(), get(), get(),
-            get(), get(), get(), get(), get()
+            write = get(),
+            transactions = get(),
+            transactionItems = get(),
+            returns = get(),
+            cashiers = get(),
+            shifts = get(),
+            payments = get(),
+            cashLedger = get(),
+            inventory = get(),
         )
     }
 
-    // ── Tambahkan setelah baris viewModel CheckoutViewModel ──
-
-    // 6. Use Cases
-    factory { AddToCartUseCase(get()) }
-    factory { RemoveFromCartUseCase(get()) }
-    factory { UpdateCartQuantityUseCase(get()) }
-    factory { SearchProductUseCase(get()) }
-
-
     // 5. ViewModels
-viewModel { params ->
-    CheckoutViewModel(
-        checkoutServiceLazy = lazy { get<CheckoutService>() },
-        cartService = get(),
-        searchProductUseCase = get(),
-        addToCartUseCase = get(),
-        removeFromCartUseCase = get(),
-        updateCartQuantityUseCase = get(),
-        keranjangDao = get(),
-        itemKeranjangDao = get(),
-    )
-}
+    viewModelOf(::CheckoutViewModel)
+    viewModelOf(::MainViewModel)
 }

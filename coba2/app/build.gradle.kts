@@ -58,6 +58,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -125,6 +126,7 @@ dependencies {
 
     // 6. Dependency Injection (Koin)
     implementation(libs.koin.androidx.compose)
+    implementation(libs.koin.android)
     implementation(libs.kotlinx.serialization.json)
 
     // 7. Hardware: Printer Termal
