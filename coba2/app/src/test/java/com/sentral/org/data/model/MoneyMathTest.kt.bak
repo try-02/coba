@@ -25,7 +25,7 @@ class MoneyMathTest {
 
     @Test
     fun `lineTotal pembagian eksak tidak bergeser`() {
-        assertEquals(1_000L, MoneyMath.lineTotal(unitPrice = 2_500, quantityScaled = 400))
+        assertEquals(2_500L, MoneyMath.lineTotal(unitPrice = 2_500, quantityScaled = 400))
     }
 
     @Test

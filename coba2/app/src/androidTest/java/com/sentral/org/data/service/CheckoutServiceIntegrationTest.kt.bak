@@ -187,9 +187,8 @@ class CheckoutServiceIntegrationTest {
     @Test
     fun kegagalanDiTengahTransaksiMengembalikanSemuaTulisan() = runBlocking {
         val f = seedStandar()
-        // Benturan sengaja: nomor ini sudah dipakai transaksi lain -> penulisan PERTAMA
-        // langsung gagal. Pembuktian rollback atas tulisan-parsial ada di
-        // RoomTransactionRunnerTest.
+        // Benturan sengaja: nomor ini sudah dipakai transaksi lain -> insert gagal
+        // SETELAH sebagian operasi lain sempat "ditulis" dalam rencana eksekusi.
         val nomorBentrok = "TRX-DUP"
         val seededTxId = db.transaksiDao().insert(
             TransaksiEntity(
