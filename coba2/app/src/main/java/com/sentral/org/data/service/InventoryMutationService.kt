@@ -24,6 +24,7 @@ class InventoryMutationService(
     suspend fun mutateNormal(
         productId: Long,
         normalDelta: Long,
+        default = 0,
         damagedDelta: Long = 0,
         type: JenisPergerakanPersediaan,
         allowNegativeStock: Boolean = true,
