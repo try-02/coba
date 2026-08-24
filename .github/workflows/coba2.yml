@@ -42,7 +42,6 @@ jobs:
 
           # Menambahkan flag menonaktifkan task uji coba (test) saat rilis untuk hemat waktu
           ./gradlew clean assembleRelease \
-            --build-cache \
             --non-interactive \
             --stacktrace \
             --console=plain

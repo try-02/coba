@@ -52,4 +52,3 @@ jobs:
         path: |
           coba3/app/build/reports/compose-doctor/*.*
           coba3/app/build/reports/detekt/*.*
-        retention-days: 1

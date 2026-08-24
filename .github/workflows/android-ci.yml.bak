@@ -43,7 +43,7 @@ jobs:
 
       # 2. Menjalankan Unit Test
       - name: Run Pure Unit Tests
-        run: ./gradlew :app:testDebugUnitTest --build-cache --stacktrace
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
 
       - name: Upload Test Report
         if: always()
@@ -51,6 +51,7 @@ jobs:
         with:
           name: unit-test-report
           path: coba2/app/build/reports/tests/testDebugUnitTest/
+          retention-days: 1
 
   instrumented-tests:
     name: Run Migration Tests (Emulator)
@@ -106,6 +107,7 @@ jobs:
             coba2/**/build/reports/androidTests/
             coba2**/build/outputs/androidTest-results/
           if-no-files-found: ignore
+          retention-days: 1
 
       # 4. Pembersihan Total Runner & Bekas Proses Build
       - name: Cleanup Runner Environment & Build Artifacts

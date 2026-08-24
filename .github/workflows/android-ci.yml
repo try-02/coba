@@ -43,7 +43,7 @@ jobs:
 
       # 2. Menjalankan Unit Test
       - name: Run Pure Unit Tests
-        run: ./gradlew :app:testDebugUnitTest --build-cache --stacktrace
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
 
       - name: Upload Test Report
         if: always()
@@ -108,26 +108,3 @@ jobs:
             coba2**/build/outputs/androidTest-results/
           if-no-files-found: ignore
           retention-days: 1
-
-      # 4. Pembersihan Total Runner & Bekas Proses Build
-      - name: Cleanup Runner Environment & Build Artifacts
-        if: always()
-        run: |
-          echo "--- Memulai Pembersihan Runner & Bekas Build ---"
-          
-          # Menghentikan Gradle Daemon agar RAM & CPU lega
-          ./gradlew --stop || true
-          
-          # Menghentikan ADB Server & Emulator
-          adb kill-server || true
-          
-          # Menjalankan task clean dari Gradle
-          ./gradlew clean || true
-          
-          # Hapus folder build dan .gradle secara paksa
-          rm -rf build app/build .gradle || true
-          
-          # Hapus semua file/folder yang tidak di-track oleh Git
-          git clean -ffdx || true
-          
-          echo "--- Pembersihan Total Selesai ---"
