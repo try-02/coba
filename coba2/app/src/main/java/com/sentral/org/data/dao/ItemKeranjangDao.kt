@@ -4,12 +4,13 @@ import androidx.room3.Dao
 import androidx.room3.Insert
 import androidx.room3.Query
 import com.sentral.org.data.entity.ItemKeranjangEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ItemKeranjangDao {
     @Insert
     suspend fun insert(entity: ItemKeranjangEntity): Long
-    @Query("SELECT * FROM item_keranjang WHERE cart_id = :cartId")
+    @Query("SELECT * FROM item_keranjang WHERE keranjang_id = :cartId")
     fun getByCart(cartId: Long): Flow<List<ItemKeranjangEntity>>
 
     @Query("""
