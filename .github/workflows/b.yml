@@ -51,8 +51,7 @@ jobs:
             cd */
             
             # Eksekusi build khusus arsitektur Android 64-bit menggunakan Zig
-            maturin build --release --target aarch64-linux-android --zig --out ../../final_wheels -i python
-            
+            maturin build --release --target aarch64-linux-android --zig --out ../../final_wheels -i python3.14            
             cd ../../
             rm -rf build_dir
           done
