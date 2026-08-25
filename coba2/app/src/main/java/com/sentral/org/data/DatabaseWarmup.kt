@@ -1,7 +1,7 @@
 package com.sentral.org.data
 
-import com.sentral.org.data.ProductSeeder
-import com.sentral.org.data.seedIfEmpty
+import com.sentral.org.data.seed.ProductSeeder
+import com.sentral.org.data.seed.seedIfEmpty
 
 /**
  * Memaksa Room membuka koneksi SQLite sejak awal lewat satu query riil,
