@@ -52,7 +52,10 @@ jobs:
       - name: Build Wheel using Maturin Action
         uses: PyO3/maturin-action@v1
         env:
-          # SOLUSI JITER: Memaksa linker mengabaikan libpython yang hilang di mesin host Ubuntu
+          # SOLUSI UTAMA: Mengosongkan NDK agar Maturin wajib memakai ZIG
+          ANDROID_NDK_ROOT: ""
+          ANDROID_NDK_HOME: ""
+          # Menjaga flags jiter Anda sebelumnya
           RUSTFLAGS: "-C link-arg=-Wl,--unresolved-symbols=ignore-all"
         with:
           working-directory: ${{ steps.extract.outputs.src_dir }}
