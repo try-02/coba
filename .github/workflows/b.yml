@@ -1,0 +1,36 @@
+name: Build Hermes Termux Wheels
+
+on:
+  workflow_dispatch: # Memungkinkan tombol "Run workflow" manual
+
+jobs:
+  build-wheels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU (ARM64)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: Build All Wheels in Termux Environment
+        run: |
+          mkdir -p output_wheels
+          docker run --rm -v $(pwd)/output_wheels:/output \
+            --platform linux/arm64 \
+            termux/termux-docker:latest \
+            bash -c "
+              pkg update -y &&
+              pkg install -y python python-pip clang rust make pkg-config libffi openssl git &&
+              pip install --upgrade pip wheel setuptools &&
+              git clone https://github.com/NousResearch/hermes-agent.git &&
+              cd hermes-agent &&
+              sed -i 's/>=3.11,<3.14/>=3.11,<3.15/' pyproject.toml &&
+              export ANDROID_API_LEVEL=33 &&
+              pip wheel --wheel-dir=/output .[termux] -c constraints-termux.txt
+            "
+
+      - name: Upload Wheels as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-wheels
+          path: output_wheels/*.whl
