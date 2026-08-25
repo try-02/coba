@@ -13,4 +13,5 @@ interface ShiftDao {
     @Query("SELECT EXISTS(SELECT 1 FROM shift WHERE kasir_id = :kasirId AND status = 'TERBUKA')") suspend fun hasOpenForKasir(kasirId: Long): Boolean
     @Query("SELECT * FROM shift WHERE status = 'TERBUKA' ORDER BY id DESC LIMIT 1")
     suspend fun getLatestOpen(): ShiftEntity?
+
 }

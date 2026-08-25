@@ -1,6 +1,7 @@
 package com.sentral.org.di
 
 import com.sentral.org.data.seed.ProductSeeder
+import com.sentral.org.data.session.DevSessionBootstrap
 import com.sentral.org.data.DatabaseWarmup
 import com.sentral.org.data.PosDatabase
 import com.sentral.org.data.PosDatabaseFactory
@@ -21,7 +22,8 @@ val appModule = module {
     single { PosDatabaseFactory.create(androidContext()) }
     single<PosWriteService> { RoomTransactionRunner(get()) }
     single { ProductSeeder(get()) }              // tambah baru
-    single { DatabaseWarmup(get(), get()) }      // dua dependensi
+    single { DevSessionBootstrap(get(), get(), get()) }   // ShiftService sudah ada sebagai factory
+    single { DatabaseWarmup(get(), get(), get()) }      // 3 dependensi
 
     // 2. DAOs
     single { get<PosDatabase>().produkDao() }
