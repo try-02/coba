@@ -1,62 +1,59 @@
-name: Build Termux Wheels (Khusus Rust/Maturin)
+name: Build Termux Wheels (Rust/Maturin)
 
 on:
   workflow_dispatch:
-    inputs:
-      packages:
-        description: 'Daftar paket (Hanya yang berbasis Rust/Maturin, misal: pydantic-core jiter tokenizers)'
-        required: true
-        default: 'pydantic-core==2.27.2 jiter'
 
 jobs:
   build-android-wheels:
-    name: Build Android Wheels
+    name: Build ${{ matrix.package }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Anda bisa menambahkan paket Rust lainnya di sini
+        package: 
+          - "jiter"
+          - "pydantic-core==2.27.2"
+
     steps:
-      - name: Setup Python 3.11 (Sebagai basis build abi3)
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Ubah dari 3.14 menjadi 3.11
+          python-version: '3.11'
 
-      - name: Setup Zig (Linker cross-compile Android)
+      - name: Setup Zig (Linker untuk Termux/Android)
         uses: goto-bus-stop/setup-zig@v2
 
-      - name: Install PyPA Build & Maturin
-        run: pip install maturin build
-
-      - name: Download & Build Packages
+      - name: Download & Extract Source Code
+        id: extract
         run: |
-          mkdir -p final_wheels
+          # Download source murni
+          pip download --no-binary :all: --no-deps ${{ matrix.package }}
           
-          for pkg in ${{ github.event.inputs.packages }}; do
-            echo "========================================"
-            echo "Memproses: $pkg"
-            echo "========================================"
-            
-            mkdir -p "build_dir"
-            cd build_dir
-            
-            pip download --no-binary :all: --no-deps "$pkg"
-            
-            file=$(ls | head -n 1)
-            if [[ $file == *.zip ]]; then
-              unzip "$file"
-            else
-              tar -xzf "$file"
-            fi
-            rm "$file"
-            
-            cd */
-            
-            # Ubah -i python3.14 menjadi -i python3.11
-            maturin build --release --target aarch64-linux-android --zig --out ../../final_wheels -i python3.11
-            
-            cd ../../
-            rm -rf build_dir
-          done
+          # Ekstrak file tar.gz atau zip
+          file=$(ls | grep -E '\.(tar\.gz|zip)$' | head -n 1)
+          if [[ $file == *.zip ]]; then unzip "$file"; else tar -xzf "$file"; fi
+          rm "$file"
+          
+          # Dapatkan nama folder hasil ekstraksi dan simpan path-nya
+          folder_name=$(find . -maxdepth 1 -type d ! -name "." | head -n 1)
+          echo "src_dir=$folder_name" >> $GITHUB_OUTPUT
 
-      - name: Upload Artifact Wheels
+      - name: Build Wheel using Maturin Action
+        uses: PyO3/maturin-action@v1
+        env:
+          # Variabel rahasia ini wajib agar PyO3 tidak kebingungan mencari sysconfig Android
+          PYO3_CROSS_PYTHON_VERSION: "3.11"
+        with:
+          working-directory: ${{ steps.extract.outputs.src_dir }}
+          target: aarch64-linux-android
+          manylinux: off
+          command: build
+          # -i python3.11 memastikan wheel dilabeli abi3
+          args: --release --zig --out ../final_wheels -i python3.11
+
+      - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: termux-rust-wheels
+          # Artifact akan dinamai sesuai dengan nama paketnya
+          name: termux-wheel-${{ matrix.package }}
           path: final_wheels/*.whl
