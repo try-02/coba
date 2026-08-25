@@ -52,21 +52,25 @@ jobs:
       - name: Build Wheel using Maturin Action
         uses: PyO3/maturin-action@v1
         env:
-          # 1. Pastikan NDK lokal diabaikan agar beralih ke compiler ZIG
+          # 1. Pastikan NDK bawaan diabaikan total agar Maturin memakai Zig
           ANDROID_NDK_ROOT: ""
           ANDROID_NDK_HOME: ""
           
-          # 2. Instruksi wajib untuk membuat modul ekstensi CPython murni
+          # 2. Instruksi dasar modul ekstensi
           PYO3_BUILD_EXTENSION_MODULE: "1"
           
-          # 3. Bendera untuk mengabaikan fungsi tautan dinamis yang belum terisi
-          RUSTFLAGS: "-C link-arg=-Wl,--unresolved-symbols=ignore-all"
+          # 3. SOLUSI TOTAL ANDROID: Sembunyikan atau bypass pencarian -lpython3.14
+          # Kita memaksa linker mengabaikan pustaka yang tidak ada di host dengan bendera kloning
+          RUSTFLAGS: "-C link-arg=-Wl,--unresolved-symbols=ignore-all -C link-arg=-undefined -C link-arg=dynamic_lookup"
+          
+          # 4. Solusi Tambahan: Beritahu PyO3 untuk tidak melakukan emisi libpython ke linker
+          PYO3_CROSS_NO_ABI3_FIX: "1"
         with:
           working-directory: ${{ steps.extract.outputs.src_dir }}
           target: aarch64-linux-android
           manylinux: off
           command: build
-          # PERBAIKAN: Hapus argumen --compatibility, biarkan maturin menentukan secara native
+          # Paksa maturins menggunakan Zig secara absolut untuk mengabaikan skrip Clang NDK
           args: --release --zig --out ../final_wheels -i python3.14
 
       - name: Fix Wheel Tag for Termux Android
