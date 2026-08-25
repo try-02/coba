@@ -13,10 +13,10 @@ jobs:
     name: Build Android Wheels
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Python 3.14
+      - name: Setup Python 3.11 (Sebagai basis build abi3)
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.11' # Ubah dari 3.14 menjadi 3.11
 
       - name: Setup Zig (Linker cross-compile Android)
         uses: goto-bus-stop/setup-zig@v2
@@ -36,10 +36,8 @@ jobs:
             mkdir -p "build_dir"
             cd build_dir
             
-            # Download source dari PyPI
             pip download --no-binary :all: --no-deps "$pkg"
             
-            # Ekstrak file (bisa .tar.gz atau .zip)
             file=$(ls | head -n 1)
             if [[ $file == *.zip ]]; then
               unzip "$file"
@@ -50,8 +48,9 @@ jobs:
             
             cd */
             
-            # Eksekusi build khusus arsitektur Android 64-bit menggunakan Zig
-            maturin build --release --target aarch64-linux-android --zig --out ../../final_wheels -i python3.14            
+            # Ubah -i python3.14 menjadi -i python3.11
+            maturin build --release --target aarch64-linux-android --zig --out ../../final_wheels -i python3.11
+            
             cd ../../
             rm -rf build_dir
           done
