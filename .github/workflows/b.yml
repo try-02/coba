@@ -10,7 +10,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Isi dengan nama paket Rust yang ingin di-build
         package: 
           - "jiter"
           - "pydantic-core==2.27.2"
@@ -24,10 +23,12 @@ jobs:
       - name: Setup Zig (Linker untuk Termux/Android)
         uses: goto-bus-stop/setup-zig@v2
 
+      - name: Install Build Dependencies
+        # SOLUSI PYDANTIC-CORE: Menambahkan typing_extensions agar skrip build-nya tidak error
+        run: pip install maturin build typing_extensions
+
       - name: Workaround Sysconfig Android
         run: |
-          # Trik untuk menipu Maturin & PyO3 agar menggunakan konfigurasi dari mesin Host Ubuntu
-          # Karena untuk abi3, isi konfigurasinya sama persis
           STDLIB_PATH=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
           INCLUDE_PATH=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
           
@@ -50,6 +51,9 @@ jobs:
 
       - name: Build Wheel using Maturin Action
         uses: PyO3/maturin-action@v1
+        env:
+          # SOLUSI JITER: Memaksa linker mengabaikan libpython yang hilang di mesin host Ubuntu
+          RUSTFLAGS: "-C link-arg=-Wl,--unresolved-symbols=ignore-all"
         with:
           working-directory: ${{ steps.extract.outputs.src_dir }}
           target: aarch64-linux-android
