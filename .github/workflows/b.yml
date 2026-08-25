@@ -45,11 +45,13 @@ jobs:
           ANDROID_NDK_ROOT: ""
           ANDROID_NDK_HOME: ""
           
-          # 2. PERBAIKAN UTAMA: Beritahu PyO3 bahwa ini adalah modul ekstensi distributor
-          # Ini akan mencegah PyO3 memanggil perintah otomatis penautan `-lpython3.11`
+          # 2. Beritahu PyO3 bahwa ini adalah modul ekstensi distributor
           PYO3_BUILD_EXTENSION_MODULE: "1"
           
-          # 3. Bendera tambahan untuk mengabaikan simbol eksternal yang belum terdefinisi pada fase kompilasi
+          # 3. PERBAIKAN PYDANTIC-CORE: Paksa kompatibilitas ABI ke depan untuk membungkam error versi Python
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+          
+          # 4. Bendera tambahan untuk mengabaikan simbol eksternal yang belum terdefinisi pada fase kompilasi
           RUSTFLAGS: "-C link-arg=-Wl,--unresolved-symbols=ignore-all"
         with:
           working-directory: ${{ steps.extract.outputs.src_dir }}
@@ -57,6 +59,7 @@ jobs:
           manylinux: off
           command: build
           args: --release --zig --out ../final_wheels -i python3.11
+
 
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
