@@ -1,5 +1,6 @@
 package com.sentral.org.di
 
+import com.sentral.org.data.ProductSeeder
 import com.sentral.org.data.DatabaseWarmup
 import com.sentral.org.data.PosDatabase
 import com.sentral.org.data.PosDatabaseFactory

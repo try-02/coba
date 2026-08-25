@@ -19,7 +19,8 @@ val appModule = module {
     // 1. Core & Database
     single { PosDatabaseFactory.create(androidContext()) }
     single<PosWriteService> { RoomTransactionRunner(get()) }
-    single { DatabaseWarmup(get()) }
+    single { ProductSeeder(get()) }              // tambah baru
+    single { DatabaseWarmup(get(), get()) }      // dua dependensi
 
     // 2. DAOs
     single { get<PosDatabase>().produkDao() }
