@@ -1,34 +1,64 @@
-name: Build Termux Wheels
+name: Build Termux Wheels (Khusus Rust/Maturin)
 
 on:
-  workflow_dispatch: # Tombol manual di tab Actions
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: 'Daftar paket (Hanya yang berbasis Rust/Maturin, misal: pydantic-core jiter tokenizers)'
+        required: true
+        default: 'pydantic-core==2.27.2 jiter'
 
 jobs:
-  build-android-wheel:
+  build-android-wheels:
+    name: Build Android Wheels
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6
-
-      - name: Download Jiter Source
-        run: |
-          python -m pip install --upgrade pip
-          # Mengunduh source code jiter versi terbaru dari PyPI
-          pip download jiter --no-binary :all:
-          tar -xf jiter-*.tar.gz
-          # Pindahkan isi folder jiter ke root direktori kerja agar mudah dibaca maturin
-          mv jiter-*/* .
-
-      - name: Build Wheel using Maturin Action
-        uses: PyO3/maturin-action@v1
+      - name: Setup Python 3.14
+        uses: actions/setup-python@v5
         with:
-          # Target diganti ke linux biasa karena Termux berjalan di atas kernel Linux ARM64
-          target: aarch64
-          command: build
-          args: --release --interpreter python3.11
+          python-version: '3.14'
 
-      - name: Upload Wheel Artifact
+      - name: Setup Zig (Linker cross-compile Android)
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Install PyPA Build & Maturin
+        run: pip install maturin build
+
+      - name: Download & Build Packages
+        run: |
+          mkdir -p final_wheels
+          
+          for pkg in ${{ github.event.inputs.packages }}; do
+            echo "========================================"
+            echo "Memproses: $pkg"
+            echo "========================================"
+            
+            mkdir -p "build_dir"
+            cd build_dir
+            
+            # Download source dari PyPI
+            pip download --no-binary :all: --no-deps "$pkg"
+            
+            # Ekstrak file (bisa .tar.gz atau .zip)
+            file=$(ls | head -n 1)
+            if [[ $file == *.zip ]]; then
+              unzip "$file"
+            else
+              tar -xzf "$file"
+            fi
+            rm "$file"
+            
+            cd */
+            
+            # Eksekusi build khusus arsitektur Android 64-bit menggunakan Zig
+            maturin build --release --target aarch64-linux-android --zig --out ../../final_wheels -i python
+            
+            cd ../../
+            rm -rf build_dir
+          done
+
+      - name: Upload Artifact Wheels
         uses: actions/upload-artifact@v4
         with:
-          name: jiter-android-wheel
-          path: target/wheels/*.whl
+          name: termux-rust-wheels
+          path: final_wheels/*.whl
