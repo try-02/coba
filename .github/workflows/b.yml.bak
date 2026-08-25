@@ -1,11 +1,11 @@
-name: Build rpds-py Wheel (Termux)
+name: Build Watchfiles Wheel (Termux)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-rpds-py:
-    name: Build rpds-py
+  build-watchfiles:
+    name: Build watchfiles
     runs-on: ubuntu-latest
 
     steps:
@@ -24,8 +24,8 @@ jobs:
       - name: Download & Extract Source Code
         run: |
           mkdir -p src_dir
-          # Mengunduh source code rpds-py >= 0.25.0
-          pip download --no-binary :all: --no-deps "rpds-py>=0.25.0"
+          # Mengunduh source tarball / sdist watchfiles >= 0.20
+          pip download --no-binary :all: --no-deps "watchfiles>=0.20"
           
           archive=$(ls | grep -E '\.(tar\.gz|zip)$' | head -n 1)
           if [[ "$archive" == *.zip ]]; then
@@ -74,5 +74,5 @@ jobs:
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: termux-wheel-rpds-py
+          name: termux-wheel-watchfiles
           path: final_wheels/*.whl
