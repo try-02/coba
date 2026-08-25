@@ -52,19 +52,23 @@ jobs:
       - name: Build Wheel using Maturin Action
         uses: PyO3/maturin-action@v1
         env:
+          # 1. Pastikan NDK lokal diabaikan agar beralih ke compiler ZIG
           ANDROID_NDK_ROOT: ""
           ANDROID_NDK_HOME: ""
+          
+          # 2. Instruksi wajib untuk membuat modul ekstensi CPython murni
           PYO3_BUILD_EXTENSION_MODULE: "1"
+          
+          # 3. Bendera untuk mengabaikan fungsi tautan dinamis yang belum terisi
           RUSTFLAGS: "-C link-arg=-Wl,--unresolved-symbols=ignore-all"
         with:
           working-directory: ${{ steps.extract.outputs.src_dir }}
           target: aarch64-linux-android
           manylinux: off
           command: build
-          # PERBAIKAN: Menggunakan --compatibility linux agar Maturin berhasil melakukan build tanpa konflik tag ganda
-          args: --release --zig --out ../final_wheels -i python3.14 --compatibility linux
+          # PERBAIKAN: Hapus argumen --compatibility, biarkan maturin menentukan secara native
+          args: --release --zig --out ../final_wheels -i python3.14
 
-      # PERBAIKAN UTAMA: Mengubah nama tag dari linux_aarch64 menjadi android_aarch64 agar bisa diinstal langsung di Termux
       - name: Fix Wheel Tag for Termux Android
         run: |
           cd final_wheels
