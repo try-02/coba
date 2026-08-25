@@ -1,7 +1,7 @@
 name: Build Termux Wheels
 
 on:
-  workflow_dispatch: # Memungkinkan Anda menjalankan build secara manual lewat tombol Klik
+  workflow_dispatch: # Tombol manual di tab Actions
 
 jobs:
   build-android-wheel:
@@ -10,38 +10,25 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.14' # Sesuaikan dengan versi Python di Termux Anda
-
-      - name: Install Rust and Android NDK
-        run: |
-          rustup target add aarch64-linux-android
-          # Mengunduh Android NDK minimal untuk compiler Clang Android
-          echo "Installing Android NDK..."
-          sudo apt-get update && sudo apt-get install -y pyo3-pack clang
-
-      - name: Install Build Tools
+      - name: Download Jiter Source
         run: |
           python -m pip install --upgrade pip
-          pip install maturin setuptools wheel
-
-      - name: Clone and Build Target Library (Jiter)
-        env:
-          # Memberitahu compiler untuk membangun biner khusus Android ARM64 Termux
-          CARGO_BUILD_TARGET: aarch64-linux-android
-        run: |
-          # Mengambil source code jiter langsung dari PyPI / Git
+          # Mengunduh source code jiter versi terbaru dari PyPI
           pip download jiter --no-binary :all:
           tar -xf jiter-*.tar.gz
-          cd jiter-*
-          
-          # Build menggunakan maturin khusus untuk target Android
-          maturin build --release --target aarch64-linux-android
+          # Pindahkan isi folder jiter ke root direktori kerja agar mudah dibaca maturin
+          mv jiter-*/* .
+
+      - name: Build Wheel using Maturin Action
+        uses: PyO3/maturin-action@v1
+        with:
+          # Target diganti ke linux biasa karena Termux berjalan di atas kernel Linux ARM64
+          target: aarch64
+          command: build
+          args: --release --interpreter python3.11
 
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
           name: jiter-android-wheel
-          path: jiter-*/target/wheels/*.whl
+          path: target/wheels/*.whl
