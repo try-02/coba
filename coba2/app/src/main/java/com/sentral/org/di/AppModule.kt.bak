@@ -6,8 +6,11 @@ import com.sentral.org.data.PosDatabaseFactory
 import com.sentral.org.data.repository.*
 import com.sentral.org.data.repository.impl.*
 import com.sentral.org.data.service.*
+import com.sentral.org.data.session.DevSesiKasirProvider
+import com.sentral.org.data.session.SesiKasirProvider
 import com.sentral.org.ui.MainViewModel
 import com.sentral.org.ui.screen.pos.CheckoutViewModel
+import com.sentral.org.ui.screen.pos.KasirViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -45,53 +48,34 @@ val appModule = module {
     single<PrinterRepository> { OfflinePrinterRepository(get()) }
     single<ProfilTokoRepository> { OfflineProfilTokoRepository(get()) }
 
-    // 4. Domain Services (semua stateless -> factory murah & aman)
+    // 4. Domain Services
     factory { InventoryMutationService(persediaanDao = get(), ledgerDao = get()) }
     factory { PersediaanService(write = get(), products = get(), stock = get(), ledger = get()) }
-    factory { CartService(write = get(), carts = get(), items = get(), products = get()) }
+    factory { CartService(write = get(), carts = get(), items = get(), products = get(), cashiers = get()) }
     factory { ShiftService(write = get(), cashiers = get(), shifts = get(), cashLedger = get()) }
     factory {
         CheckoutService(
-            write = get(),
-            products = get(),
-            carts = get(),
-            cartItems = get(),
-            cashiers = get(),
-            shifts = get(),
-            transactions = get(),
-            transactionItems = get(),
-            payments = get(),
-            cashLedger = get(),
-            inventory = get(),
+            write = get(), products = get(), carts = get(), cartItems = get(),
+            cashiers = get(), shifts = get(), transactions = get(), transactionItems = get(),
+            payments = get(), cashLedger = get(), inventory = get(),
         )
     }
     factory {
         ReturService(
-            write = get(),
-            transactions = get(),
-            transactionItems = get(),
-            returns = get(),
-            cashiers = get(),
-            shifts = get(),
-            cashLedger = get(),
-            inventory = get(),
+            write = get(), transactions = get(), transactionItems = get(), returns = get(),
+            cashiers = get(), shifts = get(), cashLedger = get(), inventory = get(),
         )
     }
     factory {
         VoidService(
-            write = get(),
-            transactions = get(),
-            transactionItems = get(),
-            returns = get(),
-            cashiers = get(),
-            shifts = get(),
-            payments = get(),
-            cashLedger = get(),
-            inventory = get(),
+            write = get(), transactions = get(), transactionItems = get(), returns = get(),
+            cashiers = get(), shifts = get(), payments = get(), cashLedger = get(), inventory = get(),
         )
     }
 
-    // 5. ViewModels
+    // 5. Sesi & ViewModels
+    single<SesiKasirProvider> { DevSesiKasirProvider(get(), get()) }
     viewModelOf(::CheckoutViewModel)
     viewModelOf(::MainViewModel)
+    viewModelOf(::KasirViewModel)
 }

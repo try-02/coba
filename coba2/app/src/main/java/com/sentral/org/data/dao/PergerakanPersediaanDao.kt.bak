@@ -25,6 +25,4 @@ interface PergerakanPersediaanDao {
         ORDER BY id
     """)
     suspend fun getByRetur(returId: Long): List<PergerakanPersediaanEntity>
-    @Insert
-    suspend fun insertAll(entities: List<PergerakanPersediaanEntity>)
 }

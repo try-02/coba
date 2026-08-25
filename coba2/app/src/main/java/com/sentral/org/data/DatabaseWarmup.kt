@@ -1,11 +1,15 @@
 package com.sentral.org.data
 
 /**
- * Memaksa Room membuka koneksi SQLite sejak awal lewat satu query riil.
- * (Memanggil dao() saja hanya mengambil accessor dan TIDAK membuka koneksi.)
+ * Memaksa Room membuka koneksi SQLite sejak awal lewat satu query riil,
+ * lalu mengisi data awal (seed) jika database masih kosong.
  */
-class DatabaseWarmup(private val database: PosDatabase) {
+class DatabaseWarmup(
+    private val database: PosDatabase,
+    private val seeder: ProductSeeder,
+) {
     suspend fun warm() {
-        database.profilTokoDao().get()
+        database.profilTokoDao().get()   // buka koneksi (perilaku lama dipertahankan)
+        seeder.seedIfEmpty()             // atomik: produk + stok + ledger dalam 1 transaksi
     }
 }
