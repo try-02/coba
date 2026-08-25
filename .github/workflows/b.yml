@@ -8,8 +8,9 @@ jobs:
     name: Build ${{ matrix.package }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        # Anda bisa menambahkan paket Rust lainnya di sini
+        # Isi dengan nama paket Rust yang ingin di-build
         package: 
           - "jiter"
           - "pydantic-core==2.27.2"
@@ -23,37 +24,41 @@ jobs:
       - name: Setup Zig (Linker untuk Termux/Android)
         uses: goto-bus-stop/setup-zig@v2
 
+      - name: Workaround Sysconfig Android
+        run: |
+          # Trik untuk menipu Maturin & PyO3 agar menggunakan konfigurasi dari mesin Host Ubuntu
+          # Karena untuk abi3, isi konfigurasinya sama persis
+          STDLIB_PATH=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
+          INCLUDE_PATH=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
+          
+          echo "MATURIN_PYTHON_SYSCONFIGDATA_DIR=$STDLIB_PATH" >> $GITHUB_ENV
+          echo "PYO3_CROSS_INCLUDE_DIR=$INCLUDE_PATH" >> $GITHUB_ENV
+          echo "PYO3_CROSS_LIB_DIR=$STDLIB_PATH" >> $GITHUB_ENV
+          echo "PYO3_CROSS_PYTHON_VERSION=3.11" >> $GITHUB_ENV
+
       - name: Download & Extract Source Code
         id: extract
         run: |
-          # Download source murni
           pip download --no-binary :all: --no-deps ${{ matrix.package }}
           
-          # Ekstrak file tar.gz atau zip
           file=$(ls | grep -E '\.(tar\.gz|zip)$' | head -n 1)
           if [[ $file == *.zip ]]; then unzip "$file"; else tar -xzf "$file"; fi
           rm "$file"
           
-          # Dapatkan nama folder hasil ekstraksi dan simpan path-nya
           folder_name=$(find . -maxdepth 1 -type d ! -name "." | head -n 1)
           echo "src_dir=$folder_name" >> $GITHUB_OUTPUT
 
       - name: Build Wheel using Maturin Action
         uses: PyO3/maturin-action@v1
-        env:
-          # Variabel rahasia ini wajib agar PyO3 tidak kebingungan mencari sysconfig Android
-          PYO3_CROSS_PYTHON_VERSION: "3.11"
         with:
           working-directory: ${{ steps.extract.outputs.src_dir }}
           target: aarch64-linux-android
           manylinux: off
           command: build
-          # -i python3.11 memastikan wheel dilabeli abi3
           args: --release --zig --out ../final_wheels -i python3.11
 
       - name: Upload Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
-          # Artifact akan dinamai sesuai dengan nama paketnya
           name: termux-wheel-${{ matrix.package }}
           path: final_wheels/*.whl
